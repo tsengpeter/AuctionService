@@ -1,8 +1,8 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: INITIAL → 1.0.1
-Constitution Type: New Constitution (Initial Ratification)
+Version Change: 1.0.1 → 1.1.0
+Constitution Type: MINOR version bump (new principles added)
 
 Principles Defined:
 - I. Backend-First Development (Architecture priority)
@@ -15,6 +15,8 @@ Principles Defined:
 - VIII. API Contract Compliance (Integration standard)
 - IX. Internationalization (i18n default: zh-TW)
 - X. Performance & Optimization (Cross-cutting)
+- XI. Traditional Chinese Documentation (NON-NEGOTIABLE) [NEW]
+- XII. MVP-First Simplicity (NON-NEGOTIABLE) [NEW]
 
 Added Sections:
 + Technology Stack Standards
@@ -32,6 +34,11 @@ Version 1.0.1 Changes (PATCH):
 - Changed frontend framework from Next.js to React (technology clarification)
 - Updated deployment target from Vercel/Netlify to standard static hosting
 - No principle changes, only technology stack refinement
+
+Version 1.1.0 Changes (MINOR):
++ Added Principle XI: Traditional Chinese Documentation (all specs/plans/docs MUST be zh-TW)
++ Added Principle XII: MVP-First Simplicity (incremental delivery, avoid over-design)
+- No breaking changes to existing principles
 
 Follow-up TODOs:
 - None - All placeholders filled
@@ -199,6 +206,43 @@ Follow-up TODOs:
   - Bundle size monitoring (max 300KB initial load)
   - Lighthouse score targets: Performance > 90, Accessibility > 90
 
+### XI. Traditional Chinese Documentation (NON-NEGOTIABLE)
+
+**MUST** write all specifications, plans, and user-facing documentation in Traditional Chinese (zh-TW).
+
+**Rationale**: Traditional Chinese is the primary language for the target Taiwanese user base and development team. Using zh-TW ensures clear communication, reduces translation errors, and aligns documentation with the user interface language.
+
+**Requirements**:
+- All feature specifications (`spec.md`) MUST be written in Traditional Chinese
+- All implementation plans (`plan.md`) MUST be written in Traditional Chinese
+- All task lists (`tasks.md`) MUST be written in Traditional Chinese
+- User-facing documentation (README, quickstart guides) MUST be in Traditional Chinese
+- API documentation (OpenAPI/Swagger) descriptions MUST be in Traditional Chinese
+- Code comments MAY be in English for technical clarity
+- Variable names, function names, and code identifiers MUST remain in English
+- Git commit messages MAY be in English for international collaboration
+- Error messages and user notifications MUST be in Traditional Chinese (via i18n)
+
+### XII. MVP-First Simplicity (NON-NEGOTIABLE)
+
+**MUST** prioritize Minimum Viable Product (MVP) delivery and avoid over-design.
+
+**Rationale**: MVP-first approach delivers value incrementally, validates assumptions early, and prevents wasted effort on unused features. Simplicity reduces complexity, maintenance burden, and time-to-market.
+
+**Requirements**:
+- Each feature MUST define clear MVP scope before full design
+- User stories MUST be prioritized (P1, P2, P3) with P1 defining the MVP
+- Implement only P1 (MVP) user stories first; defer P2/P3 until MVP validated
+- No speculative features ("we might need this later") without user validation
+- Follow YAGNI (You Aren't Gonna Need It) principle strictly
+- Start with simplest solution that meets requirements; refactor when needed
+- Avoid premature optimization (optimize only when performance issues proven)
+- Each sprint delivers working, testable increment (not partial implementations)
+- Design for extensibility, but implement only current requirements
+- Complexity MUST be justified with concrete business value or technical necessity
+- Prefer configuration over customization until customization proven necessary
+- Database schema starts simple; add indexes/optimizations based on actual usage patterns
+
 ## Technology Stack Standards
 
 ### Backend Technology Stack (NON-NEGOTIABLE)
@@ -343,4 +387,4 @@ This constitution supersedes all other development practices. All pull requests 
 - Implementation plans MUST include "Constitution Check" section verifying compliance
 - Complexity or deviations MUST be explicitly justified in plan documentation
 
-**Version**: 1.0.1 | **Ratified**: 2025-10-30 | **Last Amended**: 2025-10-30
+**Version**: 1.1.0 | **Ratified**: 2025-10-30 | **Last Amended**: 2025-10-30
