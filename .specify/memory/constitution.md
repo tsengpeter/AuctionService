@@ -1,7 +1,7 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: INITIAL → 1.0.0
+Version Change: INITIAL → 1.0.1
 Constitution Type: New Constitution (Initial Ratification)
 
 Principles Defined:
@@ -28,6 +28,11 @@ Templates Requiring Updates:
 ✅ spec-template.md - Requirements alignment validated
 ✅ tasks-template.md - Task categorization validated
 
+Version 1.0.1 Changes (PATCH):
+- Changed frontend framework from Next.js to React (technology clarification)
+- Updated deployment target from Vercel/Netlify to standard static hosting
+- No principle changes, only technology stack refinement
+
 Follow-up TODOs:
 - None - All placeholders filled
 
@@ -39,7 +44,7 @@ Follow-up TODOs:
 
 ### I. Backend-First Development
 
-**MUST** prioritize ASP.NET Core 8 backend API development before Next.js frontend implementation.
+**MUST** prioritize ASP.NET Core 8 backend API development before React frontend implementation.
 
 **Rationale**: Backend APIs serve as the foundation and contract for all frontend implementations. Building backend-first ensures:
 - Clear API contracts before frontend work begins
@@ -55,7 +60,7 @@ Follow-up TODOs:
 
 ### II. Complete Frontend-Backend Separation
 
-**MUST** maintain complete decoupling between backend (ASP.NET Core 8) and frontend (Next.js).
+**MUST** maintain complete decoupling between backend (ASP.NET Core 8) and frontend (React).
 
 **Rationale**: Separation enables independent scaling, deployment, technology evolution, and team organization.
 
@@ -209,7 +214,7 @@ Follow-up TODOs:
 
 ### Frontend Technology Stack (NON-NEGOTIABLE)
 
-- **Framework**: Next.js (latest stable)
+- **Framework**: React (latest stable) with React Router
 - **Language**: TypeScript (strict mode)
 - **UI Library**: Ant Design
 - **Styling**: SCSS
@@ -218,6 +223,7 @@ Follow-up TODOs:
 - **Testing**: Jest (unit), Playwright (E2E)
 - **Code Quality**: ESLint + Prettier
 - **Monorepo**: NX
+- **Build Tool**: Vite or Webpack
 
 ## User Roles & Permissions
 
@@ -265,6 +271,7 @@ Follow-up TODOs:
 
 **Deliverables**:
 - NX workspace configured with shared libraries
+- React application with routing (React Router)
 - Frontend pages implemented per routing structure
 - Redux state management integrated
 - API client generated from OpenAPI spec
@@ -305,12 +312,12 @@ Follow-up TODOs:
 **Frontend Pipeline**:
 - Triggered on push to `develop`, `master`, or `feature/*` branches
 - Uses NX affected commands (only build/test changed projects)
-- Steps: Install → NX affected:lint → NX affected:test → NX affected:build → Deploy to Vercel/Netlify (staging/production)
+- Steps: Install → NX affected:lint → NX affected:test → NX affected:build → Deploy to static hosting (staging/production)
 
 ### Deployment Targets
 
 - **Backend**: Azure App Service (containerized ASP.NET Core)
-- **Frontend**: Vercel or Netlify (Next.js hosting)
+- **Frontend**: Static hosting (Azure Static Web Apps, Netlify, or similar)
 - **Database**: Azure Database for PostgreSQL
 - **Monitoring**: Sentry for error tracking (backend + frontend)
 
@@ -336,4 +343,4 @@ This constitution supersedes all other development practices. All pull requests 
 - Implementation plans MUST include "Constitution Check" section verifying compliance
 - Complexity or deviations MUST be explicitly justified in plan documentation
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-30 | **Last Amended**: 2025-10-30
+**Version**: 1.0.1 | **Ratified**: 2025-10-30 | **Last Amended**: 2025-10-30
