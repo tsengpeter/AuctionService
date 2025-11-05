@@ -1,13 +1,15 @@
 <!--
 Sync Impact Report:
-- Version change: Initial → 1.0.0
-- New principles established: Code Quality First, Test-Driven Development, User Experience Consistency, Performance Requirements
-- Added sections: Quality Standards, Development Workflow
+- Version change: 1.0.0 → 1.1.0
+- Modified principles: None (kept existing 5 principles)
+- Added sections: Documentation Language (new mandatory requirement)
+- Removed sections: None
 - Templates requiring updates:
-  ✅ plan-template.md - Constitution Check section aligned
-  ✅ spec-template.md - Requirements and acceptance criteria aligned with quality standards
-  ✅ tasks-template.md - Task categorization reflects testing, quality, and performance principles
+  ✅ plan-template.md - Constitution Check updated with language requirement
+  ✅ spec-template.md - Language notice added
+  ✅ tasks-template.md - Documentation tasks note added
 - Follow-up TODOs: None
+- Rationale: MINOR version bump - new mandatory section added without breaking existing principles
 -->
 
 # AuctionService Constitution
@@ -116,6 +118,29 @@ improve system reliability.
 - README files MUST be updated when new features affect setup or usage
 - Breaking changes MUST be documented in CHANGELOG with migration guidance
 
+## Documentation Language
+
+### Traditional Chinese Requirement
+
+All specifications, plans, and user-facing documentation MUST be written in Traditional 
+Chinese (zh-TW):
+
+- Feature specifications (spec.md)
+- Implementation plans (plan.md)
+- Task lists (tasks.md)
+- README and user guides
+- API documentation and usage examples
+- CHANGELOG and release notes
+
+**Exceptions**: Code, code comments, commit messages, and technical variable names use English.
+
+**Rationale**: Ensures team and stakeholders can understand project documentation in their 
+native language, improving communication efficiency and accuracy. Reduces misunderstandings 
+and speeds up review cycles.
+
+**Anti-Pattern**: Avoid mixing languages within a single document (except code blocks). Keep 
+language consistent per document type.
+
 ## Development Workflow
 
 ### Feature Development Process
@@ -164,4 +189,4 @@ MUST comply with these principles in their work.
 
 ### Version History
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-04 | **Last Amended**: 2025-11-04
+**Version**: 1.1.0 | **Ratified**: 2025-11-04 | **Last Amended**: 2025-11-04
