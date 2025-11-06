@@ -7,6 +7,66 @@
 
 ---
 
+## 澄清事項
+
+### Session 2025-11-06
+
+- Q1: 併發控制機制的具體實作策略? → A: 選項 E - Redis 作為主要寫入層 + 非同步批次回寫資料庫
+  - 出價先寫入 Redis (使用 ZADD 等原子操作確保併發安全)
+  - 立即回應使用者 (< 10ms 回應時間)
+  - 背景 Worker 每秒批次讀取 Redis 中的新出價並寫入 PostgreSQL
+  - Redis 啟用 AOF 持久化 (每秒 fsync) 防止資料遺失
+  - 降級策略: Redis 故障時直接寫 DB,犧牲效能保證可用性
+  - 未來可平滑演進到 Kafka 事件流架構 (選項 F)
+
+- Q2: Redis 故障時的降級策略細節? → A: 選項 B - 自動降級 + 自動恢復 + 監控告警
+  - 健康檢查: 每 10 秒執行一次 Redis PING 命令
+  - 降級觸發: 連續 3 次健康檢查失敗,自動切換到 PostgreSQL 直接寫入模式
+  - 降級期間: 出價直接寫入 DB (使用樂觀鎖),回應時間降級到 < 100ms
+  - 自動恢復: Redis 恢復後,健康檢查連續 5 次成功,自動切回 Redis 寫入模式
+  - 監控告警: 降級與恢復事件發送告警通知 (Email/Slack),記錄詳細日誌
+  - 避免抖動: 設定冷卻期 30 秒,防止頻繁切換
+
+- Q3: 背景 Worker 失敗重試與資料恢復策略? → A: 選項 B - 指數退避重試 + 死信佇列 + 人工介入
+  - 重試策略: 指數退避 (1秒、2秒、4秒),最多重試 3 次
+  - 失敗處理: 3 次重試後仍失敗,將出價 ID 移入 Redis `dead_letter_bids` Set
+  - 死信佇列: 記錄 bidId、失敗原因、時間戳、重試次數
+  - 告警機制: 死信佇列有新項目時,發送告警通知運維團隊
+  - 人工介入: 提供管理 API 查詢死信佇列、手動重試、標記為已處理
+  - 資料保護: Redis AOF 確保重啟後死信佇列不遺失
+
+- Q4: 查詢出價歷史時的資料來源優先順序? → A: 選項 B - 優先 Redis,無資料才查 PostgreSQL
+  - 查詢邏輯: 先從 Redis Sorted Set 查詢該商品的出價記錄
+  - Redis 有資料: 直接回傳 (表示尚未同步或部分同步中)
+  - Redis 無資料: 查詢 PostgreSQL (表示已完全同步,Redis 已清除)
+  - 資料生命週期: 出價寫入 Redis → 背景任務寫入 DB → Redis 清除該筆 (或標記為 processed)
+  - 商品結束後: Redis 保留 7 天後過期,之後僅從 PostgreSQL 查詢
+  - 最高出價查詢: 同樣邏輯,優先 Redis Hash,無資料才查 DB
+
+- Q5: 使用者出價記錄查詢的資料來源策略? → A: 選項 C - 統一從 PostgreSQL 查詢
+  - 查詢「我的出價記錄」API 統一從 PostgreSQL 查詢
+  - 理由: 需要跨多個商品查詢,且需要商品資訊(標題、狀態),DB 查詢更高效
+  - 接受延遲: 最新出價可能有最多 1 秒的同步延遲 (背景任務執行週期)
+  - 簡化邏輯: 避免遍歷多個商品的 Redis 資料,降低複雜度
+  - 查詢效能: 利用 (bidderId, bidAt DESC) 索引,確保 < 200ms 回應時間
+
+- Q6: 出價通知功能的實作策略? → A: 選項 B - 前端輪詢 (保留未來 WebSocket 升級路徑)
+  - 不實作 WebSocket/SignalR 推送,採用前端輪詢機制
+  - 前端使用 `GET /api/auctions/{id}/highest-bid` API,每 3-5 秒輪詢一次
+  - 理由: 簡化架構,避免引入額外基礎設施 (SignalR、Redis Pub/Sub)
+  - 可接受性: 3-5 秒延遲對拍賣場景可接受 (非即時聊天)
+  - 未來演進: API 設計保持不變,可在不破壞現有功能下加入 WebSocket 推送
+  - 效能考量: Redis 快取確保輪詢查詢 < 50ms,不造成伺服器負擔
+
+- Q7: 商品結束後得標者通知的職責劃分? → A: 選項 C - Auction Service 負責協調,Bidding Service 僅提供查詢
+  - Bidding Service 職責: 僅提供 `GET /api/auctions/{id}/highest-bid` API 供查詢得標者
+  - Auction Service 職責: 商品結束時呼叫 Bidding Service 查詢得標者,取得 bidderId
+  - 通知職責: Auction Service 將得標資訊傳遞給 Notification Service (未來新增服務)
+  - 職責劃分: Bidding Service 專注競標邏輯,不涉及通知或商品狀態管理
+  - 解耦設計: 各服務職責單一,未來 Notification Service 統一處理所有通知 (Email/推播/簡訊)
+
+---
+
 ## 概述
 
 ### 目的
@@ -183,18 +243,30 @@
 - 驗證出價者 != 商品擁有者
 
 ### FR-004: 併發控制
-- 使用樂觀鎖 (Optimistic Locking) 或分散式鎖
-- 確保同一商品同時只有一個出價交易成功
-- 失敗的出價回傳 409 Conflict
+- 使用 Redis 原子操作 (ZADD, INCR, WATCH/MULTI/EXEC) 確保併發安全
+- 出價資料結構: Sorted Set (key: `auction:{auctionId}:bids`, score: amount, member: `{bidId}:{timestamp}:{bidderId}`)
+- 最高出價: `auction:{auctionId}:highest_bid` (Hash 類型,包含 bidId, amount, bidderId, bidAt)
+- 併發場景: 多筆出價同時進來時,Redis 原子操作保證只有金額最高的成為最高出價
+- 背景任務: 每秒執行一次,批次讀取 Redis 中標記為 pending 的出價並寫入 PostgreSQL
+- 寫入成功後更新 Redis 標記為 processed (或從 pending set 移除)
+- 降級機制: Redis 不可用時,切換為直接寫入 PostgreSQL (使用樂觀鎖作為後備)
 
 ### FR-005: 出價歷史紀錄
-- 所有出價均永久保存
-- 包含: bidId, auctionId, bidderId, amount, bidAt, rowVersion
-- 索引: auctionId + bidAt (降序)
+- 所有出價先寫入 Redis Sorted Set,立即可查詢
+- 背景 Worker 非同步批次寫入 PostgreSQL 永久保存
+- PostgreSQL 儲存欄位: bidId, auctionId, bidderId, amount, bidAt, createdAt
+- 索引: auctionId + bidAt (降序), bidderId + bidAt (降序)
+- Redis TTL: 商品結束時間 + 7 天 (之後僅從 DB 查詢)
+- 寫入失敗重試: 指數退避 (1s, 2s, 4s),最多 3 次
+- 死信佇列: 重試失敗後移入 `dead_letter_bids` Set,記錄 bidId、錯誤原因、時間戳
 
 ### FR-006: 查詢出價歷史 API
 - **端點**: `GET /api/auctions/{auctionId}/bids`
 - **查詢參數**: `page`, `pageSize` (預設 20)
+- **查詢邏輯**:
+  1. 先查詢 Redis Sorted Set: `auction:{auctionId}:bids`
+  2. 如果 Redis 有資料,直接回傳 (尚未完全同步)
+  3. 如果 Redis 無資料,查詢 PostgreSQL (已同步完成)
 - **回應**:
   ```json
   {
@@ -215,6 +287,9 @@
 ### FR-007: 查詢使用者出價記錄 API
 - **端點**: `GET /api/me/bids`
 - **查詢參數**: `status` (all/active/won/lost), `page`, `pageSize`
+- **查詢邏輯**: 統一從 PostgreSQL 查詢 (WHERE bidderId = currentUserId)
+- **JOIN 商品資訊**: 需要跨服務呼叫 Auction Service 或快取商品資料 (標題、狀態)
+- **延遲說明**: 最新出價可能有最多 1 秒同步延遲 (背景任務週期)
 - **回應**:
   ```json
   {
@@ -241,13 +316,19 @@
 - 實作快取機制減少跨服務呼叫
 
 ### FR-009: 最高出價快取
-- 使用 Redis 快取每個商品的最高出價
+- 使用 Redis Hash 儲存每個商品的最高出價
 - Key: `auction:{auctionId}:highest_bid`
+- Fields: bidId, bidderId, amount, bidAt
+- 出價成功時,使用 Redis Lua Script 原子性檢查並更新最高出價
 - TTL: 商品結束時間 + 1 天
-- 出價成功時更新快取
+- 查詢優先順序: Redis Hash → Redis Sorted Set ZREVRANGE → PostgreSQL
 
 ### FR-010: 查詢最高出價 API
 - **端點**: `GET /api/auctions/{auctionId}/highest-bid`
+- **查詢邏輯**:
+  1. 先查詢 Redis Hash: `auction:{auctionId}:highest_bid`
+  2. 如果 Redis 有資料,直接回傳
+  3. 如果 Redis 無資料,查詢 PostgreSQL (SELECT * FROM Bids WHERE auctionId = ? ORDER BY amount DESC LIMIT 1)
 - **回應**:
   ```json
   {
@@ -289,19 +370,36 @@
   ```
 
 ### FR-013: 資料庫設計
-**Bids 資料表**:
+**Bids 資料表** (PostgreSQL):
 - bidId (UUID, PK)
-- auctionId (UUID, FK, indexed)
+- auctionId (UUID, indexed)
 - bidderId (UUID, indexed)
 - amount (decimal)
 - bidAt (timestamp, indexed)
-- rowVersion (for optimistic locking)
-- createdAt (timestamp)
+- createdAt (timestamp) - 實際寫入 DB 的時間
+- syncedFromRedis (boolean) - 標記是否從 Redis 同步而來
 
-**索引**:
+**Redis 資料結構**:
+1. Sorted Set: `auction:{auctionId}:bids`
+   - Score: amount (decimal as string)
+   - Member: `{bidId}:{timestamp}:{bidderId}`
+   
+2. Hash: `auction:{auctionId}:highest_bid`
+   - Fields: bidId, bidderId, amount, bidAt
+   
+3. Set: `pending_bids` 
+   - Members: bidId (待寫入 DB 的出價 ID)
+
+4. Set: `dead_letter_bids`
+   - Members: bidId (重試失敗的出價 ID)
+   
+5. Hash: `dead_letter_bid:{bidId}`
+   - Fields: bidId, error, timestamp, retryCount
+
+**PostgreSQL 索引**:
 - (auctionId, bidAt DESC): 出價歷史查詢
 - (bidderId, bidAt DESC): 使用者出價記錄查詢
-- (auctionId, amount DESC): 最高出價查詢
+- (auctionId, amount DESC): 最高出價備援查詢
 
 ### FR-014: 錯誤處理
 - 400 Bad Request: 出價金額不足、驗證失敗
@@ -310,20 +408,38 @@
 - 404 Not Found: 商品不存在
 - 409 Conflict: 商品已結束、併發衝突
 - 500 Internal Server Error: 系統異常
-- 503 Service Unavailable: 依賴服務不可用
+- 503 Service Unavailable: Redis 與 PostgreSQL 均不可用
+
+### FR-014-1: Redis 降級機制
+- **健康檢查**: 獨立 HostedService 每 10 秒執行 `PING` 命令
+- **降級觸發**: 連續 3 次失敗 → 設定全域標記 `UsePostgreSQLFallback = true`
+- **降級模式**: 出價 API 檢查標記,為 true 時直接寫 PostgreSQL (使用 EF Core 樂觀鎖)
+- **自動恢復**: 連續 5 次健康檢查成功 → 設定 `UsePostgreSQLFallback = false`
+- **冷卻期**: 狀態切換後 30 秒內不再切換,防止抖動
+- **告警**: 降級/恢復事件透過 ILogger 記錄 Warning 級別,並發送通知 (Email/Slack)
+- **監控指標**: 記錄當前模式 (Redis/PostgreSQL)、切換次數、降級持續時間
 
 ### FR-015: 日誌與監控
 - 記錄所有出價嘗試 (成功與失敗)
 - 記錄併發衝突次數
 - 記錄跨服務呼叫延遲
 - 記錄快取命中率
+- 記錄 Redis 降級/恢復事件 (Warning 級別)
+- 記錄背景 Worker 同步延遲 (正常 < 1 秒)
+- 記錄死信佇列大小與新增事件 (Error 級別)
 - 使用結構化日誌 (JSON 格式)
+- 提供 Prometheus metrics: bid_requests_total, bid_latency_seconds, redis_fallback_active, dead_letter_queue_size
 
 ### FR-016: 效能優化
-- 最高出價查詢優先使用 Redis
-- 使用者出價記錄查詢支援索引
-- 跨服務呼叫實作快取與超時控制
-- 資料庫連線池配置: min 10, max 50
+- 出價寫入: 優先寫 Redis (< 10ms),非同步批次寫 PostgreSQL
+- 最高出價查詢: 優先 Redis Hash,無資料才查 PostgreSQL
+- 出價歷史查詢: 優先 Redis Sorted Set,無資料才查 PostgreSQL
+- 使用者出價記錄: 統一從 PostgreSQL 查詢 (利用 bidderId 索引)
+- 跨服務呼叫實作快取與超時控制 (timeout: 100ms)
+- Redis 連線池配置: min 10, max 100
+- PostgreSQL 連線池配置: min 10, max 50
+- 背景 Worker 批次大小: 每次最多處理 1000 筆出價
+- Redis 資料生命週期: 出價寫入 → 同步 DB → 清除或標記 processed → 商品結束後保留 7 天 → 過期刪除
 
 ### FR-017: 安全性
 - 所有 API 需要 JWT 驗證
@@ -366,8 +482,10 @@
 - [ ] 併發衝突正確回傳 409 錯誤
 
 ### SC-004: 資料一致性
-- [ ] 所有出價永久保存,無遺失
-- [ ] 最高出價快取與資料庫一致
+- [ ] 所有出價永久保存於 PostgreSQL,無遺失
+- [ ] Redis 與 PostgreSQL 最終一致性 (背景任務同步延遲 < 1 秒)
+- [ ] Redis AOF 持久化確保重啟後資料可恢復
+- [ ] 背景 Worker 失敗重試機制正確運作
 - [ ] 跨服務資料同步正確
 
 ### SC-005: 測試覆蓋率
@@ -396,18 +514,23 @@
 
 ### 架構決策
 - **語言/框架**: ASP.NET Core 8
-- **資料庫**: PostgreSQL
-- **快取**: Redis
-- **併發控制**: Entity Framework Core Optimistic Concurrency
+- **主要儲存**: Redis (寫入層) + PostgreSQL (持久層)
+- **快取策略**: Write-Behind Cache (先寫 Redis,非同步回寫 DB)
+- **併發控制**: Redis 原子操作 (ZADD, Lua Script) + PostgreSQL 降級時使用樂觀鎖
+- **背景任務**: IHostedService 實作批次同步 Worker
 - **跨服務通訊**: HTTP REST API (使用 HttpClient)
+- **Redis 持久化**: AOF (appendfsync everysec)
 
 ### 依賴服務
 - **Auction Service**: 查詢商品資訊、狀態、擁有者
 - **Member Service**: 驗證 JWT Token (間接依賴)
+- **未來依賴**: Notification Service (由 Auction Service 呼叫,通知得標者)
 
 ### 限制
 - 不支援出價撤回
 - 不支援代理出價 (Proxy Bidding)
+- 不支援即時推送通知 (WebSocket/SignalR),採用前端輪詢機制
+- 不負責得標者通知 (由 Auction Service 協調,未來由 Notification Service 發送)
 - 歷史查詢僅支援時間排序,不支援金額排序
 
 ---
@@ -415,21 +538,25 @@
 ## 風險與假設
 
 ### 風險
-- **R-001**: Redis 故障導致最高出價查詢效能下降 → 降級到資料庫查詢
-- **R-002**: 高併發導致資料庫鎖競爭 → 監控衝突率,必要時調整鎖策略
-- **R-003**: Auction Service 不可用 → 快取商品資訊,設定合理超時
+- **R-001**: Redis 故障導致出價服務完全不可用 → 降級到直接寫 PostgreSQL,犧牲效能保證可用性
+- **R-002**: 背景 Worker 故障導致 Redis 資料未同步到 DB → 實作健康檢查,監控同步延遲,Worker 自動重啟
+- **R-003**: 高併發導致 Redis 連線耗盡 → 連線池配置 max 100,監控連線使用率
+- **R-004**: Redis 與 DB 資料不一致 → AOF 持久化 + 對帳機制 (定期比對 Redis 與 DB)
+- **R-005**: Auction Service 不可用 → 快取商品資訊,設定合理超時 (100ms)
 
 ### 假設
 - **A-001**: Auction Service 提供查詢商品資訊的 API
-- **A-002**: Redis 可用性 > 99.9%
+- **A-002**: Redis 可用性 > 99.9%,啟用 AOF 持久化
 - **A-003**: 出價頻率不超過 1000 次/秒 (單一商品)
+- **A-004**: 背景 Worker 每秒同步延遲可接受 (最終一致性)
+- **A-005**: PostgreSQL 能承受每秒 1000 筆批次寫入
 
 ---
 
 ## 待解決問題
-- Q-001: 是否需要實作出價通知功能 (WebSocket/SignalR)?
-- Q-002: 商品結束後,如何通知得標者? (跨服務或事件驅動?)
-- Q-003: 是否需要實作出價上限 (max bid per user)?
+- ~~Q-001: 是否需要實作出價通知功能 (WebSocket/SignalR)?~~ → 已澄清 (Q6): 使用前端輪詢
+- ~~Q-002: 商品結束後,如何通知得標者? (跨服務或事件驅動?)~~ → 已澄清 (Q7): Auction Service 負責協調
+- Q-003: 是否需要實作出價上限 (max bid per user)? → 範圍外,未來需求時再評估
 
 ---
 
