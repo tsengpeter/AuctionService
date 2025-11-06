@@ -12,7 +12,16 @@
 
 
 
-**注意**: 根據專案準則，本文件必須使用繁體中文撰寫。## User Scenarios & Testing *(mandatory)*
+**注意**: 根據專案準則，本文件必須使用繁體中文撰寫。
+
+## 澄清事項
+
+### Session 2025-11-06
+
+- Q: 當使用者在多個裝置同時登入，一個裝置變更密碼後，其他裝置的 JWT 與 Refresh Token 如何處理？ → A: 立即撤銷所有現有的 Refresh Token（強制所有裝置重新登入）
+- Q: 使用者名稱允許哪些字元類型？ → A: 僅允許字母（英文、中文等語言字元）和空格，不允許數字、底線、連字號（避免建立子帳號形式如 john01）
+
+## User Scenarios & Testing *(mandatory)*
 
 
 
@@ -162,23 +171,13 @@
 
   Fill them out with the right functional requirements.
 
-### 邊界情況-->
+### 邊界情況
 
+- 當短時間內有大量註冊請求（潛在攻擊），系統如何保護？
+- 當使用者忘記密碼時，如何重設密碼？（目前規格未涵蓋此功能）
+- 當電子郵件服務無法使用時，註冊流程如何處理？（如需發送驗證信）
 
-
-- 當使用者在多個裝置同時登入，一個裝置變更密碼後，其他裝置的 JWT 與 Refresh Token 如何處理？### Functional Requirements
-
-- 當使用者嘗試使用特殊字元或超長字串作為使用者名稱時，系統如何驗證與處理？
-
-- 當短時間內有大量註冊請求（潛在攻擊），系統如何保護？- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-
-- 當使用者忘記密碼時，如何重設密碼？（目前規格未涵蓋此功能）- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-
-- 當電子郵件服務無法使用時，註冊流程如何處理？（如需發送驗證信）- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-
-## 需求 *(必填)*- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+## 需求 *(必填)*
 
 
 
@@ -191,7 +190,8 @@
 - **FR-002**: 系統必須驗證電子郵件格式符合標準格式（包含 @ 符號與有效網域）- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
 - **FR-003**: 系統必須驗證電子郵件的唯一性，不允許重複註冊
-
+- **FR-003-1**: 系統必須驗證使用者名稱僅包含字母（英文、繁體中文等語言字元）和空格，不允許數字、底線、連字號等特殊字元
+- **FR-003-2**: 系統必須驗證使用者名稱長度為 3-50 字元（中文字元計為 1 字元）
 - **FR-004**: 系統必須驗證密碼長度至少 8 個字元### Key Entities *(include if feature involves data)*
 
 - **FR-005**: 系統必須將密碼加密儲存，不可儲存明文密碼
@@ -216,8 +216,8 @@
 
 - **FR-015**: 系統必須在更新電子郵件時驗證新電子郵件的唯一性
 
-- **FR-016**: 系統必須允許使用者變更密碼，需驗證舊密碼正確性### Measurable Outcomes
-
+- **FR-016**: 系統必須允許使用者變更密碼，需驗證舊密碼正確性
+- **FR-016-1**: 系統必須在使用者變更密碼時，立即撤銷該使用者所有現有的 Refresh Token（強制所有裝置重新登入）
 - **FR-017**: 系統必須記錄每個使用者的建立時間與最後更新時間
 
 - **FR-018**: 系統必須確保使用者只能修改自己的資料，不可修改其他使用者的資料- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
@@ -247,7 +247,6 @@
 ## 假設
 
 - 假設系統初期不需要電子郵件驗證功能（使用者註冊後即可使用，不需驗證電子郵件）
-- 假設使用者名稱長度限制為 3-50 字元
 - 假設不需要實作密碼重設功能（忘記密碼）
 - 假設不需要實作多因素驗證（2FA）
 - 假設 JWT 使用標準的 HS256 或 RS256 演算法簽章
