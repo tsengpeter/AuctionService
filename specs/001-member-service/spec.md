@@ -21,6 +21,15 @@
 - Q: 當使用者在多個裝置同時登入，一個裝置變更密碼後，其他裝置的 JWT 與 Refresh Token 如何處理？ → A: 立即撤銷所有現有的 Refresh Token（強制所有裝置重新登入）
 - Q: 使用者名稱允許哪些字元類型？ → A: 僅允許字母（英文、中文等語言字元）和空格，不允許數字、底線、連字號（避免建立子帳號形式如 john01）
 
+### Session 2025-11-14
+
+- Q: 密碼雜湊演算法要使用哪一種 (PBKDF2/bcrypt/Argon2)? → A: bcrypt，並將密碼與雪花ID組合後雜湊 (bcrypt(password + snowflakeId))，提供額外的安全層
+- Q: 使用者主鍵 (ID) 使用何種生成方式? → A: 雪花ID (Snowflake ID, 64-bit Long)，確保分散式環境下的唯一性與高效能
+- Q: 雪花ID使用自行實作還是現成套件? → A: 使用成熟的 .NET 套件 (如 IdGen 或 Snowflake.Core)，避免實作錯誤並減少維護成本
+- Q: 電子郵件唯一性驗證的訊息揭露策略? → A: 註冊時明確告知「此電子郵件已被使用」，登入時使用模糊訊息「電子郵件或密碼錯誤」(平衡安全性與使用者體驗)
+- Q: JWT 存取權杖的有效期限? → A: 15 分鐘 (業界標準，平衡安全性與使用者體驗)
+- Q: JWT 使用哪種演算法 (HS256 對稱金鑰 vs RS256 非對稱金鑰)? → A: HS256 對稱金鑰 (HMAC-SHA256，驗證快速，適合內部微服務)
+
 ## User Scenarios & Testing *(mandatory)*
 
 
@@ -176,6 +185,8 @@
 - 當短時間內有大量註冊請求（潛在攻擊），系統如何保護？
 - 當使用者忘記密碼時，如何重設密碼？（目前規格未涵蓋此功能）
 - 當電子郵件服務無法使用時，註冊流程如何處理？（如需發送驗證信）
+- 註冊功能仍可被用於枚舉已註冊的電子郵件（安全性與使用者體驗的取捨，優先使用者體驗）
+- 登入功能不洩漏帳號存在資訊（統一回傳模糊錯誤訊息）
 
 ## 需求 *(必填)*
 
@@ -184,6 +195,12 @@
 ### 功能需求*Example of marking unclear requirements:*
 
 
+
+### 功能需求*Example of marking unclear requirements:*
+
+- **FR-000**: 系統必須使用雪花ID (Snowflake ID, 64-bit Long) 作為使用者的主鍵
+- **FR-000-1**: 系統必須使用成熟的 .NET 雪花ID套件 (如 IdGen 或 Snowflake.Core) 生成唯一識別碼
+- **FR-000-2**: 雪花ID生成器必須配置 Worker ID 與 Datacenter ID 以確保分散式環境下的唯一性
 
 - **FR-001**: 系統必須允許使用者提供電子郵件、密碼與使用者名稱進行註冊- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 
@@ -195,14 +212,22 @@
 - **FR-004**: 系統必須驗證密碼長度至少 8 個字元### Key Entities *(include if feature involves data)*
 
 - **FR-005**: 系統必須將密碼加密儲存，不可儲存明文密碼
+- **FR-005-1**: 系統必須使用 bcrypt 演算法進行密碼雜湊
+- **FR-005-2**: 系統必須將密碼與使用者的雪花ID組合後進行雜湊: bcrypt(password + snowflakeId)，提供額外的安全保護
+- **FR-005-3**: bcrypt 的 work factor (成本因子) 建議設定為 12（可根據安全需求調整）
 
 - **FR-006**: 系統必須在註冊成功後自動讓使用者登入，回傳 JWT 與 Refresh Token- **[Entity 1]**: [What it represents, key attributes without implementation]
 
 - **FR-007**: 系統必須允許使用者使用電子郵件與密碼進行登入- **[Entity 2]**: [What it represents, relationships to other entities]
 
 - **FR-008**: 系統必須在登入成功後回傳 JWT 存取權杖（有效期限 15 分鐘）與 Refresh Token（有效期限 7 天）
+- **FR-008-1**: JWT 必須使用 HS256 對稱金鑰演算法 (HMAC-SHA256) 進行簽章
+- **FR-008-2**: JWT 密鑰必須透過環境變數或密鑰管理服務取得，不可寫入程式碼或設定檔
 
-- **FR-009**: 系統必須在登入失敗時顯示明確的錯誤訊息（但不洩漏帳號是否存在的資訊）## Success Criteria *(mandatory)*
+- **FR-009**: 系統必須在登入失敗時顯示明確的錯誤訊息（但不洩漏帳號是否存在的資訊）
+- **FR-009-1**: 系統必須在登入失敗時（無論是電子郵件不存在或密碼錯誤）統一回傳「電子郵件或密碼錯誤」訊息
+- **FR-009-2**: 系統必須在註冊時，若電子郵件已存在則明確回傳「此電子郵件已被使用」訊息（註冊情境優先使用者體驗）
+- **FR-009-3**: 系統不得提供獨立的電子郵件存在性檢查API端點（避免帳號枚舉攻擊）## Success Criteria *(mandatory)*
 
 - **FR-010**: 系統必須允許使用者使用有效的 Refresh Token 換取新的 JWT
 
@@ -228,8 +253,8 @@
 
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 
-- **使用者 (User)**: 代表系統的會員，包含唯一識別碼、電子郵件（唯一）、加密後的密碼、使用者名稱、建立時間、更新時間
-- **更新權杖 (RefreshToken)**: 代表使用者的長期身份驗證權杖，包含權杖字串、所屬使用者識別碼、過期時間、是否已撤銷狀態
+- **使用者 (User)**: 代表系統的會員，包含雪花ID（64-bit Long，主鍵）、電子郵件（唯一）、bcrypt雜湊後的密碼（結合雪花ID）、使用者名稱、建立時間、更新時間
+- **更新權杖 (RefreshToken)**: 代表使用者的長期身份驗證權杖，包含權杖字串、所屬使用者識別碼（雪花ID）、過期時間、是否已撤銷狀態
 
 ## 成功指標 *(必填)*
 
@@ -249,8 +274,10 @@
 - 假設系統初期不需要電子郵件驗證功能（使用者註冊後即可使用，不需驗證電子郵件）
 - 假設不需要實作密碼重設功能（忘記密碼）
 - 假設不需要實作多因素驗證（2FA）
-- 假設 JWT 使用標準的 HS256 或 RS256 演算法簽章
-- 假設系統使用標準的密碼雜湊演算法（如 bcrypt、PBKDF2 或 Argon2）
+- 假設 JWT 使用 HS256 對稱金鑰演算法簽章，所有微服務共享相同密鑰
+- 假設 JWT 密鑰透過環境變數或密鑰管理服務取得，不寫入程式碼或設定檔
+- 假設系統使用 bcrypt 演算法（work factor 12）進行密碼雜湊，並與雪花ID組合
+- 假設雪花ID生成使用成熟的 .NET 套件（IdGen 或 Snowflake.Core），需配置 Worker ID 與 Datacenter ID
 - 假設不需要記錄使用者登入歷史
 - 假設 Refresh Token 在使用後不會自動輪換（refresh token rotation）
 
