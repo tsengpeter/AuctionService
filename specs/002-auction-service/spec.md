@@ -29,6 +29,59 @@
   - 對查詢效能影響極小,現代資料庫對時間比較運算效能優異
   - 在 EndTime 欄位建立索引以優化篩選查詢 (例如查詢所有進行中商品)
 
+### Session 2025-11-17
+
+- Q: 商品 (Auction) 的主鍵 (ID) 使用何種生成方式? → A: 雪花ID (Snowflake ID, 64-bit Long)，與 Member Service 保持一致，使用 IdGen 或 Snowflake.Core 套件生成
+
+- Q: 並發編輯商品的處理策略? → A: 樂觀鎖 (Optimistic Locking)，使用 EF Core 的 RowVersion 欄位
+  - 在 Auction 實體新增 `[Timestamp]` 或 `byte[] RowVersion` 欄位，EF Core 自動管理版本號
+  - 更新商品時，EF Core 自動檢查 RowVersion 是否與資料庫一致，若不一致則拋出 DbUpdateConcurrencyException
+  - API 層捕捉並發異常，返回 409 Conflict 狀態碼與明確錯誤訊息 (例如: "商品已被其他使用者修改，請重新載入後再試")
+  - 前端接收 409 後，重新載入最新資料並提示使用者重新編輯
+  - 優點: 無鎖等待，適合低衝突場景 (商品編輯為低頻操作)，EF Core 原生支援，效能最佳
+  - ResponseCodes 新增 AUCTION_CONCURRENT_EDIT (409) 回應碼
+
+- Q: Bidding Service 暫時無法回應時的處理策略? → A: 快取兜底 (Cache Fallback)，優先呼叫 Bidding Service，失敗則返回快取的最後已知出價並標註「可能過時」
+  - 實作機制: 使用 IDistributedCache (Redis) 儲存每個商品的最後已知最高出價資訊 (包含出價金額、出價時間、出價者ID)
+  - 快取更新策略: 每次成功呼叫 Bidding Service 後，將最新出價資訊寫入快取，設定適當 TTL (例如 5 分鐘)
+  - 降級流程: 
+    1. 優先嘗試呼叫 Bidding Service API (設定 Timeout，例如 3 秒)
+    2. 若呼叫成功，返回最新出價並更新快取
+    3. 若呼叫失敗 (Timeout / 5xx 錯誤)，從快取讀取最後已知出價
+    4. 若快取命中，返回出價資訊並在 metadata 標註 `"dataSource": "cache", "message": "出價資訊可能過時，Bidding Service 暫時無法連線"`
+    5. 若快取未命中 (新商品或快取過期)，返回 null 並提示「出價資訊暫時無法載入」
+  - 注意事項: 前端必須明確顯示資料來源 (即時/快取)，避免使用者基於過時資訊做出價決策
+  - 出價操作: 出價功能由 Bidding Service 負責，若 Bidding Service 不可用，出價操作應直接返回失敗訊息 (不可使用快取資料進行出價)
+  - ResponseCodes 新增 BIDDING_SERVICE_UNAVAILABLE (503) 回應碼
+
+- Q: 商品搜尋功能的實作策略? → A: PostgreSQL 全文檢索 (Full-Text Search)，使用 tsvector 與 GIN 索引，保留未來遷移至 Elasticsearch 的彈性
+  - 實作機制: 
+    1. 在 Auction 表新增 `SearchVector` 欄位 (tsvector 類型)，儲存 Title 與 Description 的全文檢索向量
+    2. 建立 GIN 索引: `CREATE INDEX idx_auction_search ON Auction USING GIN(SearchVector)`
+    3. 使用 PostgreSQL trigger 或 EF Core 攔截器自動更新 SearchVector (當 Title 或 Description 變更時)
+    4. 搜尋查詢: `WHERE SearchVector @@ to_tsquery('english', 'keyword')` 或使用 `plainto_tsquery` 簡化語法
+    5. 支援中文分詞: 考慮使用 `zhparser` 擴充套件或 PostgreSQL 13+ 內建的 simple 分詞器
+  - EF Core 整合: 使用 `EF.Functions.ToTsVector()` 與 `EF.Functions.ToTsQuery()` 進行 LINQ 查詢
+  - 排序策略: 使用 `ts_rank()` 函數計算相關性分數，依分數排序搜尋結果
+  - 未來擴充: 若搜尋需求升級 (如 fuzzy search、同義詞、進階排序)，可遷移至 Elasticsearch，保持 API 介面不變
+  - 注意事項: 初期專注基本關鍵字搜尋，避免過度設計
+
+- Q: 商品圖片上傳與儲存策略? → A: 雲端物件儲存 (AWS S3 / Azure Blob Storage 或 MinIO)，資料庫僅存圖片 URL
+  - 實作機制:
+    1. 使用 AWS S3 SDK (AWSSDK.S3) 或 Azure.Storage.Blobs 套件與雲端儲存互動
+    2. 圖片上傳流程: 前端 → API Gateway → Auction Service → 雲端儲存 (S3/Blob)
+    3. 檔案命名規則: `auctions/{auctionId}/{timestamp}_{originalFileName}` 確保唯一性與可追溯性
+    4. 資料庫設計: Auction 表新增 `ImageUrls` 欄位 (JSON 陣列或 TEXT[])，儲存完整 URL (例如: `https://s3.amazonaws.com/bucket/auctions/123/image.jpg`)
+    5. 圖片驗證: 檢查檔案大小 (建議上限 5MB)、檔案格式 (僅允許 jpg/jpeg/png/webp)、MIME type 驗證
+    6. 權限設定: Bucket 設定為 public-read (公開讀取) 或使用 presigned URL (臨時授權)
+  - CDN 整合: 透過 CloudFront (AWS) 或 Azure CDN 加速圖片訪問，降低延遲與成本
+  - 過渡方案: 初期可使用 MinIO (自架 S3 相容儲存) 降低成本，未來無痛遷移至 AWS S3/Azure Blob
+  - 圖片刪除策略: 當商品刪除時，同步刪除雲端儲存的圖片 (或使用 lifecycle policy 自動清理過期檔案)
+  - 注意事項: 
+    - 上傳失敗時需回滾 (若已上傳部分圖片需刪除)
+    - 考慮多圖上傳場景 (例如: 每個商品最多 5 張圖片)
+    - ImageUrls 欄位設計需考慮圖片順序 (例如: 第一張為主圖)
+
 ## 使用者情境與測試 *(必填)*
 
 ### 使用者故事 1 - 瀏覽與搜尋拍賣商品 (優先順序: P1)
@@ -122,6 +175,21 @@
 
 ### 功能需求
 
+- **FR-000**: 系統必須使用雪花ID (Snowflake ID, 64-bit Long) 作為商品的主鍵
+- **FR-000-1**: 系統必須使用成熟的 .NET 雪花ID套件 (如 IdGen 或 Snowflake.Core) 生成商品唯一識別碼
+- **FR-000-2**: 雪花ID生成器必須配置 Worker ID 與 Datacenter ID 以確保分散式環境下的唯一性 (與 Member Service 共用配置策略)
+- **FR-000-3**: Auction 實體必須包含 RowVersion 欄位 (EF Core [Timestamp] 屬性) 以支援樂觀鎖並發控制
+- **FR-000-4**: 更新商品時若發生並發衝突 (DbUpdateConcurrencyException)，系統必須返回 409 Conflict 狀態碼與 AUCTION_CONCURRENT_EDIT 回應碼
+- **FR-000-5**: 系統必須使用 IDistributedCache (Redis) 快取 Bidding Service 的最高出價資訊，作為服務不可用時的降級方案
+- **FR-000-6**: 呼叫 Bidding Service 時必須設定 Timeout (建議 3 秒)，超時或失敗時從快取讀取最後已知出價
+- **FR-000-7**: 快取命中時，API 回應的 metadata 必須標註 dataSource: "cache" 與明確提示訊息，告知資料可能過時
+- **FR-000-8**: Auction 表必須包含 SearchVector 欄位 (tsvector 類型) 並建立 GIN 索引以支援全文檢索
+- **FR-000-9**: 系統必須使用 PostgreSQL trigger 或 EF Core 攔截器自動更新 SearchVector，當 Title 或 Description 變更時同步更新
+- **FR-000-10**: 搜尋結果必須使用 ts_rank() 函數計算相關性分數並依分數排序
+- **FR-000-11**: 商品圖片必須儲存於雲端物件儲存 (AWS S3 / Azure Blob Storage 或 MinIO)，資料庫僅存圖片 URL
+- **FR-000-12**: 圖片上傳時必須驗證檔案大小 (上限 5MB)、檔案格式 (jpg/jpeg/png/webp) 與 MIME type
+- **FR-000-13**: 圖片檔名必須遵循命名規則 `auctions/{auctionId}/{timestamp}_{originalFileName}` 確保唯一性
+- **FR-000-14**: 每個商品最多支援 5 張圖片，ImageUrls 陣列第一張為主圖
 - **FR-001**: 系統必須顯示所有進行中的拍賣商品清單
 - **FR-002**: 系統必須支援按分類篩選商品
 - **FR-003**: 系統必須支援關鍵字搜尋商品名稱與描述
@@ -156,7 +224,7 @@
 
 ### 關鍵實體 *(包含資料相關功能)*
 
-- **拍賣商品 (Auction)**: 代表拍賣平台上的商品,包含唯一識別碼、商品名稱、描述、起標價、分類 ID(外鍵指向 Category)、開始時間、結束時間、建立者使用者 ID、建立時間、更新時間。注意:不儲存 Status 欄位,狀態透過查詢時依據 StartTime 與 EndTime 即時計算
+- **拍賣商品 (Auction)**: 代表拍賣平台上的商品,包含雪花ID (64-bit Long, 主鍵)、商品名稱、描述、起標價、分類 ID(外鍵指向 Category)、開始時間、結束時間、建立者使用者 ID (雪花ID, 外鍵指向 Member Service 的 User)、建立時間、更新時間、RowVersion (byte[], 用於樂觀鎖並發控制)、SearchVector (tsvector, 用於全文檢索)、ImageUrls (JSON 陣列或 TEXT[], 儲存雲端儲存的圖片 URL)。注意:不儲存 Status 欄位,狀態透過查詢時依據 StartTime 與 EndTime 即時計算
 - **商品分類 (Category)**: 代表商品的分類選項,包含唯一識別碼、分類名稱、顯示順序、是否啟用
 - **商品追蹤 (Follow)**: 代表使用者對商品的追蹤關係,包含使用者 ID、商品 ID、建立時間
 - **回應代碼 (ResponseCode)**: 代表 API 回應的狀態代碼與訊息對照表,包含代碼、名稱、繁體中文訊息、英文訊息、分類、嚴重性等級
@@ -178,6 +246,15 @@
 
 ## 假設
 
+- 假設商品主鍵使用雪花ID生成,與 Member Service 的 User ID 使用相同策略,確保系統一致性
+- 假設雪花ID生成使用成熟的 .NET 套件 (IdGen 或 Snowflake.Core),需配置 Worker ID 與 Datacenter ID
+- 假設系統使用 Redis 作為分散式快取，用於儲存 Bidding Service 的最高出價資訊，作為服務降級方案
+- 假設 Bidding Service 呼叫設定 3 秒 Timeout，快取 TTL 設定為 5 分鐘，平衡即時性與容錯性
+- 假設系統使用 PostgreSQL 全文檢索 (tsvector + GIN 索引) 實作搜尋功能，若未來需求升級可遷移至 Elasticsearch
+- 假設搜尋功能初期專注基本關鍵字比對，使用 PostgreSQL 內建分詞器或 zhparser 擴充套件處理中文
+- 假設商品圖片儲存於雲端物件儲存 (AWS S3 / Azure Blob Storage 或 MinIO)，透過 CDN 加速訪問
+- 假設每個商品最多 5 張圖片，檔案大小上限 5MB，支援格式 jpg/jpeg/png/webp
+- 假設圖片上傳失敗時需回滾已上傳的圖片，確保資料一致性
 - 假設商品分類透過 Categories 資料表管理，系統初期預載固定選項（例如：電子產品、家具、收藏品等），保留未來擴充彈性
 - 假設分類管理功能不在本次實作範圍（新增、編輯、刪除分類），僅透過資料庫預載初始資料
 - 假設商品名稱長度限制為 3-200 字元
@@ -186,7 +263,6 @@
 - 假設每個使用者最多可追蹤 500 個商品
 - 假設商品狀態透過查詢時即時計算,不使用背景任務更新
 - 假設 Bidding Service 可用且回應時間在可接受範圍內
-- 假設不需要商品圖片上傳功能
 - 假設不需要商品推薦或個人化功能
 - 假設商品建立後的開始時間為立即（CreatedAt 時間）
 
@@ -194,7 +270,6 @@
 
 以下功能明確不在本次實作範圍內：
 
-- 商品圖片上傳與管理
 - 商品分類的動態管理（新增、編輯、刪除分類）
 - 商品推薦功能
 - 個人化商品推薦
