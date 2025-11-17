@@ -65,6 +65,20 @@
   - 職責劃分: Bidding Service 專注競標邏輯,不涉及通知或商品狀態管理
   - 解耦設計: 各服務職責單一,未來 Notification Service 統一處理所有通知 (Email/推播/簡訊)
 
+### Session 2025-11-17
+
+- Q: Bid (出價) 的主鍵 (ID) 使用何種生成方式? → A: 雪花ID (Snowflake ID, 64-bit Long)，與 Member Service 及 Auction Service 保持一致，使用 IdGen 或 Snowflake.Core 套件生成
+  - 實作機制: 使用 IdGen 或 Snowflake.Core 套件生成 64-bit Long 型態的唯一 ID
+  - 配置要求: 必須配置 Worker ID 與 Datacenter ID，確保分散式環境下的唯一性 (與 Member Service、Auction Service 共用配置策略)
+  - 資料庫設計: Bids 表的 bidId 欄位型態為 BIGINT (PostgreSQL) 或 long (C# Entity)
+  - Redis 儲存: Sorted Set member 格式調整為 `{snowflakeBidId}:{timestamp}:{bidderId}`，利用 Snowflake ID 的時間排序特性
+  - 優點: 
+    - 系統一致性: 與 Member Service (userId) 和 Auction Service (auctionId) 使用相同 ID 策略
+    - 時間排序: ID 本身包含時間戳，天然支援按 ID 排序即為時間排序
+    - 分散式友善: 無需中央協調，適合 Redis + PostgreSQL 雙寫架構
+    - 空間效率: 8 bytes vs GUID 的 16 bytes，節省 50% 儲存空間與索引大小
+  - 注意事項: 需在應用程式啟動時初始化 Snowflake ID 生成器，確保 Worker ID 唯一性
+
 ---
 
 ## 概述
@@ -208,13 +222,19 @@
 
 ## 功能需求
 
+### FR-000: Snowflake ID 生成
+- **FR-000-1**: 系統必須使用雪花ID (Snowflake ID, 64-bit Long) 作為 Bid 的主鍵
+- **FR-000-2**: 系統必須使用成熟的 .NET 雪花ID套件 (如 IdGen 或 Snowflake.Core) 生成 bidId
+- **FR-000-3**: 雪花ID生成器必須配置 Worker ID 與 Datacenter ID 以確保分散式環境下的唯一性 (與 Member Service、Auction Service 共用配置策略)
+- **FR-000-4**: bidId、auctionId、bidderId 必須統一使用 BIGINT (PostgreSQL) 或 long (C#) 型態
+
 ### FR-001: 出價提交 API
 - **端點**: `POST /api/bids`
 - **驗證**: 需要 JWT 認證
 - **請求體**:
   ```json
   {
-    "auctionId": "string (UUID)",
+    "auctionId": "long (Snowflake ID)",
     "amount": "decimal"
   }
   ```
@@ -222,8 +242,8 @@
   - 201: 出價成功
     ```json
     {
-      "bidId": "string (UUID)",
-      "auctionId": "string (UUID)",
+      "bidId": "long (Snowflake ID)",
+      "auctionId": "long (Snowflake ID)",
       "amount": "decimal",
       "bidAt": "ISO8601 datetime"
     }
@@ -371,9 +391,9 @@
 
 ### FR-013: 資料庫設計
 **Bids 資料表** (PostgreSQL):
-- bidId (UUID, PK)
-- auctionId (UUID, indexed)
-- bidderId (UUID, indexed)
+- bidId (BIGINT, PK) - 雪花ID (64-bit Long)
+- auctionId (BIGINT, indexed) - 雪花ID，指向 Auction Service 的商品
+- bidderId (BIGINT, indexed) - 雪花ID，指向 Member Service 的使用者
 - amount (decimal)
 - bidAt (timestamp, indexed)
 - createdAt (timestamp) - 實際寫入 DB 的時間
@@ -382,7 +402,7 @@
 **Redis 資料結構**:
 1. Sorted Set: `auction:{auctionId}:bids`
    - Score: amount (decimal as string)
-   - Member: `{bidId}:{timestamp}:{bidderId}`
+   - Member: `{snowflakeBidId}:{timestamp}:{bidderId}` (所有 ID 皆為雪花ID)
    
 2. Hash: `auction:{auctionId}:highest_bid`
    - Fields: bidId, bidderId, amount, bidAt
@@ -457,9 +477,9 @@
 
 ### 關鍵實體
 
-- **Bid (出價)**: 代表一筆競標出價,包含出價者、金額、時間等資訊,與 Auction 為多對一關係
-- **Auction (商品)**: 外部實體,由 Auction Service 管理,Bidding Service 透過跨服務呼叫取得商品資訊
-- **User (使用者)**: 外部實體,由 Member Service 管理,出價者身份透過 JWT 驗證
+- **Bid (出價)**: 代表一筆競標出價，包含 bidId (雪花ID, 64-bit Long, 主鍵)、auctionId (雪花ID, 外鍵指向 Auction Service)、bidderId (雪花ID, 外鍵指向 Member Service)、金額、出價時間等資訊，與 Auction 為多對一關係
+- **Auction (商品)**: 外部實體，由 Auction Service 管理，Bidding Service 透過跨服務呼叫取得商品資訊，auctionId 為雪花ID
+- **User (使用者)**: 外部實體，由 Member Service 管理，出價者身份透過 JWT 驗證，userId 為雪花ID
 
 ---
 
@@ -545,6 +565,8 @@
 - **R-005**: Auction Service 不可用 → 快取商品資訊,設定合理超時 (100ms)
 
 ### 假設
+- **A-000**: Bid ID 使用雪花ID生成，與 Member Service 的 User ID 及 Auction Service 的 Auction ID 使用相同策略，確保系統一致性
+- **A-000-1**: 雪花ID生成使用成熟的 .NET 套件 (IdGen 或 Snowflake.Core)，需配置 Worker ID 與 Datacenter ID
 - **A-001**: Auction Service 提供查詢商品資訊的 API
 - **A-002**: Redis 可用性 > 99.9%,啟用 AOF 持久化
 - **A-003**: 出價頻率不超過 1000 次/秒 (單一商品)
