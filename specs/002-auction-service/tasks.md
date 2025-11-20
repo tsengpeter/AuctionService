@@ -97,6 +97,7 @@
 - [ ] T048 [P] Create `ResponseCodeConfiguration` in `src/AuctionService.Infrastructure/Persistence/Configurations/ResponseCodeConfiguration.cs`
 - [ ] T049 Create Initial Migration `InitialCreate` with `dotnet ef migrations add InitialCreate` (includes Categories/ResponseCodes seed data, SearchVector trigger function)
 - [ ] T050 Create `SnowflakeIdGenerator` implementation in `src/AuctionService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs` using IdGen package
+- [ ] T050-A [P] Performance test for Snowflake ID uniqueness in `tests/AuctionService.IntegrationTests/Performance/SnowflakeIdUniquenessTests.cs` (parallel generate 100k IDs in 1000 threads, verify 0 duplicates, measure generation rate >10k IDs/sec)
 - [ ] T051 Create `RedisCacheService` implementation in `src/AuctionService.Infrastructure/Caching/RedisCacheService.cs` using IDistributedCache
 - [ ] T052 [P] Create `AuctionRepository` in `src/AuctionService.Infrastructure/Persistence/Repositories/AuctionRepository.cs` with EF Core queries (Include Category, tsvector search, EndTime index filtering)
 - [ ] T053 [P] Create `CategoryRepository` in `src/AuctionService.Infrastructure/Persistence/Repositories/CategoryRepository.cs`

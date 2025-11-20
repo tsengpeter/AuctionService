@@ -188,6 +188,7 @@
 - **FR-000-10**: 搜尋結果必須使用 ts_rank() 函數計算相關性分數並依分數排序
 - **FR-000-11**: 商品圖片必須儲存於雲端物件儲存 (AWS S3 / Azure Blob Storage 或 MinIO)，資料庫僅存圖片 URL
 - **FR-000-12**: 圖片上傳時必須驗證檔案大小 (上限 5MB)、檔案格式 (jpg/jpeg/png/webp) 與 MIME type
+- **FR-000-12-A**: 系統必須驗證 HTTP Content-Type header 與以下 MIME types 匹配 (image/jpeg, image/png, image/webp)，若副檔名與 MIME type 不符 (例如: .jpg 但 Content-Type 為 image/png) 則拒絕上傳並返回 400 Bad Request 與 INVALID_FILE_FORMAT 回應碼
 - **FR-000-13**: 圖片檔名必須遵循命名規則 `auctions/{auctionId}/{timestamp}_{originalFileName}` 確保唯一性
 - **FR-000-14**: 每個商品最多支援 5 張圖片，ImageUrls 陣列第一張為主圖
 - **FR-001**: 系統必須顯示所有進行中的拍賣商品清單
