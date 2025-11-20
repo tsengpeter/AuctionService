@@ -12,7 +12,7 @@ Member Service 提供使用者註冊、登入、身份驗證與個人資料管�
 技術重點：
 - **Snowflake ID**: 使用 IdGen 套件產生 64-bit 分散式唯一識別碼，取代 GUID（空間節省 50%，時間有序）
 - **密碼安全**: bcrypt(password + snowflakeId) 組合，work factor 12，防禦深度策略
-- **JWT 驗證**: HS256 對稱式加密，15 分鐘 Access Token + 7 天 Refresh Token
+- **JWT 驗證**: HS256 對稱金鑰演算法，15 分鐘 Access Token + 7 天 Refresh Token
 - **無 AutoMapper**: 使用 POCO 手動映射 DTO，提升效能與可讀性
 - **Controller-based API**: 不使用 Minimal APIs，採用傳統控制器設計
 - **TDD 驅動**: xUnit + Moq + FluentAssertions + Testcontainers，目標覆蓋率 >80%
@@ -74,6 +74,7 @@ Member Service 提供使用者註冊、登入、身份驗證與個人資料管�
 **連線字串**:
 ```bash
 DB_CONNECTION_STRING="Host=localhost;Port=5432;Database=memberservice_dev;Username=memberservice;Password=Dev@Password123"
+BCRYPT_WORK_FACTOR="10"  # 開發環境建議降低成本因子以加速單元測試（正式環境使用 12）
 ```
 
 **資料庫初始化流程** (EF Core Code-First):

@@ -62,6 +62,8 @@ Based on Clean Architecture from plan.md:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
+**Note**: RequestLoggingMiddleware (原 T059) 已移至 Phase 7 以減少阻塞負載
+
 ### Domain Layer Foundation
 
 - [ ] T023 Create DomainException base class in src/MemberService/MemberService.Domain/Exceptions/DomainException.cs
@@ -118,9 +120,8 @@ Based on Clean Architecture from plan.md:
 ### API - Middleware & Configuration
 
 - [ ] T058 Implement ExceptionHandlingMiddleware in src/MemberService/MemberService.API/Middlewares/ExceptionHandlingMiddleware.cs (catch DomainException, return standard error format with code/message/timestamp/path)
-- [ ] T059 [P] Implement RequestLoggingMiddleware in src/MemberService/MemberService.API/Middlewares/RequestLoggingMiddleware.cs (Serilog structured logs with UserId, RequestId, duration)
-- [ ] T060 Configure Program.cs in src/MemberService/MemberService.API/Program.cs (DI registration, Serilog, EF Core, FluentValidation, JWT authentication, middleware pipeline)
-- [ ] T061 Create Testcontainers fixture in tests/MemberService.IntegrationTests/TestFixtures/PostgreSqlContainerFixture.cs (PostgreSQL 16 container setup for integration tests)
+- [ ] T059 Configure Program.cs in src/MemberService/MemberService.API/Program.cs (DI registration, Serilog, EF Core, FluentValidation, JWT authentication, middleware pipeline)
+- [ ] T060 Create Testcontainers fixture in tests/MemberService.IntegrationTests/TestFixtures/PostgreSqlContainerFixture.cs (PostgreSQL 16 container setup for integration tests)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -134,36 +135,36 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 1
 
-- [ ] T062 [P] [US1] Create RegisterRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RegisterRequest.cs (Email, Password, Username)
-- [ ] T063 [P] [US1] Create LoginRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LoginRequest.cs (Email, Password)
-- [ ] T064 [P] [US1] Create AuthResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/AuthResponse.cs (UserId, Email, Username, AccessToken, RefreshToken)
+- [ ] T061 [P] [US1] Create RegisterRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RegisterRequest.cs (Email, Password, Username)
+- [ ] T062 [P] [US1] Create LoginRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LoginRequest.cs (Email, Password)
+- [ ] T063 [P] [US1] Create AuthResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/AuthResponse.cs (UserId, Email, Username, AccessToken, RefreshToken)
 
 ### Validators for User Story 1
 
-- [ ] T065 Write tests for RegisterRequestValidator in tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
-- [ ] T066 [US1] Implement RegisterRequestValidator in src/MemberService/MemberService.Application/Validators/RegisterRequestValidator.cs (FluentValidation: email format, password >=8 chars, username 3-50 letters+spaces)
-- [ ] T067 Write tests for LoginRequestValidator in tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
-- [ ] T068 [US1] Implement LoginRequestValidator in src/MemberService/MemberService.Application/Validators/LoginRequestValidator.cs (FluentValidation: email required, password required)
+- [ ] T064 Write tests for RegisterRequestValidator in tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
+- [ ] T065 [US1] Implement RegisterRequestValidator in src/MemberService/MemberService.Application/Validators/RegisterRequestValidator.cs (FluentValidation: email format, password >=8 chars, username 3-50 letters+spaces)
+- [ ] T066 Write tests for LoginRequestValidator in tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
+- [ ] T067 [US1] Implement LoginRequestValidator in src/MemberService/MemberService.Application/Validators/LoginRequestValidator.cs (FluentValidation: email required, password required)
 
 ### Service Interfaces for User Story 1
 
-- [ ] T069 [US1] Create IAuthService interface in src/MemberService/MemberService.Application/Services/IAuthService.cs (RegisterAsync, LoginAsync, RefreshTokenAsync, LogoutAsync)
+- [ ] T068 [US1] Create IAuthService interface in src/MemberService/MemberService.Application/Services/IAuthService.cs (RegisterAsync, LoginAsync, RefreshTokenAsync, LogoutAsync)
 
 ### Service Implementation for User Story 1
 
-- [ ] T070 Write tests for AuthService in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test register/login scenarios)
-- [ ] T071 [US1] Implement AuthService.RegisterAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (check email uniqueness, generate snowflake ID, hash password with bcrypt+ID, create User+RefreshToken, return JWT)
-- [ ] T072 [US1] Implement AuthService.LoginAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find by email, verify password, generate new JWT+RefreshToken, return tokens)
+- [ ] T069 Write tests for AuthService in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test register/login scenarios)
+- [ ] T070 [US1] Implement AuthService.RegisterAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (check email uniqueness, generate snowflake ID, hash password with bcrypt+ID, create User+RefreshToken, return JWT)
+- [ ] T071 [US1] Implement AuthService.LoginAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find by email, verify password, generate new JWT+RefreshToken, return tokens)
 
 ### Controller for User Story 1
 
-- [ ] T073 [US1] Implement AuthController.Register in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/register, validate, call AuthService.RegisterAsync, return 201 with AuthResponse)
-- [ ] T074 [US1] Implement AuthController.Login in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/login, validate, call AuthService.LoginAsync, return 200 with AuthResponse)
+- [ ] T072 [US1] Implement AuthController.Register in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/register, validate, call AuthService.RegisterAsync, return 201 with AuthResponse)
+- [ ] T073 [US1] Implement AuthController.Login in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/login, validate, call AuthService.LoginAsync, return 200 with AuthResponse)
 
 ### Integration Tests for User Story 1
 
-- [ ] T075 [US1] Write integration test for register endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (use Testcontainers, test successful register, duplicate email, validation errors)
-- [ ] T076 [US1] Write integration test for login endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful login, invalid credentials, wrong password)
+- [ ] T074 [US1] Write integration test for register endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (use Testcontainers, test successful register, duplicate email, validation errors)
+- [ ] T075 [US1] Write integration test for login endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful login, invalid credentials, wrong password)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can register and login independently
 
@@ -177,26 +178,26 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 2
 
-- [ ] T077 [P] [US2] Create RefreshTokenRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenRequest.cs (RefreshToken string)
-- [ ] T078 [P] [US2] Create RefreshTokenResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenResponse.cs (AccessToken string)
-- [ ] T079 [P] [US2] Create LogoutRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LogoutRequest.cs (RefreshToken string)
+- [ ] T076 [P] [US2] Create RefreshTokenRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenRequest.cs (RefreshToken string)
+- [ ] T077 [P] [US2] Create RefreshTokenResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenResponse.cs (AccessToken string)
+- [ ] T078 [P] [US2] Create LogoutRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LogoutRequest.cs (RefreshToken string)
 
 ### Service Implementation for User Story 2
 
-- [ ] T080 Write tests for AuthService.RefreshTokenAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test valid token, expired token, revoked token)
-- [ ] T081 [US2] Implement AuthService.RefreshTokenAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (validate token not expired/revoked, generate new JWT, return new access token)
-- [ ] T082 Write tests for AuthService.LogoutAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
-- [ ] T083 [US2] Implement AuthService.LogoutAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find refresh token, mark as revoked, save)
+- [ ] T079 Write tests for AuthService.RefreshTokenAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test valid token, expired token, revoked token)
+- [ ] T080 [US2] Implement AuthService.RefreshTokenAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (validate token not expired/revoked, generate new JWT, return new access token)
+- [ ] T081 Write tests for AuthService.LogoutAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [ ] T082 [US2] Implement AuthService.LogoutAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find refresh token, mark as revoked, save)
 
 ### Controller for User Story 2
 
-- [ ] T084 [US2] Implement AuthController.RefreshToken in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/refresh-token, call AuthService.RefreshTokenAsync, return 200 with new JWT)
-- [ ] T085 [US2] Implement AuthController.Logout in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/logout, [Authorize], call AuthService.LogoutAsync, return 204)
+- [ ] T083 [US2] Implement AuthController.RefreshToken in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/refresh-token, call AuthService.RefreshTokenAsync, return 200 with new JWT)
+- [ ] T084 [US2] Implement AuthController.Logout in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/logout, [Authorize], call AuthService.LogoutAsync, return 204)
 
 ### Integration Tests for User Story 2
 
-- [ ] T086 [US2] Write integration test for refresh-token endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test valid token refresh, expired token, revoked token)
-- [ ] T087 [US2] Write integration test for logout endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful logout, token revocation)
+- [ ] T085 [US2] Write integration test for refresh-token endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test valid token refresh with performance assertion <100ms per SC-008, expired token, revoked token)
+- [ ] T086 [US2] Write integration test for logout endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful logout, token revocation)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - users can register, login, refresh tokens, and logout
 
@@ -210,26 +211,26 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 3
 
-- [ ] T088 [P] [US3] Create UserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/UserProfileResponse.cs (UserId, Email, Username, CreatedAt, UpdatedAt)
-- [ ] T089 [P] [US3] Create PublicUserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/PublicUserProfileResponse.cs (UserId, Username, CreatedAt only)
+- [ ] T087 [P] [US3] Create UserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/UserProfileResponse.cs (UserId, Email, Username, CreatedAt, UpdatedAt)
+- [ ] T088 [P] [US3] Create PublicUserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/PublicUserProfileResponse.cs (UserId, Username, CreatedAt only)
 
 ### Service Interface & Implementation for User Story 3
 
-- [ ] T090 [US3] Create IUserService interface in src/MemberService/MemberService.Application/Services/IUserService.cs (GetMyProfileAsync, GetUserProfileAsync, UpdateProfileAsync, ChangePasswordAsync)
-- [ ] T091 Write tests for UserService in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (mock repository, test get my profile, get other user profile)
-- [ ] T092 [US3] Implement UserService.GetMyProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID from JWT claims, return full profile)
-- [ ] T093 [US3] Implement UserService.GetUserProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID, return public profile only, throw UserNotFoundException if not found)
+- [ ] T089 [US3] Create IUserService interface in src/MemberService/MemberService.Application/Services/IUserService.cs (GetMyProfileAsync, GetUserProfileAsync, UpdateProfileAsync, ChangePasswordAsync)
+- [ ] T090 Write tests for UserService in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (mock repository, test get my profile, get other user profile)
+- [ ] T091 [US3] Implement UserService.GetMyProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID from JWT claims, return full profile)
+- [ ] T092 [US3] Implement UserService.GetUserProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID, return public profile only, throw UserNotFoundException if not found)
 
 ### Controller for User Story 3
 
-- [ ] T094 [US3] Create UsersController in src/MemberService/MemberService.API/Controllers/UsersController.cs
-- [ ] T095 [US3] Implement UsersController.GetMyProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/me, [Authorize], call UserService.GetMyProfileAsync, return 200 with UserProfileResponse)
-- [ ] T096 [US3] Implement UsersController.GetUserProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/{id}, [Authorize], call UserService.GetUserProfileAsync, return 200 with PublicUserProfileResponse or 404)
+- [ ] T093 [US3] Create UsersController in src/MemberService/MemberService.API/Controllers/UsersController.cs
+- [ ] T094 [US3] Implement UsersController.GetMyProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/me, [Authorize], call UserService.GetMyProfileAsync, return 200 with UserProfileResponse)
+- [ ] T095 [US3] Implement UsersController.GetUserProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/{id}, [Authorize], call UserService.GetUserProfileAsync, return 200 with PublicUserProfileResponse or 404)
 
 ### Integration Tests for User Story 3
 
-- [ ] T097 [US3] Write integration test for GET /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test authenticated user gets full profile, unauthorized returns 401)
-- [ ] T098 [US3] Write integration test for GET /api/users/{id} in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test get public profile, user not found returns 404)
+- [ ] T096 [US3] Write integration test for GET /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test authenticated user gets full profile, unauthorized returns 401)
+- [ ] T097 [US3] Write integration test for GET /api/users/{id} in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test get public profile, user not found returns 404)
 
 **Checkpoint**: User Stories 1, 2, AND 3 should all work - users can register, login, manage tokens, and query profiles
 
@@ -243,32 +244,32 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 4
 
-- [ ] T099 [P] [US4] Create UpdateProfileRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/UpdateProfileRequest.cs (Username optional, Email optional)
-- [ ] T100 [P] [US4] Create ChangePasswordRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/ChangePasswordRequest.cs (OldPassword, NewPassword)
+- [ ] T098 [P] [US4] Create UpdateProfileRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/UpdateProfileRequest.cs (Username optional, Email optional)
+- [ ] T099 [P] [US4] Create ChangePasswordRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/ChangePasswordRequest.cs (OldPassword, NewPassword)
 
 ### Validators for User Story 4
 
-- [ ] T101 Write tests for UpdateProfileRequestValidator in tests/MemberService.Application.Tests/Validators/UpdateProfileRequestValidatorTests.cs
-- [ ] T102 [US4] Implement UpdateProfileRequestValidator in src/MemberService/MemberService.Application/Validators/UpdateProfileRequestValidator.cs (FluentValidation: email format if provided, username 3-50 letters+spaces if provided)
-- [ ] T103 Write tests for ChangePasswordRequestValidator in tests/MemberService.Application.Tests/Validators/ChangePasswordRequestValidatorTests.cs
-- [ ] T104 [US4] Implement ChangePasswordRequestValidator in src/MemberService/MemberService.Application/Validators/ChangePasswordRequestValidator.cs (FluentValidation: old password required, new password >=8 chars)
+- [ ] T100 Write tests for UpdateProfileRequestValidator in tests/MemberService.Application.Tests/Validators/UpdateProfileRequestValidatorTests.cs
+- [ ] T101 [US4] Implement UpdateProfileRequestValidator in src/MemberService/MemberService.Application/Validators/UpdateProfileRequestValidator.cs (FluentValidation: email format if provided, username 3-50 letters+spaces if provided)
+- [ ] T102 Write tests for ChangePasswordRequestValidator in tests/MemberService.Application.Tests/Validators/ChangePasswordRequestValidatorTests.cs
+- [ ] T103 [US4] Implement ChangePasswordRequestValidator in src/MemberService/MemberService.Application/Validators/ChangePasswordRequestValidator.cs (FluentValidation: old password required, new password >=8 chars)
 
 ### Service Implementation for User Story 4
 
-- [ ] T105 Write tests for UserService.UpdateProfileAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test update username, update email, duplicate email)
-- [ ] T106 [US4] Implement UserService.UpdateProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user, check email uniqueness if changed, update fields, save, return updated profile)
-- [ ] T107 Write tests for UserService.ChangePasswordAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test successful change, wrong old password, validation)
-- [ ] T108 [US4] Implement UserService.ChangePasswordAsync in src/MemberService/MemberService.Application/Services/UserService.cs (verify old password, hash new password with bcrypt+snowflakeId, update, revoke ALL refresh tokens, save)
+- [ ] T104 Write tests for UserService.UpdateProfileAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test update username, update email, duplicate email)
+- [ ] T105 [US4] Implement UserService.UpdateProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user, check email uniqueness if changed, update fields, save, return updated profile)
+- [ ] T106 Write tests for UserService.ChangePasswordAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test successful change, wrong old password, validation)
+- [ ] T107 [US4] Implement UserService.ChangePasswordAsync in src/MemberService/MemberService.Application/Services/UserService.cs (verify old password, hash new password with bcrypt+snowflakeId, update, revoke ALL refresh tokens, save)
 
 ### Controller for User Story 4
 
-- [ ] T109 [US4] Implement UsersController.UpdateProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me, [Authorize], validate, call UserService.UpdateProfileAsync, return 200 with updated UserProfileResponse)
-- [ ] T110 [US4] Implement UsersController.ChangePassword in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me/password, [Authorize], validate, call UserService.ChangePasswordAsync, return 204)
+- [ ] T108 [US4] Implement UsersController.UpdateProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me, [Authorize], validate, call UserService.UpdateProfileAsync, return 200 with updated UserProfileResponse)
+- [ ] T109 [US4] Implement UsersController.ChangePassword in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me/password, [Authorize], validate, call UserService.ChangePasswordAsync, return 204)
 
 ### Integration Tests for User Story 4
 
-- [ ] T111 [US4] Write integration test for PUT /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test update username, update email, duplicate email error, validation errors)
-- [ ] T112 [US4] Write integration test for PUT /api/users/me/password in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test successful password change, wrong old password, verify all refresh tokens revoked)
+- [ ] T110 [US4] Write integration test for PUT /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test update username, update email, duplicate email error, validation errors)
+- [ ] T111 [US4] Write integration test for PUT /api/users/me/password in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test successful password change, wrong old password, verify all refresh tokens revoked)
 
 **Checkpoint**: All user stories should now be independently functional - complete member service with registration, authentication, profile management
 
@@ -278,20 +279,22 @@ Based on Clean Architecture from plan.md:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T113 [P] Add XML documentation comments to all public APIs in MemberService.API/Controllers/
-- [ ] T114 [P] Add Swagger/OpenAPI generation configuration in Program.cs with JWT bearer authentication support
-- [ ] T115 Performance optimization: Add response caching for public user profiles
-- [ ] T116 Performance optimization: Configure connection pooling for PostgreSQL in appsettings.json
-- [ ] T117 Security hardening: Add rate limiting middleware for authentication endpoints
-- [ ] T118 Security hardening: Configure CORS policy in Program.cs
-- [ ] T119 [P] Add health check endpoint in MemberService.API/Controllers/HealthController.cs (GET /health)
-- [ ] T120 [P] Add readiness check endpoint in MemberService.API/Controllers/HealthController.cs (GET /ready, check DB connection)
-- [ ] T121 Run database migrations on startup: dotnet ef database update --startup-project src/MemberService/MemberService.API
-- [ ] T122 Validate quickstart.md: Follow setup steps in specs/001-member-service/quickstart.md and verify all endpoints work
-- [ ] T123 Generate test coverage report: dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
-- [ ] T124 Verify >80% test coverage target achieved (Constitution requirement)
-- [ ] T125 Code cleanup: Run dotnet format and fix any styling issues
-- [ ] T126 Update README.md with Member Service API documentation and getting started guide
+- [ ] T112 [P] Implement RequestLoggingMiddleware in src/MemberService/MemberService.API/Middlewares/RequestLoggingMiddleware.cs (Serilog structured logs with UserId, RequestId, duration)
+- [ ] T113 [P] Implement authentication event logging in AuthService (login success/failure, token refresh, logout) using Serilog structured logs with UserId, IPAddress, UserAgent, Timestamp
+- [ ] T114 [P] Add XML documentation comments to all public APIs in MemberService.API/Controllers/
+- [ ] T115 [P] Add Swagger/OpenAPI generation configuration in Program.cs with JWT bearer authentication support
+- [ ] T116 Performance optimization: Add response caching for public user profiles
+- [ ] T117 Performance optimization: Configure connection pooling for PostgreSQL in appsettings.json
+- [ ] T118 Security hardening: Add rate limiting middleware for authentication endpoints (protect against registration enumeration attacks per spec edge case)
+- [ ] T119 Security hardening: Configure CORS policy in Program.cs
+- [ ] T120 [P] Add health check endpoint in MemberService.API/Controllers/HealthController.cs (GET /health)
+- [ ] T121 [P] Add readiness check endpoint in MemberService.API/Controllers/HealthController.cs (GET /ready, check DB connection)
+- [ ] T122 Run database migrations on startup: dotnet ef database update --startup-project src/MemberService/MemberService.API
+- [ ] T123 Validate quickstart.md: Follow setup steps in specs/001-member-service/quickstart.md and verify all endpoints work
+- [ ] T124 Generate test coverage report: dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+- [ ] T125 Verify >80% test coverage target achieved (Constitution requirement)
+- [ ] T126 Code cleanup: Run dotnet format and fix any styling issues
+- [ ] T127 Update README.md with Member Service API documentation, getting started guide, and clarify email verification is out of scope per spec assumptions
 
 ---
 
@@ -417,19 +420,25 @@ T075-T076 (Integration tests)
 
 ## Task Summary
 
-- **Total Tasks**: 126
+- **Total Tasks**: 127
 - **Setup Phase**: 22 tasks
-- **Foundational Phase**: 39 tasks (BLOCKING)
+- **Foundational Phase**: 38 tasks (BLOCKING) - 已優化減少 1 個阻塞任務
 - **User Story 1 (P1)**: 15 tasks (MVP) 🎯
 - **User Story 2 (P2)**: 11 tasks
 - **User Story 3 (P2)**: 11 tasks
 - **User Story 4 (P3)**: 14 tasks
-- **Polish Phase**: 14 tasks
+- **Polish Phase**: 16 tasks - 新增請求日誌中介層與認證事件日誌（Constitution V 可觀測性要求）
 
 **Parallel Opportunities**: 45+ tasks marked [P] can run in parallel
 
 **Independent Test Criteria**: Each user story phase includes specific acceptance tests and can be validated independently
 
-**Suggested MVP Scope**: Phase 1 (Setup) + Phase 2 (Foundational) + Phase 3 (User Story 1) = 76 tasks for core registration & login
+**Suggested MVP Scope**: Phase 1 (Setup) + Phase 2 (Foundational) + Phase 3 (User Story 1) = 75 tasks for core registration & login
+
+**Recent Optimizations** (2025-11-20):
+- Moved RequestLoggingMiddleware from Foundational to Polish phase to reduce blocking dependencies
+- Added authentication event logging for better observability (Constitution V compliance)
+- Enhanced rate limiting description to address registration enumeration attacks
+- Added performance assertion for token refresh test (SC-008 verification)
 
 **TDD Compliance**: All implementation tasks preceded by corresponding test tasks (>80% coverage target per Constitution)
