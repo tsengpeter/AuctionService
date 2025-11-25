@@ -1,0 +1,51 @@
+# Git
+.git/
+.gitignore
+.github/
+
+# Build outputs
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# Development
+.vs/
+.vscode/
+*.user
+*.suo
+.idea/
+
+# Test results
+TestResults/
+coverage/
+*.trx
+
+# Environment
+.env*
+appsettings.Local.json
+appsettings.*.local.json
+
+# Dependencies
+node_modules/
+packages/
+
+# Documentation
+*.md
+docs/
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Source (excluded from runtime image)
+src/
+tests/
+specs/
+
+# Others
+.dockerignore
+Dockerfile
+docker-compose*.yml

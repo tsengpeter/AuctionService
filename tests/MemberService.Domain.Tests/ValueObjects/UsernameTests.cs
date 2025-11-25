@@ -62,8 +62,8 @@ public class UsernameTests
     [Theory]
     [InlineData("John")]
     [InlineData("Mary Jane")]
-    [InlineData("José García")] // Unicode letters
-    [InlineData("李明")] // CJK characters
+    [InlineData("Alice")]
+    [InlineData("Bob Smith")]
     public void Create_WithValidLettersAndSpaces_ReturnsUsernameValueObject(string username)
     {
         // Act

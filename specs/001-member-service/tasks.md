@@ -290,11 +290,11 @@ Based on Clean Architecture from plan.md:
 - [x] T120 [P] Add health check endpoint in MemberService.API/Controllers/HealthController.cs (GET /health)
 - [x] T121 [P] Add readiness check endpoint in MemberService.API/Controllers/HealthController.cs (GET /ready, check DB connection)
 - [x] T122 Run database migrations on startup: dotnet ef database update --startup-project src/MemberService/MemberService.API
-- [ ] T123 Validate quickstart.md: Follow setup steps in specs/001-member-service/quickstart.md and verify all endpoints work
-- [ ] T124 Generate test coverage report: dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
-- [ ] T125 Verify >80% test coverage target achieved (Constitution requirement)
-- [ ] T126 Code cleanup: Run dotnet format and fix any styling issues
-- [ ] T127 Update README.md with Member Service API documentation, getting started guide, and clarify email verification is out of scope per spec assumptions
+- [x] T123 Validate quickstart.md: Follow setup steps in specs/001-member-service/quickstart.md and verify all endpoints work
+- [x] T124 Generate test coverage report: dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+- [x] T125 Verify >80% test coverage target achieved (Constitution requirement)
+- [x] T126 Code cleanup: Run dotnet format and fix any styling issues
+- [x] T127 Update README.md with Member Service API documentation, getting started guide, and clarify email verification is out of scope per spec assumptions
 
 ---
 
