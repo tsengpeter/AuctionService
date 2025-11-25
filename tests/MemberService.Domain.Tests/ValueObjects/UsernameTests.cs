@@ -11,14 +11,14 @@ public class UsernameTests
     {
         // Arrange
         var username = "John Doe";
-        
+
         // Act
         var result = Username.Create(username);
-        
+
         // Assert
         result.Value.Should().Be("John Doe");
     }
-    
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -27,27 +27,27 @@ public class UsernameTests
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Username.Create(username));
     }
-    
+
     [Fact]
     public void Create_WithUsernameTooShort_ThrowsArgumentException()
     {
         // Arrange
         var username = "Jo"; // 2 characters, minimum is 3
-        
+
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Username.Create(username));
     }
-    
+
     [Fact]
     public void Create_WithUsernameTooLong_ThrowsArgumentException()
     {
         // Arrange
         var username = new string('a', 51); // 51 characters, maximum is 50
-        
+
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Username.Create(username));
     }
-    
+
     [Theory]
     [InlineData("John123")] // Contains numbers
     [InlineData("John-Doe")] // Contains hyphen
@@ -58,7 +58,7 @@ public class UsernameTests
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Username.Create(username));
     }
-    
+
     [Theory]
     [InlineData("John")]
     [InlineData("Mary Jane")]
@@ -68,55 +68,55 @@ public class UsernameTests
     {
         // Act
         var result = Username.Create(username);
-        
+
         // Assert
         result.Value.Should().Be(username);
     }
-    
+
     [Fact]
     public void Create_WithExactlyMinimumLength_ReturnsUsernameValueObject()
     {
         // Arrange
         var username = "ABC"; // 3 characters
-        
+
         // Act
         var result = Username.Create(username);
-        
+
         // Assert
         result.Value.Should().Be("ABC");
     }
-    
+
     [Fact]
     public void Create_WithExactlyMaximumLength_ReturnsUsernameValueObject()
     {
         // Arrange
         var username = new string('A', 50); // 50 characters
-        
+
         // Act
         var result = Username.Create(username);
-        
+
         // Assert
         result.Value.Should().HaveLength(50);
     }
-    
+
     [Fact]
     public void EqualityOperator_WithSameUsername_ReturnsTrue()
     {
         // Arrange
         var username1 = Username.Create("John Doe");
         var username2 = Username.Create("John Doe");
-        
+
         // Act & Assert
         (username1 == username2).Should().BeTrue();
     }
-    
+
     [Fact]
     public void EqualityOperator_WithDifferentUsername_ReturnsFalse()
     {
         // Arrange
         var username1 = Username.Create("John Doe");
         var username2 = Username.Create("Jane Doe");
-        
+
         // Act & Assert
         (username1 == username2).Should().BeFalse();
     }

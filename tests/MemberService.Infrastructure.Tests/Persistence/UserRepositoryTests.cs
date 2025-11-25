@@ -34,7 +34,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("test user");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -64,7 +64,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("test user");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -93,7 +93,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("test user");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -138,7 +138,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("duplicate@example.com");
         var username1 = Username.Create("user one");
         var username2 = Username.Create("user two");
-        
+
         var user1 = User.Create(1L, email, username1, "hashedpwd");
         await _repository.AddAsync(user1);
         await _context.SaveChangesAsync();
@@ -157,7 +157,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("test user");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 

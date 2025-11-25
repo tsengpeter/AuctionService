@@ -33,7 +33,7 @@ public class RefreshTokenRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("testuser");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         var token = RefreshToken.Create(
             token: "valid_refresh_token_base64_encoded",
             userId: 1L,
@@ -70,7 +70,7 @@ public class RefreshTokenRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("testuser");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -97,7 +97,7 @@ public class RefreshTokenRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("testuser");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -134,7 +134,7 @@ public class RefreshTokenRepositoryTests : IDisposable
         var email = Email.Create("test@example.com");
         var username = Username.Create("testuser");
         var user = User.Create(1L, email, username, "hashedpwd");
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 

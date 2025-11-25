@@ -85,7 +85,11 @@ public class AuthService : IAuthService
         // Add refresh token to repository
         await _refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
 
-        _logger.LogInformation("User registered successfully: {UserId}", user.Id);
+        _logger.LogInformation(
+            "Authentication event: User registered | UserId: {UserId} | Email: {Email} | Timestamp: {Timestamp}",
+            user.Id,
+            email,
+            DateTime.UtcNow);
 
         return new AuthResponse
         {
@@ -112,14 +116,21 @@ public class AuthService : IAuthService
         var user = await _userRepository.FindByEmailAsync(email, cancellationToken);
         if (user == null)
         {
-            _logger.LogWarning("Login attempt with non-existent email: {Email}", email);
+            _logger.LogWarning(
+                "Authentication event: Login failed - Invalid credentials | Email: {Email} | Reason: User not found | Timestamp: {Timestamp}",
+                email,
+                DateTime.UtcNow);
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
         // Verify password
         if (!_passwordHasher.VerifyPassword(password, user.PasswordHash))
         {
-            _logger.LogWarning("Failed login attempt for user: {UserId}", user.Id);
+            _logger.LogWarning(
+                "Authentication event: Login failed - Invalid credentials | UserId: {UserId} | Email: {Email} | Reason: Password mismatch | Timestamp: {Timestamp}",
+                user.Id,
+                email,
+                DateTime.UtcNow);
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
@@ -131,7 +142,12 @@ public class AuthService : IAuthService
         // Add refresh token to repository
         await _refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
 
-        _logger.LogInformation("User logged in successfully: {UserId}", user.Id);
+        _logger.LogInformation(
+            "Authentication event: User logged in | UserId: {UserId} | Email: {Email} | TokenExpiresAt: {TokenExpiresAt} | Timestamp: {Timestamp}",
+            user.Id,
+            user.Email.Value,
+            refreshToken.ExpiresAt,
+            DateTime.UtcNow);
 
         return new AuthResponse
         {
@@ -156,14 +172,20 @@ public class AuthService : IAuthService
         var token = await _refreshTokenRepository.FindByTokenAsync(refreshToken, cancellationToken);
         if (token == null)
         {
-            _logger.LogWarning("Refresh attempt with non-existent token");
+            _logger.LogWarning(
+                "Authentication event: Token refresh failed | Reason: Token not found | Timestamp: {Timestamp}",
+                DateTime.UtcNow);
             throw new InvalidCredentialsException("Invalid refresh token");
         }
 
         // Verify token is valid
         if (!token.IsValid)
         {
-            _logger.LogWarning("Refresh attempt with invalid token for user: {UserId}", token.UserId);
+            _logger.LogWarning(
+                "Authentication event: Token refresh failed | UserId: {UserId} | Reason: Token expired or revoked | TokenExpiresAt: {TokenExpiresAt} | Timestamp: {Timestamp}",
+                token.UserId,
+                token.ExpiresAt,
+                DateTime.UtcNow);
             throw new InvalidCredentialsException("Refresh token has expired or been revoked");
         }
 
@@ -171,14 +193,21 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByIdAsync(token.UserId, cancellationToken);
         if (user == null)
         {
-            _logger.LogError("User not found for refresh token: {UserId}", token.UserId);
+            _logger.LogError(
+                "Authentication event: Token refresh failed | UserId: {UserId} | Reason: User not found | Timestamp: {Timestamp}",
+                token.UserId,
+                DateTime.UtcNow);
             throw new InvalidCredentialsException("User not found");
         }
 
         // Generate new access token
         var accessToken = _jwtTokenGenerator.GenerateToken(user.Id, user.Email.Value);
 
-        _logger.LogInformation("Token refreshed for user: {UserId}", user.Id);
+        _logger.LogInformation(
+            "Authentication event: Token refreshed | UserId: {UserId} | Email: {Email} | Timestamp: {Timestamp}",
+            user.Id,
+            user.Email.Value,
+            DateTime.UtcNow);
 
         return new AuthResponse
         {
@@ -205,9 +234,18 @@ public class AuthService : IAuthService
         {
             // Revoke token
             token.Revoke();
-            
-            _logger.LogInformation("User logged out: {UserId}", token.UserId);
+
+            _logger.LogInformation(
+                "Authentication event: User logged out | UserId: {UserId} | TokenRevoked: true | Timestamp: {Timestamp}",
+                token.UserId,
+                DateTime.UtcNow);
         }
-        // If token not found, just log and return (idempotent operation)
+        else
+        {
+            // If token not found, just log and return (idempotent operation)
+            _logger.LogDebug(
+                "Authentication event: Logout request with non-existent token | Timestamp: {Timestamp}",
+                DateTime.UtcNow);
+        }
     }
 }

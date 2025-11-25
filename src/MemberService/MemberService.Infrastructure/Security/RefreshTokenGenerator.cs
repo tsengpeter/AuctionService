@@ -10,7 +10,7 @@ namespace MemberService.Infrastructure.Security;
 public class RefreshTokenGenerator : IRefreshTokenGenerator
 {
     private const int TokenSizeBytes = 32; // 256 bits
-    
+
     /// <summary>
     /// Generates a new refresh token.
     /// </summary>

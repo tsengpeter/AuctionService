@@ -1,4 +1,4 @@
-﻿namespace MemberService.Infrastructure;
+namespace MemberService.Infrastructure;
 
 public class Class1
 {

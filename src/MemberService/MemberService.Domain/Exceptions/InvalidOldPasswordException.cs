@@ -5,7 +5,7 @@ namespace MemberService.Domain.Exceptions;
 /// </summary>
 public class InvalidOldPasswordException : DomainException
 {
-    public InvalidOldPasswordException() 
+    public InvalidOldPasswordException()
         : base("舊密碼不正確", "INVALID_OLD_PASSWORD")
     {
     }

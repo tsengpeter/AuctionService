@@ -279,17 +279,17 @@ Based on Clean Architecture from plan.md:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T112 [P] Implement RequestLoggingMiddleware in src/MemberService/MemberService.API/Middlewares/RequestLoggingMiddleware.cs (Serilog structured logs with UserId, RequestId, duration)
-- [ ] T113 [P] Implement authentication event logging in AuthService (login success/failure, token refresh, logout) using Serilog structured logs with UserId, IPAddress, UserAgent, Timestamp
-- [ ] T114 [P] Add XML documentation comments to all public APIs in MemberService.API/Controllers/
-- [ ] T115 [P] Add Swagger/OpenAPI generation configuration in Program.cs with JWT bearer authentication support
-- [ ] T116 Performance optimization: Add response caching for public user profiles
-- [ ] T117 Performance optimization: Configure connection pooling for PostgreSQL in appsettings.json
-- [ ] T118 Security hardening: Add rate limiting middleware for authentication endpoints (protect against registration enumeration attacks per spec edge case)
-- [ ] T119 Security hardening: Configure CORS policy in Program.cs
-- [ ] T120 [P] Add health check endpoint in MemberService.API/Controllers/HealthController.cs (GET /health)
-- [ ] T121 [P] Add readiness check endpoint in MemberService.API/Controllers/HealthController.cs (GET /ready, check DB connection)
-- [ ] T122 Run database migrations on startup: dotnet ef database update --startup-project src/MemberService/MemberService.API
+- [x] T112 [P] Implement RequestLoggingMiddleware in src/MemberService/MemberService.API/Middlewares/RequestLoggingMiddleware.cs (Serilog structured logs with UserId, RequestId, duration)
+- [x] T113 [P] Implement authentication event logging in AuthService (login success/failure, token refresh, logout) using Serilog structured logs with UserId, IPAddress, UserAgent, Timestamp
+- [x] T114 [P] Add XML documentation comments to all public APIs in MemberService.API/Controllers/
+- [x] T115 [P] Add Swagger/OpenAPI generation configuration in Program.cs with JWT bearer authentication support
+- [x] T116 Performance optimization: Add response caching for public user profiles
+- [x] T117 Performance optimization: Configure connection pooling for PostgreSQL in appsettings.json
+- [x] T118 Security hardening: Add rate limiting middleware for authentication endpoints (protect against registration enumeration attacks per spec edge case)
+- [x] T119 Security hardening: Configure CORS policy in Program.cs
+- [x] T120 [P] Add health check endpoint in MemberService.API/Controllers/HealthController.cs (GET /health)
+- [x] T121 [P] Add readiness check endpoint in MemberService.API/Controllers/HealthController.cs (GET /ready, check DB connection)
+- [x] T122 Run database migrations on startup: dotnet ef database update --startup-project src/MemberService/MemberService.API
 - [ ] T123 Validate quickstart.md: Follow setup steps in specs/001-member-service/quickstart.md and verify all endpoints work
 - [ ] T124 Generate test coverage report: dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 - [ ] T125 Verify >80% test coverage target achieved (Constitution requirement)

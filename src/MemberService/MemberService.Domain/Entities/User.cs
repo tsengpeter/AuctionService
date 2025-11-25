@@ -14,10 +14,10 @@ public class User
     public Username Username { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; set; }
-    
+
     // Navigation property
     public ICollection<RefreshToken> RefreshTokens { get; } = new List<RefreshToken>();
-    
+
     // Constructor for EF Core
     private User()
     {
@@ -25,7 +25,7 @@ public class User
         PasswordHash = null!;
         Username = null!;
     }
-    
+
     /// <summary>
     /// Creates a new User entity.
     /// </summary>
@@ -40,18 +40,18 @@ public class User
     {
         if (id <= 0)
             throw new ArgumentException("使用者ID必須大於0", nameof(id));
-        
+
         if (email == null)
             throw new ArgumentNullException(nameof(email));
-        
+
         if (username == null)
             throw new ArgumentNullException(nameof(username));
-        
+
         if (string.IsNullOrWhiteSpace(passwordHash))
             throw new ArgumentException("密碼雜湊不能為空", nameof(passwordHash));
-        
+
         var now = DateTime.UtcNow;
-        
+
         return new User
         {
             Id = id,
@@ -62,7 +62,7 @@ public class User
             UpdatedAt = now
         };
     }
-    
+
     /// <summary>
     /// Updates the user's password hash.
     /// </summary>
@@ -71,11 +71,11 @@ public class User
     {
         if (string.IsNullOrWhiteSpace(newPasswordHash))
             throw new ArgumentException("新密碼雜湊不能為空", nameof(newPasswordHash));
-        
+
         PasswordHash = newPasswordHash;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     /// <summary>
     /// Updates the user's display name.
     /// </summary>
@@ -84,11 +84,11 @@ public class User
     {
         if (newUsername == null)
             throw new ArgumentNullException(nameof(newUsername));
-        
+
         Username = newUsername;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     /// <summary>
     /// Updates the user's email address.
     /// </summary>
@@ -97,7 +97,7 @@ public class User
     {
         if (newEmail == null)
             throw new ArgumentNullException(nameof(newEmail));
-        
+
         Email = newEmail;
         UpdatedAt = DateTime.UtcNow;
     }

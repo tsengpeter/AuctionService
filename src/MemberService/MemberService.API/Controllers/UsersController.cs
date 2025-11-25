@@ -49,6 +49,7 @@ public class UsersController : ControllerBase
     /// <response code="401">Unauthorized - JWT token required</response>
     /// <response code="404">User not found</response>
     [HttpGet("{id}")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, NoStore = false)]
     public async Task<ActionResult<PublicUserProfileResponse>> GetUserProfile(long id)
     {
         var profile = await _userService.GetUserProfileAsync(id);

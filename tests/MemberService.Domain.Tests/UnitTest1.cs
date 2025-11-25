@@ -1,4 +1,4 @@
-﻿namespace MemberService.Domain.Tests;
+namespace MemberService.Domain.Tests;
 
 public class UnitTest1
 {

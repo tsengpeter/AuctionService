@@ -1,4 +1,4 @@
-﻿namespace MemberService.Domain;
+namespace MemberService.Domain;
 
 public class Class1
 {

@@ -10,7 +10,7 @@ namespace MemberService.Infrastructure.Security;
 public class BCryptPasswordHasher : IPasswordHasher
 {
     private const int WorkFactor = 12; // Cost factor for bcrypt (slower = more secure)
-    
+
     /// <summary>
     /// Hashes a password using bcrypt with snowflake ID mixing.
     /// </summary>
@@ -21,11 +21,11 @@ public class BCryptPasswordHasher : IPasswordHasher
     {
         // Mix snowflake ID with password for additional security depth
         var combinedInput = $"{password}|{snowflakeId}";
-        
+
         // Use bcrypt with the specified work factor
         return BCrypt.Net.BCrypt.HashPassword(combinedInput, workFactor: WorkFactor);
     }
-    
+
     /// <summary>
     /// Verifies a plaintext password against a bcrypt hash.
     /// </summary>
@@ -36,7 +36,7 @@ public class BCryptPasswordHasher : IPasswordHasher
     {
         if (string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(hash))
             return false;
-        
+
         try
         {
             return BCrypt.Net.BCrypt.Verify(password, hash);

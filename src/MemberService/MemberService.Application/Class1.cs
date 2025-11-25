@@ -1,4 +1,4 @@
-﻿namespace MemberService.Application;
+namespace MemberService.Application;
 
 public class Class1
 {

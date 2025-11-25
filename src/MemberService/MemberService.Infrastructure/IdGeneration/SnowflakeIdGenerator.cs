@@ -10,7 +10,7 @@ namespace MemberService.Infrastructure.IdGeneration;
 public class SnowflakeIdGenerator : ISnowflakeIdGenerator
 {
     private readonly IIdGenerator<long> _generator;
-    
+
     public SnowflakeIdGenerator()
     {
         // Create IdGen with default settings
@@ -20,11 +20,11 @@ public class SnowflakeIdGenerator : ISnowflakeIdGenerator
             generatorIdBits: 10,    // Worker + Datacenter combined (max 1024 generators)
             sequenceBits: 12        // Max 4096 IDs per millisecond
         );
-        
+
         var options = new IdGeneratorOptions(idStructure);
         _generator = new IdGenerator(0, options); // Machine ID 0
     }
-    
+
     /// <summary>
     /// Generates a new Snowflake ID.
     /// </summary>

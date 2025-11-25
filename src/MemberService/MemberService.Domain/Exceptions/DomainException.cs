@@ -11,17 +11,17 @@ public class DomainException : Exception
     /// </summary>
     public string Code { get; protected set; }
 
-    public DomainException(string message) : base(message) 
+    public DomainException(string message) : base(message)
     {
         Code = "DOMAIN_ERROR";
     }
-    
+
     public DomainException(string message, string code) : base(message)
     {
         Code = code;
     }
-    
-    public DomainException(string message, Exception innerException) 
+
+    public DomainException(string message, Exception innerException)
         : base(message, innerException)
     {
         Code = "DOMAIN_ERROR";

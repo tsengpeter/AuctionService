@@ -97,7 +97,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task GetMyProfile_WithValidToken_ReturnsUserProfile()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         // Act
@@ -139,7 +139,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task GetUserProfile_WithValidId_ReturnsPublicProfile()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         // Create another user for testing
@@ -188,7 +188,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task GetUserProfile_WithNonExistentId_Returns404NotFound()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         var nonExistentUserId = 999999L;
@@ -220,7 +220,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task UpdateProfile_WithValidRequest_Returns200Updated()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         var updateRequest = new UpdateProfileRequest
@@ -256,7 +256,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task UpdateProfile_WithDuplicateEmail_Returns400()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         // Create another user
@@ -297,7 +297,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task UpdateProfile_WithInvalidUsername_Returns400()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         var updateRequest = new UpdateProfileRequest
@@ -324,7 +324,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task ChangePassword_WithValidRequest_Returns204()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         var changePasswordRequest = new ChangePasswordRequest
@@ -366,7 +366,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task ChangePassword_WithWrongOldPassword_Returns400()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         var changePasswordRequest = new ChangePasswordRequest
@@ -393,7 +393,7 @@ public class UsersControllerTests : IAsyncLifetime
     public async Task ChangePassword_WithShortNewPassword_Returns400()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _testUserToken);
 
         var changePasswordRequest = new ChangePasswordRequest

@@ -5,7 +5,7 @@ namespace MemberService.Domain.Exceptions;
 /// </summary>
 public class InvalidPasswordException : DomainException
 {
-    public InvalidPasswordException(string message) 
+    public InvalidPasswordException(string message)
         : base(message, "INVALID_PASSWORD")
     {
     }

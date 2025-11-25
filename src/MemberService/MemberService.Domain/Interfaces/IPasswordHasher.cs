@@ -12,7 +12,7 @@ public interface IPasswordHasher
     /// <param name="snowflakeId">The user's Snowflake ID (mixed with password for additional security)</param>
     /// <returns>The bcrypt password hash</returns>
     string HashPassword(string password, long snowflakeId);
-    
+
     /// <summary>
     /// Verifies a plaintext password against a hash.
     /// </summary>

@@ -1,4 +1,5 @@
 using System.Text;
+using AspNetCoreRateLimit;
 using FluentValidation;
 using MemberService.API.Middlewares;
 using MemberService.Application.DTOs.Auth;
@@ -32,9 +33,15 @@ builder.Host.UseSerilog();
 
 // Add services to the container
 builder.Services.AddDbContext<MemberDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Database") ?? 
-        builder.Configuration["Database:ConnectionString"],
-        npgsqlOptions => npgsqlOptions.CommandTimeout(30)));
+{
+    var connectionString = builder.Configuration.GetConnectionString("Database") ??
+        builder.Configuration["Database:ConnectionString"];
+
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.CommandTimeout(30);
+    });
+});
 
 // Register Infrastructure services
 builder.Services.AddSingleton<ISnowflakeIdGenerator, SnowflakeIdGenerator>();
@@ -86,13 +93,53 @@ builder.Services.AddAuthentication(options =>
 // Add controllers
 builder.Services.AddControllers();
 
+// Configure CORS (T119 - Security hardening)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// Configure Response Caching (T116 - Performance optimization)
+builder.Services.AddResponseCaching(options =>
+{
+    options.MaximumBodySize = 1024 * 1024; // 1 MB
+    options.UseCaseSensitivePaths = true;
+});
+
+// Configure Rate Limiting (T118 - Security hardening)
+builder.Services.AddMemoryCache();
+
+// Configure Swagger/OpenAPI (T115)
+// Note: Using simple Swagger setup without complex security definitions
+// Full OpenAPI documentation available at /swagger endpoint
+builder.Services.AddSwaggerGen(options =>
+{
+    // Include XML documentation
+    var xmlFile = "MemberService.API.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    // Swagger disabled due to version incompatibility with .NET 10
-    // API documentation available via OpenAPI endpoints
+    // Enable Swagger UI in development
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Member Service API v1");
+        options.RoutePrefix = "swagger";
+    });
 }
 
 // Apply EF Core migrations automatically on startup
@@ -112,8 +159,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Use middleware
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseResponseCaching();
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

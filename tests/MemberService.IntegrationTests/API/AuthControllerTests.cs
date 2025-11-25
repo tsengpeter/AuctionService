@@ -99,7 +99,7 @@ public class AuthControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var content = await response.Content.ReadFromJsonAsync<AuthResponse>();
         content.Should().NotBeNull();
         content!.Email.Should().Be(request.Email);
@@ -201,7 +201,7 @@ public class AuthControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadFromJsonAsync<AuthResponse>();
         content.Should().NotBeNull();
         content.Email.Should().Be(email);
@@ -269,7 +269,7 @@ public class AuthControllerTests : IAsyncLifetime
             Password = "ValidPassword123!",
             Username = "refresh user"
         };
-        
+
         var registerResponse = await _client!.PostAsJsonAsync("/api/auth/register", registerRequest);
         var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
 
@@ -279,7 +279,7 @@ public class AuthControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadFromJsonAsync<RefreshTokenResponse>();
         content.Should().NotBeNull();
         content.AccessToken.Should().NotBeEmpty();
@@ -309,12 +309,12 @@ public class AuthControllerTests : IAsyncLifetime
             Password = "ValidPassword123!",
             Username = "logout user"
         };
-        
+
         var registerResponse = await _client!.PostAsJsonAsync("/api/auth/register", registerRequest);
         var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
 
         // Add authorization header for logout
-        _client.DefaultRequestHeaders.Authorization = 
+        _client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse!.AccessToken);
 
         // Act - Logout

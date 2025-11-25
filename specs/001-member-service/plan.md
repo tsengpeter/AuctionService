@@ -19,7 +19,7 @@ Member Service 提供使用者註冊、登入、身份驗證與個人資料管�
 
 ## Technical Context
 
-**Language/Version**: ASP.NET Core 9, C# 12  
+**Language/Version**: ASP.NET Core 9, C# 13 (.NET 9 LTS)  
 **Primary Dependencies**:
 - IdGen 3.x (Snowflake ID 產生器)
 - BCrypt.Net-Next 4.0.3 (密碼雜湊)

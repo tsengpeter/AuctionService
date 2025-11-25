@@ -6,8 +6,8 @@ namespace MemberService.Domain.Exceptions;
 public class EmailAlreadyExistsException : DomainException
 {
     public string Email { get; }
-    
-    public EmailAlreadyExistsException(string email) 
+
+    public EmailAlreadyExistsException(string email)
         : base($"電子郵件 '{email}' 已經被使用", "EMAIL_ALREADY_EXISTS")
     {
         Email = email;

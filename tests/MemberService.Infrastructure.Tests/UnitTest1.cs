@@ -1,4 +1,4 @@
-﻿namespace MemberService.Infrastructure.Tests;
+namespace MemberService.Infrastructure.Tests;
 
 public class UnitTest1
 {

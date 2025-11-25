@@ -12,27 +12,27 @@ public class RefreshToken
     public DateTime ExpiresAt { get; private set; }
     public bool IsRevoked { get; private set; }
     public DateTime CreatedAt { get; private set; }
-    
+
     // Navigation property
     public User? User { get; private set; }
-    
+
     /// <summary>
     /// Computed property: indicates whether the token has expired.
     /// </summary>
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
-    
+
     /// <summary>
     /// Computed property: indicates whether the token is still valid for use.
     /// Valid means: not expired AND not revoked.
     /// </summary>
     public bool IsValid => !IsExpired && !IsRevoked;
-    
+
     // Constructor for EF Core
     private RefreshToken()
     {
         Token = null!;
     }
-    
+
     /// <summary>
     /// Creates a new RefreshToken entity.
     /// </summary>
@@ -45,10 +45,10 @@ public class RefreshToken
     {
         if (string.IsNullOrWhiteSpace(token))
             throw new ArgumentException("Token 不能為空", nameof(token));
-        
+
         if (userId <= 0)
             throw new ArgumentException("使用者ID必須大於0", nameof(userId));
-        
+
         return new RefreshToken
         {
             Id = Guid.NewGuid(),
@@ -59,7 +59,7 @@ public class RefreshToken
             CreatedAt = DateTime.UtcNow
         };
     }
-    
+
     /// <summary>
     /// Revokes the refresh token, preventing it from being used.
     /// </summary>

@@ -5,7 +5,7 @@ namespace MemberService.Domain.Exceptions;
 /// </summary>
 public class DuplicateEmailException : DomainException
 {
-    public DuplicateEmailException(string message) 
+    public DuplicateEmailException(string message)
         : base(message, "DUPLICATE_EMAIL")
     {
     }

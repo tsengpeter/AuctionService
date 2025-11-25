@@ -5,7 +5,7 @@ namespace MemberService.Domain.Exceptions;
 /// </summary>
 public class InvalidCredentialsException : DomainException
 {
-    public InvalidCredentialsException() 
+    public InvalidCredentialsException()
         : base("電子郵件或密碼不正確", "INVALID_CREDENTIALS")
     {
     }

@@ -13,14 +13,14 @@ public class Email : IEquatable<Email>
         @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
-    
+
     public string Value { get; }
-    
+
     private Email(string value)
     {
         Value = value.ToLowerInvariant();
     }
-    
+
     /// <summary>
     /// Creates a new Email value object.
     /// </summary>
@@ -31,45 +31,45 @@ public class Email : IEquatable<Email>
     {
         if (string.IsNullOrWhiteSpace(value))
             throw new ArgumentException("電子郵件地址不能為空", nameof(value));
-        
+
         var trimmedValue = value.Trim();
-        
+
         if (trimmedValue.Length > MaxLength)
             throw new ArgumentException($"電子郵件地址不能超過 {MaxLength} 個字元", nameof(value));
-        
+
         if (!EmailRegex.IsMatch(trimmedValue))
             throw new ArgumentException("電子郵件地址格式無效", nameof(value));
-        
+
         return new Email(trimmedValue);
     }
-    
+
     public bool Equals(Email? other)
     {
         return other is not null && Value == other.Value;
     }
-    
+
     public override bool Equals(object? obj)
     {
         return obj is Email email && Equals(email);
     }
-    
+
     public override int GetHashCode()
     {
         return Value.GetHashCode();
     }
-    
+
     public static bool operator ==(Email? left, Email? right)
     {
         if (left is null && right is null) return true;
         if (left is null || right is null) return false;
         return left.Equals(right);
     }
-    
+
     public static bool operator !=(Email? left, Email? right)
     {
         return !(left == right);
     }
-    
+
     public override string ToString()
     {
         return Value;

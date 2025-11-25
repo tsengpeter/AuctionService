@@ -14,7 +14,7 @@ public interface IUserRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The user if found, otherwise null</returns>
     Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Finds a user by ID.
     /// </summary>
@@ -22,7 +22,7 @@ public interface IUserRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The user if found, otherwise null</returns>
     Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets a user by ID, throwing an exception if not found.
     /// </summary>
@@ -31,14 +31,14 @@ public interface IUserRepository
     /// <returns>The user</returns>
     /// <exception cref="DomainException">Thrown when user is not found</exception>
     Task<User> GetByIdAsync(long id, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Adds a new user to the repository.
     /// </summary>
     /// <param name="user">The user to add</param>
     /// <param name="cancellationToken">Cancellation token</param>
     Task AddAsync(User user, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Updates an existing user.
     /// </summary>

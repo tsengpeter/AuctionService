@@ -18,17 +18,17 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     private readonly string _issuer;
     private readonly string _audience;
     private readonly int _expirationMinutes;
-    
+
     public JwtTokenGenerator(IConfiguration configuration)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _secretKey = _configuration["Jwt:SecretKey"] 
+        _secretKey = _configuration["Jwt:SecretKey"]
             ?? throw new InvalidOperationException("Jwt:SecretKey is not configured");
         _issuer = _configuration["Jwt:Issuer"] ?? "member-service";
         _audience = _configuration["Jwt:Audience"] ?? "auction-api";
         _expirationMinutes = int.Parse(_configuration["Jwt:ExpirationMinutes"] ?? "15");
     }
-    
+
     /// <summary>
     /// Generates a JWT access token.
     /// </summary>
@@ -39,14 +39,14 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-        
+
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Email, email),
             new Claim("sub", userId.ToString()), // Subject claim
         };
-        
+
         var token = new JwtSecurityToken(
             issuer: _issuer,
             audience: _audience,
@@ -54,7 +54,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             expires: DateTime.UtcNow.AddMinutes(_expirationMinutes),
             signingCredentials: credentials
         );
-        
+
         var tokenHandler = new JwtSecurityTokenHandler();
         return tokenHandler.WriteToken(token);
     }
