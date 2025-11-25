@@ -1,6 +1,91 @@
-@MemberService.API_HostAddress = http://localhost:5222
+@host = http://localhost:5222
+@contentType = application/json
 
-GET {{MemberService.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### 變數定義
+@accessToken = YOUR_JWT_TOKEN_HERE
+@refreshToken = YOUR_REFRESH_TOKEN_HERE
+@userId = 12345
 
-###
+### ===== 驗證相關端點 (Auth) =====
+
+### 1. 用戶註冊
+POST {{host}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "newuser@example.com",
+  "password": "SecurePassword123",
+  "username": "John Doe"
+}
+
+### 2. 用戶登入
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "newuser@example.com",
+  "password": "SecurePassword123"
+}
+
+### 3. 刷新令牌 (Token Refresh)
+POST {{host}}/api/auth/refresh-token
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 4. 登出 (Revoke Tokens)
+POST {{host}}/api/auth/logout
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### ===== 用戶資料端點 (Users) =====
+
+### 5. 獲取個人資料 (需認證)
+GET {{host}}/api/users/me
+Authorization: Bearer {{accessToken}}
+
+### 6. 獲取其他用戶公開資料
+GET {{host}}/api/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+### 7. 更新個人資料
+PUT {{host}}/api/users/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "username": "Updated Name",
+  "email": "newemail@example.com"
+}
+
+### 8. 變更密碼
+PUT {{host}}/api/users/me/password
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "oldPassword": "OldPassword123",
+  "newPassword": "NewPassword456"
+}
+
+### ===== 健康檢查端點 =====
+
+### 9. 健康檢查 (Health Check)
+GET {{host}}/health
+
+### 10. 就緒檢查 (Readiness Check)
+GET {{host}}/ready
+
+### ===== Swagger/OpenAPI =====
+
+### 11. Swagger UI
+GET {{host}}/swagger/index.html
+
+### 12. OpenAPI 規範
+GET {{host}}/swagger/v1/swagger.json
