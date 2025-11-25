@@ -31,28 +31,28 @@ Based on Clean Architecture from plan.md:
 
 **Purpose**: Project initialization and basic Clean Architecture structure
 
-- [ ] T001 Create solution file MemberService.sln at repository root
-- [ ] T002 Create Domain project: src/MemberService/MemberService.Domain/MemberService.Domain.csproj
-- [ ] T003 [P] Create Application project: src/MemberService/MemberService.Application/MemberService.Application.csproj
-- [ ] T004 [P] Create Infrastructure project: src/MemberService/MemberService.Infrastructure/MemberService.Infrastructure.csproj
-- [ ] T005 [P] Create API project: src/MemberService/MemberService.API/MemberService.API.csproj (ASP.NET Core 9 Web API)
-- [ ] T006 [P] Create Domain.Tests project: tests/MemberService.Domain.Tests/MemberService.Domain.Tests.csproj
-- [ ] T007 [P] Create Application.Tests project: tests/MemberService.Application.Tests/MemberService.Application.Tests.csproj
-- [ ] T008 [P] Create Infrastructure.Tests project: tests/MemberService.Infrastructure.Tests/MemberService.Infrastructure.Tests.csproj
-- [ ] T009 [P] Create IntegrationTests project: tests/MemberService.IntegrationTests/MemberService.IntegrationTests.csproj
-- [ ] T010 Configure project references (Domain → Application → Infrastructure → API)
-- [ ] T011 [P] Install NuGet packages: IdGen 3.x in Domain project
-- [ ] T012 [P] Install NuGet packages: BCrypt.Net-Next 4.0.3 in Infrastructure project
-- [ ] T013 [P] Install NuGet packages: System.IdentityModel.Tokens.Jwt 7.0.3 in Infrastructure project
-- [ ] T014 [P] Install NuGet packages: Npgsql.EntityFrameworkCore.PostgreSQL 9.0 in Infrastructure project
-- [ ] T015 [P] Install NuGet packages: FluentValidation.AspNetCore 11.3.0 in Application project
-- [ ] T016 [P] Install NuGet packages: Serilog.AspNetCore 8.0 in API project
-- [ ] T017 [P] Install NuGet packages: xUnit 2.6, Moq 4.20, FluentAssertions 6.12 in all test projects
-- [ ] T018 [P] Install NuGet packages: Testcontainers.PostgreSql 3.6 in IntegrationTests project
-- [ ] T019 Create .editorconfig with C# coding standards at repository root
-- [ ] T020 Create appsettings.json with configuration structure in MemberService.API/
-- [ ] T021 Create appsettings.Development.json in MemberService.API/
-- [ ] T022 Create Dockerfile for containerization in MemberService.API/
+- [x] T001 Create solution file MemberService.sln at repository root
+- [x] T002 Create Domain project: src/MemberService/MemberService.Domain/MemberService.Domain.csproj
+- [x] T003 [P] Create Application project: src/MemberService/MemberService.Application/MemberService.Application.csproj
+- [x] T004 [P] Create Infrastructure project: src/MemberService/MemberService.Infrastructure/MemberService.Infrastructure.csproj
+- [x] T005 [P] Create API project: src/MemberService/MemberService.API/MemberService.API.csproj (ASP.NET Core 9 Web API)
+- [x] T006 [P] Create Domain.Tests project: tests/MemberService.Domain.Tests/MemberService.Domain.Tests.csproj
+- [x] T007 [P] Create Application.Tests project: tests/MemberService.Application.Tests/MemberService.Application.Tests.csproj
+- [x] T008 [P] Create Infrastructure.Tests project: tests/MemberService.Infrastructure.Tests/MemberService.Infrastructure.Tests.csproj
+- [x] T009 [P] Create IntegrationTests project: tests/MemberService.IntegrationTests/MemberService.IntegrationTests.csproj
+- [x] T010 Configure project references (Domain → Application → Infrastructure → API)
+- [x] T011 [P] Install NuGet packages: IdGen 3.x in Domain project
+- [x] T012 [P] Install NuGet packages: BCrypt.Net-Next 4.0.3 in Infrastructure project
+- [x] T013 [P] Install NuGet packages: System.IdentityModel.Tokens.Jwt 7.0.3 in Infrastructure project
+- [x] T014 [P] Install NuGet packages: Npgsql.EntityFrameworkCore.PostgreSQL 9.0 in Infrastructure project
+- [x] T015 [P] Install NuGet packages: FluentValidation.AspNetCore 11.3.0 in Application project
+- [x] T016 [P] Install NuGet packages: Serilog.AspNetCore 8.0 in API project
+- [x] T017 [P] Install NuGet packages: xUnit 2.6, Moq 4.20, FluentAssertions 6.12 in all test projects
+- [x] T018 [P] Install NuGet packages: Testcontainers.PostgreSql 3.6 in IntegrationTests project
+- [x] T019 Create .editorconfig with C# coding standards at repository root
+- [x] T020 Create appsettings.json with configuration structure in MemberService.API/
+- [x] T021 Create appsettings.Development.json in MemberService.API/
+- [x] T022 Create Dockerfile for containerization in MemberService.API/
 
 ---
 
@@ -66,62 +66,62 @@ Based on Clean Architecture from plan.md:
 
 ### Domain Layer Foundation
 
-- [ ] T023 Create DomainException base class in src/MemberService/MemberService.Domain/Exceptions/DomainException.cs
-- [ ] T024 [P] Create EmailAlreadyExistsException in src/MemberService/MemberService.Domain/Exceptions/EmailAlreadyExistsException.cs
-- [ ] T025 [P] Create InvalidCredentialsException in src/MemberService/MemberService.Domain/Exceptions/InvalidCredentialsException.cs
-- [ ] T026 [P] Create InvalidOldPasswordException in src/MemberService/MemberService.Domain/Exceptions/InvalidOldPasswordException.cs
-- [ ] T027 [P] Create UserNotFoundException in src/MemberService/MemberService.Domain/Exceptions/UserNotFoundException.cs
+- [x] T023 Create DomainException base class in src/MemberService/MemberService.Domain/Exceptions/DomainException.cs
+- [x] T024 [P] Create EmailAlreadyExistsException in src/MemberService/MemberService.Domain/Exceptions/EmailAlreadyExistsException.cs
+- [x] T025 [P] Create InvalidCredentialsException in src/MemberService/MemberService.Domain/Exceptions/InvalidCredentialsException.cs
+- [x] T026 [P] Create InvalidOldPasswordException in src/MemberService/MemberService.Domain/Exceptions/InvalidOldPasswordException.cs
+- [x] T027 [P] Create UserNotFoundException in src/MemberService/MemberService.Domain/Exceptions/UserNotFoundException.cs
 
 ### Value Objects (Domain)
 
-- [ ] T028 Write tests for Email value object in tests/MemberService.Domain.Tests/ValueObjects/EmailTests.cs
-- [ ] T029 Implement Email value object in src/MemberService/MemberService.Domain/ValueObjects/Email.cs (max 255, validation, lowercase)
-- [ ] T030 Write tests for Password value object in tests/MemberService.Domain.Tests/ValueObjects/PasswordTests.cs
-- [ ] T031 Implement Password value object in src/MemberService/MemberService.Domain/ValueObjects/Password.cs (8-128 chars, validation)
-- [ ] T032 Write tests for Username value object in tests/MemberService.Domain.Tests/ValueObjects/UsernameTests.cs
-- [ ] T033 Implement Username value object in src/MemberService/MemberService.Domain/ValueObjects/Username.cs (3-50 chars, letters+spaces only, regex validation)
+- [x] T028 Write tests for Email value object in tests/MemberService.Domain.Tests/ValueObjects/EmailTests.cs
+- [x] T029 Implement Email value object in src/MemberService/MemberService.Domain/ValueObjects/Email.cs (max 255, validation, lowercase)
+- [x] T030 Write tests for Password value object in tests/MemberService.Domain.Tests/ValueObjects/PasswordTests.cs
+- [x] T031 Implement Password value object in src/MemberService/MemberService.Domain/ValueObjects/Password.cs (8-128 chars, validation)
+- [x] T032 Write tests for Username value object in tests/MemberService.Domain.Tests/ValueObjects/UsernameTests.cs
+- [x] T033 Implement Username value object in src/MemberService/MemberService.Domain/ValueObjects/Username.cs (3-50 chars, letters+spaces only, regex validation)
 
 ### Core Entities (Domain)
 
-- [ ] T034 Write tests for User entity in tests/MemberService.Domain.Tests/Entities/UserTests.cs
-- [ ] T035 Implement User entity in src/MemberService/MemberService.Domain/Entities/User.cs (Id:long, Email, PasswordHash, Username, CreatedAt, UpdatedAt, RefreshTokens navigation)
-- [ ] T036 Write tests for RefreshToken entity in tests/MemberService.Domain.Tests/Entities/RefreshTokenTests.cs
-- [ ] T037 Implement RefreshToken entity in src/MemberService/MemberService.Domain/Entities/RefreshToken.cs (Id:Guid, Token, UserId:long FK, ExpiresAt, IsRevoked, CreatedAt, IsExpired computed, IsValid computed)
+- [x] T034 Write tests for User entity in tests/MemberService.Domain.Tests/Entities/UserTests.cs
+- [x] T035 Implement User entity in src/MemberService/MemberService.Domain/Entities/User.cs (Id:long, Email, PasswordHash, Username, CreatedAt, UpdatedAt, RefreshTokens navigation)
+- [x] T036 Write tests for RefreshToken entity in tests/MemberService.Domain.Tests/Entities/RefreshTokenTests.cs
+- [x] T037 Implement RefreshToken entity in src/MemberService/MemberService.Domain/Entities/RefreshToken.cs (Id:Guid, Token, UserId:long FK, ExpiresAt, IsRevoked, CreatedAt, IsExpired computed, IsValid computed)
 
 ### Repository Interfaces (Domain)
 
-- [ ] T038 Create IUserRepository interface in src/MemberService/MemberService.Domain/Interfaces/IUserRepository.cs (FindByEmailAsync, FindByIdAsync, AddAsync, UpdateAsync, GetByIdAsync)
-- [ ] T039 [P] Create IRefreshTokenRepository interface in src/MemberService/MemberService.Domain/Interfaces/IRefreshTokenRepository.cs (FindByTokenAsync, AddAsync, RevokeAllForUserAsync, RemoveExpiredAsync)
-- [ ] T040 [P] Create IPasswordHasher interface in src/MemberService/MemberService.Domain/Interfaces/IPasswordHasher.cs (HashPassword, VerifyPassword)
-- [ ] T041 [P] Create ISnowflakeIdGenerator interface in src/MemberService/MemberService.Domain/Interfaces/ISnowflakeIdGenerator.cs (GenerateId)
+- [x] T038 Create IUserRepository interface in src/MemberService/MemberService.Domain/Interfaces/IUserRepository.cs (FindByEmailAsync, FindByIdAsync, AddAsync, UpdateAsync, GetByIdAsync)
+- [x] T039 [P] Create IRefreshTokenRepository interface in src/MemberService/MemberService.Domain/Interfaces/IRefreshTokenRepository.cs (FindByTokenAsync, AddAsync, RevokeAllForUserAsync, RemoveExpiredAsync)
+- [x] T040 [P] Create IPasswordHasher interface in src/MemberService/MemberService.Domain/Interfaces/IPasswordHasher.cs (HashPassword, VerifyPassword)
+- [x] T041 [P] Create ISnowflakeIdGenerator interface in src/MemberService/MemberService.Domain/Interfaces/ISnowflakeIdGenerator.cs (GenerateId)
 
 ### Infrastructure - Security
 
-- [ ] T042 Write tests for BCryptPasswordHasher in tests/MemberService.Infrastructure.Tests/Security/BCryptPasswordHasherTests.cs
-- [ ] T043 Implement BCryptPasswordHasher in src/MemberService/MemberService.Infrastructure/Security/BCryptPasswordHasher.cs (implements IPasswordHasher, bcrypt + snowflakeId, work factor 12)
-- [ ] T044 Write tests for SnowflakeIdGenerator in tests/MemberService.Infrastructure.Tests/IdGeneration/SnowflakeIdGeneratorTests.cs
-- [ ] T045 Implement SnowflakeIdGenerator in src/MemberService/MemberService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs (using IdGen package, WorkerId + DatacenterId config)
-- [ ] T046 Write tests for JwtTokenGenerator in tests/MemberService.Infrastructure.Tests/Security/JwtTokenGeneratorTests.cs
-- [ ] T047 Implement JwtTokenGenerator in src/MemberService/MemberService.Infrastructure/Security/JwtTokenGenerator.cs (HS256, 15min expiry, claims: UserId+Email)
-- [ ] T048 Write tests for RefreshTokenGenerator in tests/MemberService.Infrastructure.Tests/Security/RefreshTokenGeneratorTests.cs
-- [ ] T049 Implement RefreshTokenGenerator in src/MemberService/MemberService.Infrastructure/Security/RefreshTokenGenerator.cs (256-bit random Base64, 7 day expiry)
+- [x] T042 Write tests for BCryptPasswordHasher in tests/MemberService.Infrastructure.Tests/Security/BCryptPasswordHasherTests.cs
+- [x] T043 Implement BCryptPasswordHasher in src/MemberService/MemberService.Infrastructure/Security/BCryptPasswordHasher.cs (implements IPasswordHasher, bcrypt + snowflakeId, work factor 12)
+- [x] T044 Write tests for SnowflakeIdGenerator in tests/MemberService.Infrastructure.Tests/IdGeneration/SnowflakeIdGeneratorTests.cs
+- [x] T045 Implement SnowflakeIdGenerator in src/MemberService/MemberService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs (using IdGen package, WorkerId + DatacenterId config)
+- [x] T046 Write tests for JwtTokenGenerator in tests/MemberService.Infrastructure.Tests/Security/JwtTokenGeneratorTests.cs
+- [x] T047 Implement JwtTokenGenerator in src/MemberService/MemberService.Infrastructure/Security/JwtTokenGenerator.cs (HS256, 15min expiry, claims: UserId+Email)
+- [x] T048 Write tests for RefreshTokenGenerator in tests/MemberService.Infrastructure.Tests/Security/RefreshTokenGeneratorTests.cs
+- [x] T049 Implement RefreshTokenGenerator in src/MemberService/MemberService.Infrastructure/Security/RefreshTokenGenerator.cs (256-bit random Base64, 7 day expiry)
 
 ### Infrastructure - Persistence
 
-- [ ] T050 Create MemberDbContext in src/MemberService/MemberService.Infrastructure/Persistence/MemberDbContext.cs (DbSet<User>, DbSet<RefreshToken>, SaveChangesAsync override for UpdatedAt)
-- [ ] T051 Create UserConfiguration (EF Core) in src/MemberService/MemberService.Infrastructure/Persistence/Configurations/UserConfiguration.cs (HasKey, HasIndex Email unique, MaxLength 255, relationships)
-- [ ] T052 Create RefreshTokenConfiguration (EF Core) in src/MemberService/MemberService.Infrastructure/Persistence/Configurations/RefreshTokenConfiguration.cs (HasKey, HasIndex Token unique, composite index UserId+ExpiresAt, FK cascade)
-- [ ] T053 Write tests for UserRepository in tests/MemberService.Infrastructure.Tests/Persistence/UserRepositoryTests.cs (use in-memory DB or Testcontainers)
-- [ ] T054 Implement UserRepository in src/MemberService/MemberService.Infrastructure/Persistence/Repositories/UserRepository.cs (implements IUserRepository)
-- [ ] T055 Write tests for RefreshTokenRepository in tests/MemberService.Infrastructure.Tests/Persistence/RefreshTokenRepositoryTests.cs
-- [ ] T056 Implement RefreshTokenRepository in src/MemberService/MemberService.Infrastructure/Persistence/Repositories/RefreshTokenRepository.cs (implements IRefreshTokenRepository)
-- [ ] T057 Create InitialCreate migration using EF Core: dotnet ef migrations add InitialCreate --startup-project src/MemberService/MemberService.API --project src/MemberService/MemberService.Infrastructure
+- [x] T050 Create MemberDbContext in src/MemberService/MemberService.Infrastructure/Persistence/MemberDbContext.cs (DbSet<User>, DbSet<RefreshToken>, SaveChangesAsync override for UpdatedAt)
+- [x] T051 Create UserConfiguration (EF Core) in src/MemberService/MemberService.Infrastructure/Persistence/Configurations/UserConfiguration.cs (HasKey, HasIndex Email unique, MaxLength 255, relationships)
+- [x] T052 Create RefreshTokenConfiguration (EF Core) in src/MemberService/MemberService.Infrastructure/Persistence/Configurations/RefreshTokenConfiguration.cs (HasKey, HasIndex Token unique, composite index UserId+ExpiresAt, FK cascade)
+- [x] T053 Write tests for UserRepository in tests/MemberService.Infrastructure.Tests/Persistence/UserRepositoryTests.cs (use in-memory DB or Testcontainers)
+- [x] T054 Implement UserRepository in src/MemberService/MemberService.Infrastructure/Persistence/Repositories/UserRepository.cs (implements IUserRepository)
+- [x] T055 Write tests for RefreshTokenRepository in tests/MemberService.Infrastructure.Tests/Persistence/RefreshTokenRepositoryTests.cs
+- [x] T056 Implement RefreshTokenRepository in src/MemberService/MemberService.Infrastructure/Persistence/Repositories/RefreshTokenRepository.cs (implements IRefreshTokenRepository)
+- [x] T057 Create InitialCreate migration using EF Core: dotnet ef migrations add InitialCreate --startup-project src/MemberService/MemberService.API --project src/MemberService/MemberService.Infrastructure
 
 ### API - Middleware & Configuration
 
-- [ ] T058 Implement ExceptionHandlingMiddleware in src/MemberService/MemberService.API/Middlewares/ExceptionHandlingMiddleware.cs (catch DomainException, return standard error format with code/message/timestamp/path)
-- [ ] T059 Configure Program.cs in src/MemberService/MemberService.API/Program.cs (DI registration, Serilog, EF Core, FluentValidation, JWT authentication, middleware pipeline)
-- [ ] T060 Create Testcontainers fixture in tests/MemberService.IntegrationTests/TestFixtures/PostgreSqlContainerFixture.cs (PostgreSQL 16 container setup for integration tests)
+- [x] T058 Implement ExceptionHandlingMiddleware in src/MemberService/MemberService.API/Middlewares/ExceptionHandlingMiddleware.cs (catch DomainException, return standard error format with code/message/timestamp/path)
+- [x] T059 Configure Program.cs in src/MemberService/MemberService.API/Program.cs (DI registration, Serilog, EF Core, FluentValidation, JWT authentication, middleware pipeline)
+- [x] T060 Create Testcontainers fixture in tests/MemberService.IntegrationTests/TestFixtures/PostgreSqlContainerFixture.cs (PostgreSQL 16 container setup for integration tests)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

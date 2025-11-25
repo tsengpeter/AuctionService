@@ -1,0 +1,74 @@
+# C#/.NET specific
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.cacheproj
+*.csproj.user
+
+# Build outputs
+packages/
+!packages/repositories.config
+*.dll
+*.exe
+*.pdb
+*.exp
+*.lib
+*.obj
+
+# Visual Studio
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test Results
+TestResults/
+coverage/
+*.trx
+
+# Environment and configuration
+.env*
+!.env.example
+appsettings.Local.json
+appsettings.*.local.json
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+*.tmp
+*~
+
+# Node (if using node-based tools)
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs
+*.log
+logs/
+
+# Entity Framework
+Migrations/
+
+# NuGet
+.nuget/
+
+# Roslyn analyzers
+.roslyn/
+
+# Other
+.git_backup/
+.grunt/
+dist/
+.sass-cache/
+connect.lock
+coverage
+.nyc_output
+.eslintignore_backup
