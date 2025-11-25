@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using MemberService.Application.DTOs.Auth;
 using MemberService.Domain.Entities;
 using MemberService.Domain.Exceptions;
 using MemberService.Domain.Interfaces;
@@ -145,7 +146,7 @@ public class AuthService : IAuthService
     /// <summary>
     /// Refresh an access token using a refresh token.
     /// </summary>
-    public async Task<RefreshTokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         // Validate input
         if (string.IsNullOrWhiteSpace(refreshToken))
@@ -168,15 +169,24 @@ public class AuthService : IAuthService
 
         // Get user
         var user = await _userRepository.GetByIdAsync(token.UserId, cancellationToken);
+        if (user == null)
+        {
+            _logger.LogError("User not found for refresh token: {UserId}", token.UserId);
+            throw new InvalidCredentialsException("User not found");
+        }
 
         // Generate new access token
         var accessToken = _jwtTokenGenerator.GenerateToken(user.Id, user.Email.Value);
 
         _logger.LogInformation("Token refreshed for user: {UserId}", user.Id);
 
-        return new RefreshTokenResponse
+        return new AuthResponse
         {
-            AccessToken = accessToken
+            UserId = user.Id,
+            Email = user.Email.Value,
+            Username = user.Username.Value,
+            AccessToken = accessToken,
+            RefreshToken = refreshToken
         };
     }
 

@@ -1,6 +1,9 @@
 using System.Text;
+using FluentValidation;
 using MemberService.API.Middlewares;
+using MemberService.Application.DTOs.Auth;
 using MemberService.Application.Services;
+using MemberService.Application.Validators;
 using MemberService.Domain.Interfaces;
 using MemberService.Infrastructure.IdGeneration;
 using MemberService.Infrastructure.Persistence;
@@ -44,6 +47,11 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 // Register Application services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// Register FluentValidation validators
+builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
+builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
 // Configure JWT authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = jwtSettings.GetValue<string>("SecretKey");
@@ -74,16 +82,13 @@ builder.Services.AddAuthentication(options =>
 // Add controllers
 builder.Services.AddControllers();
 
-// Add Swagger
-builder.Services.AddSwaggerGen();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Member Service API v1"));
+    // Swagger disabled due to version incompatibility with .NET 10
+    // API documentation available via OpenAPI endpoints
 }
 
 // Apply EF Core migrations automatically on startup
@@ -110,3 +115,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Make Program class public for WebApplicationFactory in tests
+public partial class Program { }

@@ -135,36 +135,36 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 1
 
-- [ ] T061 [P] [US1] Create RegisterRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RegisterRequest.cs (Email, Password, Username)
-- [ ] T062 [P] [US1] Create LoginRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LoginRequest.cs (Email, Password)
-- [ ] T063 [P] [US1] Create AuthResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/AuthResponse.cs (UserId, Email, Username, AccessToken, RefreshToken)
+- [x] T061 [P] [US1] Create RegisterRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RegisterRequest.cs (Email, Password, Username)
+- [x] T062 [P] [US1] Create LoginRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LoginRequest.cs (Email, Password)
+- [x] T063 [P] [US1] Create AuthResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/AuthResponse.cs (UserId, Email, Username, AccessToken, RefreshToken)
 
 ### Validators for User Story 1
 
-- [ ] T064 Write tests for RegisterRequestValidator in tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
-- [ ] T065 [US1] Implement RegisterRequestValidator in src/MemberService/MemberService.Application/Validators/RegisterRequestValidator.cs (FluentValidation: email format, password >=8 chars, username 3-50 letters+spaces)
-- [ ] T066 Write tests for LoginRequestValidator in tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
-- [ ] T067 [US1] Implement LoginRequestValidator in src/MemberService/MemberService.Application/Validators/LoginRequestValidator.cs (FluentValidation: email required, password required)
+- [x] T064 Write tests for RegisterRequestValidator in tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
+- [x] T065 [US1] Implement RegisterRequestValidator in src/MemberService/MemberService.Application/Validators/RegisterRequestValidator.cs (FluentValidation: email format, password >=8 chars, username 3-50 letters+spaces)
+- [x] T066 Write tests for LoginRequestValidator in tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
+- [x] T067 [US1] Implement LoginRequestValidator in src/MemberService/MemberService.Application/Validators/LoginRequestValidator.cs (FluentValidation: email required, password required)
 
 ### Service Interfaces for User Story 1
 
-- [ ] T068 [US1] Create IAuthService interface in src/MemberService/MemberService.Application/Services/IAuthService.cs (RegisterAsync, LoginAsync, RefreshTokenAsync, LogoutAsync)
+- [x] T068 [US1] Create IAuthService interface in src/MemberService/MemberService.Application/Services/IAuthService.cs (RegisterAsync, LoginAsync, RefreshTokenAsync, LogoutAsync)
 
 ### Service Implementation for User Story 1
 
-- [ ] T069 Write tests for AuthService in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test register/login scenarios)
-- [ ] T070 [US1] Implement AuthService.RegisterAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (check email uniqueness, generate snowflake ID, hash password with bcrypt+ID, create User+RefreshToken, return JWT)
-- [ ] T071 [US1] Implement AuthService.LoginAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find by email, verify password, generate new JWT+RefreshToken, return tokens)
+- [x] T069 Write tests for AuthService in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test register/login scenarios)
+- [x] T070 [US1] Implement AuthService.RegisterAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (check email uniqueness, generate snowflake ID, hash password with bcrypt+ID, create User+RefreshToken, return JWT)
+- [x] T071 [US1] Implement AuthService.LoginAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find by email, verify password, generate new JWT+RefreshToken, return tokens)
 
 ### Controller for User Story 1
 
-- [ ] T072 [US1] Implement AuthController.Register in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/register, validate, call AuthService.RegisterAsync, return 201 with AuthResponse)
-- [ ] T073 [US1] Implement AuthController.Login in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/login, validate, call AuthService.LoginAsync, return 200 with AuthResponse)
+- [x] T072 [US1] Implement AuthController.Register in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/register, validate, call AuthService.RegisterAsync, return 201 with AuthResponse)
+- [x] T073 [US1] Implement AuthController.Login in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/login, validate, call AuthService.LoginAsync, return 200 with AuthResponse)
 
 ### Integration Tests for User Story 1
 
-- [ ] T074 [US1] Write integration test for register endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (use Testcontainers, test successful register, duplicate email, validation errors)
-- [ ] T075 [US1] Write integration test for login endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful login, invalid credentials, wrong password)
+- [x] T074 [US1] Write integration test for register endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (use Testcontainers, test successful register, duplicate email, validation errors)
+- [x] T075 [US1] Write integration test for login endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful login, invalid credentials, wrong password)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can register and login independently
 
@@ -178,26 +178,26 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 2
 
-- [ ] T076 [P] [US2] Create RefreshTokenRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenRequest.cs (RefreshToken string)
-- [ ] T077 [P] [US2] Create RefreshTokenResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenResponse.cs (AccessToken string)
-- [ ] T078 [P] [US2] Create LogoutRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LogoutRequest.cs (RefreshToken string)
+- [x] T076 [P] [US2] Create RefreshTokenRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenRequest.cs (RefreshToken string)
+- [x] T077 [P] [US2] Create RefreshTokenResponse DTO in src/MemberService/MemberService.Application/DTOs/Auth/RefreshTokenResponse.cs (AccessToken string)
+- [x] T078 [P] [US2] Create LogoutRequest DTO in src/MemberService/MemberService.Application/DTOs/Auth/LogoutRequest.cs (RefreshToken string)
 
 ### Service Implementation for User Story 2
 
-- [ ] T079 Write tests for AuthService.RefreshTokenAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test valid token, expired token, revoked token)
-- [ ] T080 [US2] Implement AuthService.RefreshTokenAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (validate token not expired/revoked, generate new JWT, return new access token)
-- [ ] T081 Write tests for AuthService.LogoutAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
-- [ ] T082 [US2] Implement AuthService.LogoutAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find refresh token, mark as revoked, save)
+- [x] T079 Write tests for AuthService.RefreshTokenAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs (mock repositories, test valid token, expired token, revoked token)
+- [x] T080 [US2] Implement AuthService.RefreshTokenAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (validate token not expired/revoked, generate new JWT, return new access token)
+- [x] T081 Write tests for AuthService.LogoutAsync in tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [x] T082 [US2] Implement AuthService.LogoutAsync in src/MemberService/MemberService.Application/Services/AuthService.cs (find refresh token, mark as revoked, save)
 
 ### Controller for User Story 2
 
-- [ ] T083 [US2] Implement AuthController.RefreshToken in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/refresh-token, call AuthService.RefreshTokenAsync, return 200 with new JWT)
-- [ ] T084 [US2] Implement AuthController.Logout in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/logout, [Authorize], call AuthService.LogoutAsync, return 204)
+- [x] T083 [US2] Implement AuthController.RefreshToken in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/refresh-token, call AuthService.RefreshTokenAsync, return 200 with new JWT)
+- [x] T084 [US2] Implement AuthController.Logout in src/MemberService/MemberService.API/Controllers/AuthController.cs (POST /api/auth/logout, [Authorize], call AuthService.LogoutAsync, return 204)
 
 ### Integration Tests for User Story 2
 
-- [ ] T085 [US2] Write integration test for refresh-token endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test valid token refresh with performance assertion <100ms per SC-008, expired token, revoked token)
-- [ ] T086 [US2] Write integration test for logout endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful logout, token revocation)
+- [x] T085 [US2] Write integration test for refresh-token endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test valid token refresh with performance assertion <100ms per SC-008, expired token, revoked token)
+- [x] T086 [US2] Write integration test for logout endpoint in tests/MemberService.IntegrationTests/API/AuthControllerTests.cs (test successful logout, token revocation)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - users can register, login, refresh tokens, and logout
 

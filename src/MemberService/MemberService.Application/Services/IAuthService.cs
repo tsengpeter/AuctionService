@@ -1,3 +1,5 @@
+using MemberService.Application.DTOs.Auth;
+
 namespace MemberService.Application.Services;
 
 /// <summary>
@@ -18,30 +20,10 @@ public interface IAuthService
     /// <summary>
     /// Refresh an access token using a refresh token.
     /// </summary>
-    Task<RefreshTokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
+    Task<AuthResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Logout a user by revoking their refresh token.
     /// </summary>
     Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Authentication response containing user information and tokens.
-/// </summary>
-public class AuthResponse
-{
-    public long UserId { get; set; }
-    public string Email { get; set; } = string.Empty;
-    public string Username { get; set; } = string.Empty;
-    public string AccessToken { get; set; } = string.Empty;
-    public string RefreshToken { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Response for token refresh containing new access token.
-/// </summary>
-public class RefreshTokenResponse
-{
-    public string AccessToken { get; set; } = string.Empty;
 }
