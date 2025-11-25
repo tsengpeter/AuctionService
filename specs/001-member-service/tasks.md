@@ -211,26 +211,26 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 3
 
-- [ ] T087 [P] [US3] Create UserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/UserProfileResponse.cs (UserId, Email, Username, CreatedAt, UpdatedAt)
-- [ ] T088 [P] [US3] Create PublicUserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/PublicUserProfileResponse.cs (UserId, Username, CreatedAt only)
+- [x] T087 [P] [US3] Create UserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/UserProfileResponse.cs (UserId, Email, Username, CreatedAt, UpdatedAt)
+- [x] T088 [P] [US3] Create PublicUserProfileResponse DTO in src/MemberService/MemberService.Application/DTOs/Users/PublicUserProfileResponse.cs (UserId, Username, CreatedAt only)
 
 ### Service Interface & Implementation for User Story 3
 
-- [ ] T089 [US3] Create IUserService interface in src/MemberService/MemberService.Application/Services/IUserService.cs (GetMyProfileAsync, GetUserProfileAsync, UpdateProfileAsync, ChangePasswordAsync)
-- [ ] T090 Write tests for UserService in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (mock repository, test get my profile, get other user profile)
-- [ ] T091 [US3] Implement UserService.GetMyProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID from JWT claims, return full profile)
-- [ ] T092 [US3] Implement UserService.GetUserProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID, return public profile only, throw UserNotFoundException if not found)
+- [x] T089 [US3] Create IUserService interface in src/MemberService/MemberService.Application/Services/IUserService.cs (GetMyProfileAsync, GetUserProfileAsync, UpdateProfileAsync, ChangePasswordAsync)
+- [x] T090 Write tests for UserService in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (mock repository, test get my profile, get other user profile)
+- [x] T091 [US3] Implement UserService.GetMyProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID from JWT claims, return full profile)
+- [x] T092 [US3] Implement UserService.GetUserProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user by ID, return public profile only, throw UserNotFoundException if not found)
 
 ### Controller for User Story 3
 
-- [ ] T093 [US3] Create UsersController in src/MemberService/MemberService.API/Controllers/UsersController.cs
-- [ ] T094 [US3] Implement UsersController.GetMyProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/me, [Authorize], call UserService.GetMyProfileAsync, return 200 with UserProfileResponse)
-- [ ] T095 [US3] Implement UsersController.GetUserProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/{id}, [Authorize], call UserService.GetUserProfileAsync, return 200 with PublicUserProfileResponse or 404)
+- [x] T093 [US3] Create UsersController in src/MemberService/MemberService.API/Controllers/UsersController.cs
+- [x] T094 [US3] Implement UsersController.GetMyProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/me, [Authorize], call UserService.GetMyProfileAsync, return 200 with UserProfileResponse)
+- [x] T095 [US3] Implement UsersController.GetUserProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (GET /api/users/{id}, [Authorize], call UserService.GetUserProfileAsync, return 200 with PublicUserProfileResponse or 404)
 
 ### Integration Tests for User Story 3
 
-- [ ] T096 [US3] Write integration test for GET /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test authenticated user gets full profile, unauthorized returns 401)
-- [ ] T097 [US3] Write integration test for GET /api/users/{id} in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test get public profile, user not found returns 404)
+- [x] T096 [US3] Write integration test for GET /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test authenticated user gets full profile, unauthorized returns 401)
+- [x] T097 [US3] Write integration test for GET /api/users/{id} in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test get public profile, user not found returns 404)
 
 **Checkpoint**: User Stories 1, 2, AND 3 should all work - users can register, login, manage tokens, and query profiles
 
@@ -244,32 +244,32 @@ Based on Clean Architecture from plan.md:
 
 ### DTOs for User Story 4
 
-- [ ] T098 [P] [US4] Create UpdateProfileRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/UpdateProfileRequest.cs (Username optional, Email optional)
-- [ ] T099 [P] [US4] Create ChangePasswordRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/ChangePasswordRequest.cs (OldPassword, NewPassword)
+- [x] T098 [P] [US4] Create UpdateProfileRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/UpdateProfileRequest.cs (Username optional, Email optional)
+- [x] T099 [P] [US4] Create ChangePasswordRequest DTO in src/MemberService/MemberService.Application/DTOs/Users/ChangePasswordRequest.cs (OldPassword, NewPassword)
 
 ### Validators for User Story 4
 
-- [ ] T100 Write tests for UpdateProfileRequestValidator in tests/MemberService.Application.Tests/Validators/UpdateProfileRequestValidatorTests.cs
-- [ ] T101 [US4] Implement UpdateProfileRequestValidator in src/MemberService/MemberService.Application/Validators/UpdateProfileRequestValidator.cs (FluentValidation: email format if provided, username 3-50 letters+spaces if provided)
-- [ ] T102 Write tests for ChangePasswordRequestValidator in tests/MemberService.Application.Tests/Validators/ChangePasswordRequestValidatorTests.cs
-- [ ] T103 [US4] Implement ChangePasswordRequestValidator in src/MemberService/MemberService.Application/Validators/ChangePasswordRequestValidator.cs (FluentValidation: old password required, new password >=8 chars)
+- [x] T100 Write tests for UpdateProfileRequestValidator in tests/MemberService.Application.Tests/Validators/UpdateProfileRequestValidatorTests.cs
+- [x] T101 [US4] Implement UpdateProfileRequestValidator in src/MemberService/MemberService.Application/Validators/UpdateProfileRequestValidator.cs (FluentValidation: email format if provided, username 3-50 letters+spaces if provided)
+- [x] T102 Write tests for ChangePasswordRequestValidator in tests/MemberService.Application.Tests/Validators/ChangePasswordRequestValidatorTests.cs
+- [x] T103 [US4] Implement ChangePasswordRequestValidator in src/MemberService/MemberService.Application/Validators/ChangePasswordRequestValidator.cs (FluentValidation: old password required, new password >=8 chars)
 
 ### Service Implementation for User Story 4
 
-- [ ] T104 Write tests for UserService.UpdateProfileAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test update username, update email, duplicate email)
-- [ ] T105 [US4] Implement UserService.UpdateProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user, check email uniqueness if changed, update fields, save, return updated profile)
-- [ ] T106 Write tests for UserService.ChangePasswordAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test successful change, wrong old password, validation)
-- [ ] T107 [US4] Implement UserService.ChangePasswordAsync in src/MemberService/MemberService.Application/Services/UserService.cs (verify old password, hash new password with bcrypt+snowflakeId, update, revoke ALL refresh tokens, save)
+- [x] T104 Write tests for UserService.UpdateProfileAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test update username, update email, duplicate email)
+- [x] T105 [US4] Implement UserService.UpdateProfileAsync in src/MemberService/MemberService.Application/Services/UserService.cs (find user, check email uniqueness if changed, update fields, save, return updated profile)
+- [x] T106 Write tests for UserService.ChangePasswordAsync in tests/MemberService.Application.Tests/Services/UserServiceTests.cs (test successful change, wrong old password, validation)
+- [x] T107 [US4] Implement UserService.ChangePasswordAsync in src/MemberService/MemberService.Application/Services/UserService.cs (verify old password, hash new password with bcrypt+snowflakeId, update, revoke ALL refresh tokens, save)
 
 ### Controller for User Story 4
 
-- [ ] T108 [US4] Implement UsersController.UpdateProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me, [Authorize], validate, call UserService.UpdateProfileAsync, return 200 with updated UserProfileResponse)
-- [ ] T109 [US4] Implement UsersController.ChangePassword in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me/password, [Authorize], validate, call UserService.ChangePasswordAsync, return 204)
+- [x] T108 [US4] Implement UsersController.UpdateProfile in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me, [Authorize], validate, call UserService.UpdateProfileAsync, return 200 with updated UserProfileResponse)
+- [x] T109 [US4] Implement UsersController.ChangePassword in src/MemberService/MemberService.API/Controllers/UsersController.cs (PUT /api/users/me/password, [Authorize], validate, call UserService.ChangePasswordAsync, return 204)
 
 ### Integration Tests for User Story 4
 
-- [ ] T110 [US4] Write integration test for PUT /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test update username, update email, duplicate email error, validation errors)
-- [ ] T111 [US4] Write integration test for PUT /api/users/me/password in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test successful password change, wrong old password, verify all refresh tokens revoked)
+- [x] T110 [US4] Write integration test for PUT /api/users/me in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test update username, update email, duplicate email error, validation errors)
+- [x] T111 [US4] Write integration test for PUT /api/users/me/password in tests/MemberService.IntegrationTests/API/UsersControllerTests.cs (test successful password change, wrong old password, verify all refresh tokens revoked)
 
 **Checkpoint**: All user stories should now be independently functional - complete member service with registration, authentication, profile management
 

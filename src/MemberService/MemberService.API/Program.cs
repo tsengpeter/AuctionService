@@ -2,6 +2,7 @@ using System.Text;
 using FluentValidation;
 using MemberService.API.Middlewares;
 using MemberService.Application.DTOs.Auth;
+using MemberService.Application.DTOs.Users;
 using MemberService.Application.Services;
 using MemberService.Application.Validators;
 using MemberService.Domain.Interfaces;
@@ -46,10 +47,13 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 // Register Application services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Register FluentValidation validators
 builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
 builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateProfileRequest>, UpdateProfileRequestValidator>();
+builder.Services.AddScoped<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
 // Configure JWT authentication

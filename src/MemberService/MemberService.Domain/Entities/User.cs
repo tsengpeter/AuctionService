@@ -88,4 +88,17 @@ public class User
         Username = newUsername;
         UpdatedAt = DateTime.UtcNow;
     }
+    
+    /// <summary>
+    /// Updates the user's email address.
+    /// </summary>
+    /// <param name="newEmail">The new email value object</param>
+    public void UpdateEmail(Email newEmail)
+    {
+        if (newEmail == null)
+            throw new ArgumentNullException(nameof(newEmail));
+        
+        Email = newEmail;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
