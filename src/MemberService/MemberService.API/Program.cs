@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Swashbuckle.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,10 @@ builder.Services.AddDbContext<MemberDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("Database") ??
         builder.Configuration["Database:ConnectionString"];
+
+    // T117 - Configure connection pooling for PostgreSQL via connection string pooling parameters
+    var maxPoolSize = builder.Configuration.GetValue<int>("Database:MaxPoolSize", 20);
+    var minPoolSize = builder.Configuration.GetValue<int>("Database:MinPoolSize", 5);
 
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
@@ -96,6 +101,52 @@ builder.Services.AddAuthentication(options =>
 // Add controllers
 builder.Services.AddControllers();
 
+// Add Swagger/OpenAPI documentation (T115 - API Documentation)
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new()
+    {
+        Title = "Member Service API",
+        Version = "v1",
+        Description = "API for user authentication, registration, and profile management",
+        Contact = new() { Name = "Support" }
+    });
+
+    // Add JWT Authentication to Swagger
+    var securityScheme = new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme"
+    };
+
+    options.AddSecurityDefinition("Bearer", securityScheme);
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+
+    // Include XML comments for API documentation
+    var xmlFile = Path.Combine(AppContext.BaseDirectory, "MemberService.API.xml");
+    if (File.Exists(xmlFile))
+        options.IncludeXmlComments(xmlFile);
+});
+
 // Configure CORS (T119 - Security hardening)
 builder.Services.AddCors(options =>
 {
@@ -116,32 +167,24 @@ builder.Services.AddResponseCaching(options =>
 
 // Configure Rate Limiting (T118 - Security hardening)
 builder.Services.AddMemoryCache();
-
-// Configure Swagger/OpenAPI (T115)
-// Note: Using simple Swagger setup without complex security definitions
-// Full OpenAPI documentation available at /swagger endpoint
-builder.Services.AddSwaggerGen(options =>
-{
-    // Include XML documentation
-    var xmlFile = "MemberService.API.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        options.IncludeXmlComments(xmlPath);
-    }
-});
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    // Enable Swagger UI in development
+    Log.Information("Development environment detected");
+    
+    // Enable Swagger UI in Development
     app.UseSwagger();
-    app.UseSwaggerUI(options =>
+    app.UseSwaggerUI(c =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Member Service API v1");
-        options.RoutePrefix = "swagger";
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "MemberService API v1");
+        c.RoutePrefix = ""; // 在根 URL 上提供 Swagger UI
     });
 }
 
@@ -162,6 +205,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Use middleware
+app.UseIpRateLimiting(); // T118 - Rate limiting middleware
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseResponseCaching();
@@ -174,4 +218,7 @@ app.MapControllers();
 app.Run();
 
 // Make Program class public for WebApplicationFactory in tests
+/// <summary>
+/// Entry point for the MemberService API application.
+/// </summary>
 public partial class Program { }
