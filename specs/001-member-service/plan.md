@@ -1,13 +1,13 @@
-# Implementation Plan: Member Service
+# 實作計畫：MemberService
 
-**Branch**: `001-member-service` | **Date**: 2025-11-18 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `/specs/001-member-service/spec.md`
+**分支**: `001-member-service` | **日期**: 2025-12-02 | **規格**: [spec.md](./spec.md)  
+**輸入**: 功能規格文件 `/specs/001-member-service/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**注意**: 本文件由 `/speckit.plan` 指令產生。執行工作流程請參閱 `.specify/templates/commands/plan.md`。
 
-## Summary
+## 摘要
 
-Member Service 提供使用者註冊、登入、身份驗證與個人資料管理功能，是拍賣系統的核心身份驗證服務。採用 ASP.NET Core 9 Web API + PostgreSQL 16 + Entity Framework Core 9 Code-First 架構，使用 Clean Architecture 分層設計（Domain/Application/Infrastructure/API）。
+MemberService 提供使用者註冊、登入、身份驗證與個人資料管理功能，是拍賣系統的核心身份驗證服務。採用 ASP.NET Core 10 Web API + PostgreSQL 16 + Entity Framework Core 10 Code-First 架構，使用 Clean Architecture 分層設計（Domain/Application/Infrastructure/API）。
 
 技術重點：
 - **Snowflake ID**: 使用 IdGen 套件產生 64-bit 分散式唯一識別碼，取代 GUID（空間節省 50%，時間有序）
@@ -17,48 +17,55 @@ Member Service 提供使用者註冊、登入、身份驗證與個人資料管�
 - **Controller-based API**: 不使用 Minimal APIs，採用傳統控制器設計
 - **TDD 驅動**: xUnit + Moq + FluentAssertions + Testcontainers，目標覆蓋率 >80%
 
-## Technical Context
+## 技術背景
 
-**Language/Version**: ASP.NET Core 9, C# 13 (.NET 9 LTS)  
-**Primary Dependencies**:
-- IdGen 3.x (Snowflake ID 產生器)
-- BCrypt.Net-Next 4.0.3 (密碼雜湊)
-- System.IdentityModel.Tokens.Jwt 7.0.3 (JWT 驗證)
-- Npgsql.EntityFrameworkCore.PostgreSQL 9.0 (PostgreSQL 驅動)
-- FluentValidation.AspNetCore 11.3.0 (輸入驗證)
-- Serilog.AspNetCore 8.0 (結構化日誌)
+**語言/版本**: ASP.NET Core 10, C# 13 (.NET 10 LTS)  
+**主要相依套件**:
+  - IdGen 3.x (Snowflake ID 產生器)
+  - BCrypt.Net-Next 4.0.3 (密碼雜湊)
+  - System.IdentityModel.Tokens.Jwt 8.0.0 (JWT 驗證)
+  - Npgsql.EntityFrameworkCore.PostgreSQL 10.0 (PostgreSQL 驅動)
+  - FluentValidation.AspNetCore 11.3.0 (輸入驗證)
+  - Serilog.AspNetCore 8.0 (結構化日誌)
 
-**Storage**: 
-- **本地開發**: PostgreSQL 16 本地安裝或 Docker 容器
-- **正式環境**: Azure Database for PostgreSQL / AWS RDS PostgreSQL（雲端託管）
-- **資料庫建置**: EF Core Code-First Migrations（資料庫結構由程式碼自動產生）
+**資料儲存**: 
+  - **本地開發**: PostgreSQL 16 本地安裝或 Docker 容器
+  - **正式環境**: Azure Database for PostgreSQL / AWS RDS PostgreSQL（雲端託管）
+  - **資料庫建置**: EF Core Code-First Migrations（資料庫結構由程式碼自動產生）
+  
+**測試工具**: xUnit 2.6+、Moq 4.20+、FluentAssertions 6.12+、Testcontainers.PostgreSql 3.7+ (整合測試)  
+**目標平台**: Linux 容器 (Docker)，透過 .NET 10 跨平台部署  
+**專案類型**: 單一微服務（所有專案檔案、解決方案、Docker、README 等建置文檔集中在單一資料夾 `MemberService/` 中）  
+**專案架構**: Clean Architecture 四層架構（API、Application、Domain、Infrastructure）  
+**效能目標**:
+  - JWT 驗證延遲 <50ms p95
+  - API 端點回應時間 <200ms p95
+  - bcrypt 密碼雜湊 ~250-350ms（work factor 12）
+  - Snowflake ID 產生 <1ms
 
-**Testing**: xUnit 2.6, Moq 4.20, FluentAssertions 6.12, Testcontainers.PostgreSql 3.6  
-**Target Platform**: Linux/Windows Server, Docker 容器部署  
-**Project Type**: Web API (Clean Architecture - 4 層專案結構)  
-**Performance Goals**:
-- JWT 驗證延遲 <50ms p95
-- API 端點回應時間 <200ms p95
-- bcrypt 密碼雜湊 ~250-350ms（work factor 12）
-- Snowflake ID 產生 <1ms
+**限制條件**:
+  - 必須採用 TDD 開發流程（測試覆蓋率 >80%）
+  - 不使用 AutoMapper（手動 POCO 映射）
+  - 不使用 Minimal APIs（Controller-based）
+  - API Gateway 使用 YARP（非 Ocelot）
+  - 錯誤訊息與文件必須使用繁體中文
+  - JWT 存取權杖有效期限：15 分鐘
+  - 更新權杖有效期限：7 天
+  - 密碼最小長度：8 個字元
+  - 使用者名稱：3-50 個字元，僅允許字母與空格
+  - bcrypt 工作因子：12
 
-**Constraints**:
-- 必須採用 TDD 開發流程（測試覆蓋率 >80%）
-- 不使用 AutoMapper（手動 POCO 映射）
-- 不使用 Minimal APIs（Controller-based）
-- API Gateway 使用 YARP（非 Ocelot）
-- 錯誤訊息與文件必須使用繁體中文
+**規模範圍**:
+  - 預估初期使用者數：10,000 人
+  - 同時線上使用者：500-1,000 人
+  - API 端點數量：8 個（4 個公開 + 4 個私有）
+  - 資料庫資料表：2 個（Users + RefreshTokens）
+  - 預估程式碼規模：~3,000-5,000 LOC（不含測試）
+  - 測試覆蓋率：業務邏輯 > 80%
 
-**Scale/Scope**:
-- 預估初期使用者數：10,000 人
-- 同時線上使用者：500-1,000 人
-- API 端點數量：8 個（4 個公開 + 4 個私有）
-- 資料庫資料表：2 個（Users + RefreshTokens）
-- 預估程式碼規模：~3,000-5,000 LOC（不含測試）
+## 資料庫策略
 
-## Database Strategy
-
-### 開發環境 (Local Development)
+### 開發環境（本地開發）
 
 **資料庫部署方式**:
 - **選項 A（推薦）**: 使用 Docker 容器執行 PostgreSQL 16
@@ -77,7 +84,7 @@ DB_CONNECTION_STRING="Host=localhost;Port=5432;Database=memberservice_dev;Userna
 BCRYPT_WORK_FACTOR="10"  # 開發環境建議降低成本因子以加速單元測試（正式環境使用 12）
 ```
 
-**資料庫初始化流程** (EF Core Code-First):
+**資料庫初始化流程**（EF Core Code-First）:
 ```bash
 # 1. 建立遷移檔案（開發者在新增/修改實體後執行）
 cd MemberService.Infrastructure
@@ -94,9 +101,9 @@ dotnet ef database update --startup-project ../MemberService.API
 - ✅ 支援離線開發
 - ✅ 無雲端資源成本
 
-### 正式環境 (Production)
+### 正式環境（Production）
 
-**雲端資料庫服務** (選擇其一):
+**雲端資料庫服務**（選擇其一）:
 
 #### 選項 1: Azure Database for PostgreSQL - Flexible Server
 - **規格建議**: 
@@ -113,7 +120,7 @@ dotnet ef database update --startup-project ../MemberService.API
   - Backup: 7 天自動備份，Multi-AZ 部署（HA）
 - **連線方式**: 置於 Private Subnet，透過 Security Group 限制存取
 
-**連線字串配置** (透過環境變數注入):
+**連線字串配置**（透過環境變數注入）:
 ```bash
 # Azure 範例
 DB_CONNECTION_STRING="Host=memberservice-prod.postgres.database.azure.com;Port=5432;Database=memberservice_prod;Username=adminuser;Password=${PROD_DB_PASSWORD};SslMode=Require"
@@ -123,7 +130,7 @@ DB_CONNECTION_STRING="Host=memberservice-prod.abc123.us-east-1.rds.amazonaws.com
 ```
 
 **安全設定**:
-- ✅ **強制 SSL/TLS 連線** (`SslMode=Require`)
+- ✅ **強制 SSL/TLS 連線**（`SslMode=Require`）
 - ✅ **密碼透過 Azure Key Vault / AWS Secrets Manager 管理**（絕不硬編碼）
 - ✅ **IP 白名單 / Private Endpoint**（僅允許 API Server 存取）
 - ✅ **定期自動備份**（7-30 天保留期）
@@ -142,7 +149,7 @@ DB_CONNECTION_STRING="Host=memberservice-prod.abc123.us-east-1.rds.amazonaws.com
    git commit -m "feat: add user profile picture field"
    ```
 
-2. **CI/CD Pipeline** (Azure DevOps / GitHub Actions):
+2. **CI/CD Pipeline**（Azure DevOps / GitHub Actions）:
    ```yaml
    # 自動化部署流程
    - name: Build Docker Image
@@ -193,65 +200,100 @@ DB_CONNECTION_STRING="Host=memberservice-prod.abc123.us-east-1.rds.amazonaws.com
 - 大規模資料變更使用批次處理（避免 Lock Table）
 - 重要遷移前手動備份資料庫快照
 
-## Constitution Check
+## 憲法檢查
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*檢查閘門：必須在 Phase 0 研究前通過，並在 Phase 1 設計後重新檢查。*
 
-### 原則 1: Code Quality & Maintainability
-✅ **符合**: 採用 Clean Architecture（Domain → Application → Infrastructure → API），依賴倒置原則確保核心業務邏輯不依賴外部框架。Value Objects（Email, Password, Username）封裝驗證邏輯，提升可維護性。不使用 AutoMapper，手動映射 DTO 避免隱式複雜度。
+### 原則 I：程式碼品質與可維護性 ✅ 通過
+- 採用 Clean Architecture（Domain → Application → Infrastructure → API），依賴倒置原則確保核心業務邏輯不依賴外部框架
+- Value Objects（Email, Password, Username）封裝驗證邏輯，提升可維護性
+- 不使用 AutoMapper，手動映射 DTO 避免隱式複雜度
+- SOLID 原則透過依賴注入與介面導向設計應用
 
-### 原則 2: Test-Driven Development (TDD)
-✅ **符合**: 強制 TDD 流程，測試覆蓋率目標 >80%。測試策略涵蓋單元測試（xUnit + Moq）、整合測試（Testcontainers + 真實 PostgreSQL）、API 契約測試（OpenAPI 驗證）。所有 Value Objects 與業務規則必須先寫測試。
+### 原則 II：測試驅動開發 (TDD) ✅ 通過
+- 強制 TDD 流程，測試覆蓋率目標 >80%
+- 測試策略涵蓋單元測試（xUnit + Moq）、整合測試（Testcontainers + 真實 PostgreSQL）、API 契約測試（OpenAPI 驗證）
+- 所有 Value Objects 與業務規則必須先寫測試
+- 遵循紅燈-綠燈-重構循環，確保程式碼品質
 
-### 原則 3: User Experience Consistency
-✅ **符合**: RESTful API 設計遵循一致的回應格式（`{success, data/error}`），錯誤代碼標準化（EMAIL_ALREADY_EXISTS, INVALID_CREDENTIALS 等）。所有錯誤訊息使用繁體中文，timestamp + path 便於問題追蹤。JWT 過期處理明確（15 分鐘 Access Token + 7 天 Refresh Token）。
+### 原則 III：使用者體驗一致性 ✅ 通過
+- RESTful API 設計遵循一致的回應格式（`{success, data/error}`）
+- 錯誤代碼標準化（EMAIL_ALREADY_EXISTS, INVALID_CREDENTIALS 等）
+- 所有錯誤訊息使用繁體中文，timestamp + path 便於問題追蹤
+- JWT 過期處理明確（15 分鐘 Access Token + 7 天 Refresh Token）
+- 正確的 HTTP 狀態碼（200、201、400、401、404、500）
 
-### 原則 4: Performance & Scalability
-✅ **符合**: Snowflake ID 提供時間有序 + 分散式友善特性，支援水平擴展。資料庫索引策略（Email unique, Token unique, (UserId, ExpiresAt) composite）確保查詢效能。bcrypt work factor 12 在安全性與效能間取得平衡（~300ms）。JWT 無狀態設計避免伺服器端 session 儲存，p95 目標 <200ms。
+### 原則 IV：效能與可擴展性 ✅ 通過
+- Snowflake ID 提供時間有序 + 分散式友善特性，支援水平擴展
+- 資料庫索引策略（Email unique, Token unique, (UserId, ExpiresAt) composite）確保查詢效能
+- bcrypt work factor 12 在安全性與效能間取得平衡（~300ms）
+- JWT 無狀態設計避免伺服器端 session 儲存，p95 目標 <200ms
+- I/O 密集任務採用非同步操作（資料庫、密碼雜湊）
 
-### 原則 5: Observability & Debugging
-✅ **符合**: Serilog 結構化日誌（JSON 格式），記錄 UserId、RequestId、執行時間、錯誤堆疊。每個 API 回應包含 timestamp + path。JWT Claims 包含 UserId + Email 便於追蹤。整合測試使用 Testcontainers，確保與正式環境行為一致。
+### 原則 V：可觀測性與除錯 ✅ 通過
+- Serilog 結構化日誌（JSON 格式），記錄 UserId、RequestId、執行時間、錯誤堆疊
+- 每個 API 回應包含 timestamp + path，便於問題追蹤
+- JWT Claims 包含 UserId + Email 便於追蹤
+- 整合測試使用 Testcontainers，確保與正式環境行為一致
+- 健康檢查端點反映服務就緒與存活狀態
 
-### Documentation Language Requirement
-✅ **符合**: 所有規格文件（spec.md, research.md, data-model.md, plan.md, quickstart.md）、API 文件（OpenAPI）、錯誤訊息、註解均使用**繁體中文**。程式碼識別符號使用英文（符合 C# 慣例）。
+### 文件語言要求 ✅ 通過
+- 所有規格文件（spec.md, research.md, data-model.md, plan.md, quickstart.md）、API 文件（OpenAPI）、錯誤訊息、註解均使用**繁體中文**
+- 程式碼識別符號使用英文（符合 C# 慣例）
+- 每種文件類型保持一致的語言使用，避免混用
 
-## Project Structure
+**檢查結果**：✅ 所有原則均已滿足 - 進入 Phase 0
 
-### Documentation (this feature)
+## 專案結構
+
+### 文件（此功能）
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-member-service/
+├── plan.md              # 本檔案（/speckit.plan 指令輸出）
+├── research.md          # Phase 0 輸出（/speckit.plan 指令）
+├── data-model.md        # Phase 1 輸出（/speckit.plan 指令）
+├── quickstart.md        # Phase 1 輸出（快速開始指南）
+├── contracts/           # Phase 1 輸出（/speckit.plan 指令）
+│   └── openapi.yaml     # RESTful API 合約
+└── tasks.md             # Phase 2 輸出（/speckit.tasks 指令 - 非 /speckit.plan 建立）
 ```
 
-### Source Code (repository root)
+### 原始碼（儲存庫根目錄）
+
+**專案組織結構**：所有 MemberService 相關檔案集中在單一根目錄 `MemberService/` 中，包含：
+- 解決方案檔案（.sln）
+- 所有專案（API、Application、Domain、Infrastructure、測試專案）
+- Docker 相關檔案（Dockerfile、docker-compose.yml）
+- 建置與部署文檔（README.md、建置腳本）
+- 設定檔與環境變數範本
 
 ```text
-src/
-├── MemberService/
-│   ├── MemberService.Domain/                    # 領域層（核心業務邏輯）
-│   │   ├── Entities/
-│   │   │   ├── User.cs                          # 使用者實體
-│   │   │   └── RefreshToken.cs                  # Refresh Token 實體
-│   │   ├── ValueObjects/
-│   │   │   ├── Email.cs                         # Email Value Object
-│   │   │   ├── Password.cs                      # Password Value Object
-│   │   │   └── Username.cs                      # Username Value Object
-│   │   ├── Interfaces/
-│   │   │   ├── IUserRepository.cs               # 使用者儲存庫介面
-│   │   │   ├── IRefreshTokenRepository.cs       # Refresh Token 儲存庫介面
-│   │   │   └── IPasswordHasher.cs               # 密碼雜湊介面
-│   │   └── Exceptions/
-│   │       ├── DomainException.cs               # 領域例外基底類別
-│   │       ├── EmailAlreadyExistsException.cs   # Email 重複例外
-│   │       └── InvalidCredentialsException.cs   # 登入失敗例外
+MemberService/                              # 服務根目錄（所有內容集中於此）
+├── MemberService.sln                       # Visual Studio 解決方案檔案
+├── README.md                               # 專案說明文件
+├── .gitignore                              # Git 忽略規則
+├── .editorconfig                           # 編輯器設定
+├── docker-compose.yml                      # Docker Compose 設定
+├── docker-compose.override.yml             # 本地開發覆寫設定
+├── Dockerfile                              # 多階段建置 Dockerfile
+├── .dockerignore                           # Docker 忽略規則
+├── global.json                             # .NET SDK 版本鎖定
+│
+├── src/                                    # 原始碼目錄
+│   ├── MemberService.API/                  # API 層（HTTP 端點）
+│   │   ├── Controllers/
+│   │   │   ├── AuthController.cs           # 驗證端點（註冊/登入/登出）
+│   │   │   └── UsersController.cs          # 使用者端點（查詢/更新資料）
+│   │   ├── Middlewares/
+│   │   │   ├── ExceptionHandlingMiddleware.cs   # 全域例外處理
+│   │   │   └── RequestLoggingMiddleware.cs      # 請求日誌
+│   │   ├── Program.cs                      # 應用程式進入點
+│   │   ├── appsettings.json                # 設定檔
+│   │   ├── appsettings.Development.json    # 開發環境設定
+│   │   └── MemberService.API.csproj        # 專案檔案（目標框架：net10.0）
 │   │
-│   ├── MemberService.Application/               # 應用層（Use Cases）
+│   ├── MemberService.Application/          # 應用層（Use Cases）
 │   │   ├── DTOs/
 │   │   │   ├── Auth/
 │   │   │   │   ├── RegisterRequest.cs           # 註冊請求 DTO
@@ -267,65 +309,76 @@ src/
 │   │   │   ├── AuthService.cs                   # 驗證服務實作
 │   │   │   ├── IUserService.cs                  # 使用者服務介面
 │   │   │   └── UserService.cs                   # 使用者服務實作
-│   │   └── Validators/
-│   │       ├── RegisterRequestValidator.cs      # 註冊請求驗證器
-│   │       ├── LoginRequestValidator.cs         # 登入請求驗證器
-│   │       └── UpdateProfileRequestValidator.cs # 更新資料驗證器
+│   │   ├── Validators/
+│   │   │   ├── RegisterRequestValidator.cs      # 註冊請求驗證器
+│   │   │   ├── LoginRequestValidator.cs         # 登入請求驗證器
+│   │   │   └── UpdateProfileRequestValidator.cs # 更新資料驗證器
+│   │   └── MemberService.Application.csproj
 │   │
-│   ├── MemberService.Infrastructure/            # 基礎設施層（外部依賴）
-│   │   ├── Persistence/
-│   │   │   ├── MemberDbContext.cs               # EF Core DbContext
-│   │   │   ├── Configurations/
-│   │   │   │   ├── UserConfiguration.cs         # User 實體設定
-│   │   │   │   └── RefreshTokenConfiguration.cs # RefreshToken 實體設定
-│   │   │   ├── Repositories/
-│   │   │   │   ├── UserRepository.cs            # 使用者儲存庫實作
-│   │   │   │   └── RefreshTokenRepository.cs    # Refresh Token 儲存庫實作
-│   │   │   └── Migrations/
-│   │   │       └── 20251118000000_InitialCreate.cs # 初始資料庫遷移
-│   │   ├── Security/
-│   │   │   ├── BCryptPasswordHasher.cs          # bcrypt 密碼雜湊實作
-│   │   │   ├── JwtTokenGenerator.cs             # JWT 產生器
-│   │   │   └── RefreshTokenGenerator.cs         # Refresh Token 產生器
-│   │   └── IdGeneration/
-│   │       └── SnowflakeIdGenerator.cs          # Snowflake ID 產生器
+│   ├── MemberService.Domain/               # 領域層（核心業務邏輯）
+│   │   ├── Entities/
+│   │   │   ├── User.cs                          # 使用者實體
+│   │   │   └── RefreshToken.cs                  # Refresh Token 實體
+│   │   ├── ValueObjects/
+│   │   │   ├── Email.cs                         # Email Value Object
+│   │   │   ├── Password.cs                      # Password Value Object
+│   │   │   └── Username.cs                      # Username Value Object
+│   │   ├── Interfaces/
+│   │   │   ├── IUserRepository.cs               # 使用者儲存庫介面
+│   │   │   ├── IRefreshTokenRepository.cs       # Refresh Token 儲存庫介面
+│   │   │   └── IPasswordHasher.cs               # 密碼雜湊介面
+│   │   ├── Exceptions/
+│   │   │   ├── DomainException.cs               # 領域例外基底類別
+│   │   │   ├── EmailAlreadyExistsException.cs   # Email 重複例外
+│   │   │   └── InvalidCredentialsException.cs   # 登入失敗例外
+│   │   └── MemberService.Domain.csproj
 │   │
-│   └── MemberService.API/                       # API 層（HTTP 端點）
-│       ├── Controllers/
-│       │   ├── AuthController.cs                # 驗證端點（註冊/登入/登出）
-│       │   └── UsersController.cs               # 使用者端點（查詢/更新資料）
-│       ├── Middlewares/
-│       │   ├── ExceptionHandlingMiddleware.cs   # 全域例外處理
-│       │   └── RequestLoggingMiddleware.cs      # 請求日誌
-│       ├── Program.cs                           # 應用程式進入點
-│       ├── appsettings.json                     # 設定檔
-│       ├── appsettings.Development.json         # 開發環境設定
-│       └── Dockerfile                           # Docker 映像定義
-
-tests/
+│   └── MemberService.Infrastructure/       # 基礎設施層（外部依賴）
+│       ├── Persistence/
+│       │   ├── MemberDbContext.cs               # EF Core DbContext
+│       │   ├── Configurations/
+│       │   │   ├── UserConfiguration.cs         # User 實體設定
+│       │   │   └── RefreshTokenConfiguration.cs # RefreshToken 實體設定
+│       │   ├── Repositories/
+│       │   │   ├── UserRepository.cs            # 使用者儲存庫實作
+│       │   │   └── RefreshTokenRepository.cs    # Refresh Token 儲存庫實作
+│       │   └── Migrations/
+│       │       └── 20251118000000_InitialCreate.cs # 初始資料庫遷移
+│       ├── Security/
+│       │   ├── BCryptPasswordHasher.cs          # bcrypt 密碼雜湊實作
+│       │   ├── JwtTokenGenerator.cs             # JWT 產生器
+│       │   └── RefreshTokenGenerator.cs         # Refresh Token 產生器
+│       ├── IdGeneration/
+│       │   └── SnowflakeIdGenerator.cs          # Snowflake ID 產生器
+│       └── MemberService.Infrastructure.csproj
+│
+└── tests/                                  # 測試專案目錄
 ├── MemberService.Domain.Tests/                  # 領域層單元測試
 │   ├── Entities/
 │   │   ├── UserTests.cs
 │   │   └── RefreshTokenTests.cs
-│   └── ValueObjects/
-│       ├── EmailTests.cs
-│       ├── PasswordTests.cs
-│       └── UsernameTests.cs
+│   ├── ValueObjects/
+│   │   ├── EmailTests.cs
+│   │   ├── PasswordTests.cs
+│   │   └── UsernameTests.cs
+│   └── MemberService.Domain.Tests.csproj
 │
 ├── MemberService.Application.Tests/             # 應用層單元測試
 │   ├── Services/
 │   │   ├── AuthServiceTests.cs
 │   │   └── UserServiceTests.cs
-│   └── Validators/
-│       ├── RegisterRequestValidatorTests.cs
-│       └── UpdateProfileRequestValidatorTests.cs
+│   ├── Validators/
+│   │   ├── RegisterRequestValidatorTests.cs
+│   │   └── UpdateProfileRequestValidatorTests.cs
+│   └── MemberService.Application.Tests.csproj
 │
 ├── MemberService.Infrastructure.Tests/          # 基礎設施層單元測試
 │   ├── Security/
 │   │   ├── BCryptPasswordHasherTests.cs
 │   │   └── JwtTokenGeneratorTests.cs
-│   └── IdGeneration/
-│       └── SnowflakeIdGeneratorTests.cs
+│   ├── IdGeneration/
+│   │   └── SnowflakeIdGeneratorTests.cs
+│   └── MemberService.Infrastructure.Tests.csproj
 │
 └── MemberService.IntegrationTests/              # 整合測試（Testcontainers）
     ├── API/
@@ -338,7 +391,7 @@ tests/
         └── PostgreSqlContainerFixture.cs        # Testcontainers 設定
 ```
 
-**Structure Decision**: 採用 Clean Architecture 分層結構（4 個專案），符合依賴倒置原則：
+**結構決策**：MemberService 採用 Clean Architecture 分層結構（4 個專案），符合依賴倒置原則：
 - **Domain**: 核心業務邏輯，無外部依賴（純 C# 類別）
 - **Application**: 應用用例，依賴 Domain 介面（不依賴具體實作）
 - **Infrastructure**: 外部依賴實作（EF Core, BCrypt, JWT, Snowflake ID）
@@ -346,8 +399,20 @@ tests/
 
 測試結構鏡像原始碼結構，整合測試使用 Testcontainers 確保與正式環境一致性。
 
-## Complexity Tracking
+## 複雜度追蹤
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> **僅在憲法檢查發現違規需要說明時填寫**
+
+| 違規項目 | 需要原因 | 拒絕簡化替代方案的理由 |
+|---------|---------|---------------------|
+| 無 | 無 | 無 |
 
 **無違規項目** - 所有設計決策符合 Constitution 的 5 項核心原則與繁體中文文件要求。
+
+**架構說明**：四層 Clean Architecture（API、Application、Domain、Infrastructure）是此規模微服務的標準做法。分層架構提供：
+- 明確的依賴方向（Infrastructure → Application → Domain）
+- 高度可測試性（Domain 與 Application 可在無基礎設施的情況下測試）
+- 未來變更的彈性（更換 PostgreSQL 為其他資料庫而不影響業務邏輯）
+- 團隊協作（不同層級可平行開發）
+
+此架構並非過度複雜，而是可維護微服務的業界最佳實踐。

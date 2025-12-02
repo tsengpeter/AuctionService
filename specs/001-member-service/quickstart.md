@@ -20,7 +20,7 @@
 
 | 工具 | 版本要求 | 下載連結 |
 |-----|---------|---------|
-| .NET SDK | 9.0 或更高 | https://dotnet.microsoft.com/download |
+| .NET SDK | 10.0 或更高 | https://dotnet.microsoft.com/download/dotnet/10.0 |
 | Docker Desktop | 最新穩定版 | https://www.docker.com/products/docker-desktop |
 | PostgreSQL | 16 或更高 | https://www.postgresql.org/download/ |
 | Git | 2.x 或更高 | https://git-scm.com/downloads |
@@ -36,7 +36,7 @@
 ```powershell
 # 檢查 .NET SDK 版本
 dotnet --version
-# 預期輸出: 9.0.xxx
+# 預期輸出: 10.0.xxx
 
 # 檢查 Docker 版本
 docker --version

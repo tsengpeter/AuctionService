@@ -61,7 +61,7 @@ public class UserService
 2. **自適應成本**: Work Factor 可調整，隨硬體進步保持安全性
 3. **內建鹽值**: 自動產生隨機鹽值，無需手動管理
 4. **抗暴力破解**: 計算成本高，有效延緩暴力破解攻擊
-5. **成熟套件**: BCrypt.Net-Next 活躍維護，支援 .NET 9
+5. **成熟套件**: BCrypt.Net-Next 活躍維護，支援 .NET 10
 
 ### 實作策略
 ```csharp
