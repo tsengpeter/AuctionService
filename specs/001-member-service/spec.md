@@ -1,14 +1,9 @@
-# 功能規格：會員服務# Feature Specification: [FEATURE NAME]
+# 功能規格：會員服務
 
-
-
-**功能分支**: `001-member-service`  **Feature Branch**: `[###-feature-name]`  
-
-**建立日期**: 2025-11-04  **Created**: [DATE]  
-
-**狀態**: 草稿  **Status**: Draft  
-
-**輸入**: 使用者描述："實作會員服務，負責使用者註冊、登入、身份驗證與個人資料管理"**Input**: User description: "$ARGUMENTS"
+**功能分支**: `001-member-service`  
+**建立日期**: 2025-11-04  
+**狀態**: 草稿  
+**輸入**: 使用者描述："實作會員服務，負責使用者註冊、登入、身份驗證與個人資料管理"
 
 
 
@@ -202,23 +197,20 @@
 - **FR-000-1**: 系統必須使用成熟的 .NET 雪花ID套件 (如 IdGen 或 Snowflake.Core) 生成唯一識別碼
 - **FR-000-2**: 雪花ID生成器必須配置 Worker ID 與 Datacenter ID 以確保分散式環境下的唯一性
 
-- **FR-001**: 系統必須允許使用者提供電子郵件、密碼與使用者名稱進行註冊- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-
-- **FR-002**: 系統必須驗證電子郵件格式符合標準格式（包含 @ 符號與有效網域）- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+- **FR-001**: 系統必須允許使用者提供電子郵件、密碼與使用者名稱進行註冊
+- **FR-002**: 系統必須驗證電子郵件格式符合標準格式（包含 @ 符號與有效網域）
 
 - **FR-003**: 系統必須驗證電子郵件的唯一性，不允許重複註冊
 - **FR-003-1**: 系統必須驗證使用者名稱僅包含字母（英文、繁體中文等語言字元）和空格，不允許數字、底線、連字號等特殊字元
 - **FR-003-2**: 系統必須驗證使用者名稱長度為 3-50 字元（中文字元計為 1 字元）
-- **FR-004**: 系統必須驗證密碼長度至少 8 個字元### Key Entities *(include if feature involves data)*
-
+- **FR-004**: 系統必須驗證密碼長度至少 8 個字元
 - **FR-005**: 系統必須將密碼加密儲存，不可儲存明文密碼
 - **FR-005-1**: 系統必須使用 bcrypt 演算法進行密碼雜湊
 - **FR-005-2**: 系統必須將密碼與使用者的雪花ID組合後進行雜湊: bcrypt(password + snowflakeId)，提供額外的安全保護
 - **FR-005-3**: bcrypt 的 work factor (成本因子) 建議設定為 12（可根據安全需求調整）
 
-- **FR-006**: 系統必須在註冊成功後自動讓使用者登入，回傳 JWT 與 Refresh Token- **[Entity 1]**: [What it represents, key attributes without implementation]
-
-- **FR-007**: 系統必須允許使用者使用電子郵件與密碼進行登入- **[Entity 2]**: [What it represents, relationships to other entities]
+- **FR-006**: 系統必須在註冊成功後自動讓使用者登入，回傳 JWT 與 Refresh Token
+- **FR-007**: 系統必須允許使用者使用電子郵件與密碼進行登入
 
 - **FR-008**: 系統必須在登入成功後回傳 JWT 存取權杖（有效期限 15 分鐘）與 Refresh Token（有效期限 7 天）
 - **FR-008-1**: JWT 必須使用 HS256 對稱金鑰演算法 (HMAC-SHA256) 進行簽章
@@ -227,7 +219,7 @@
 - **FR-009**: 系統必須在登入失敗時顯示明確的錯誤訊息（但不洩漏帳號是否存在的資訊）
 - **FR-009-1**: 系統必須在登入失敗時（無論是電子郵件不存在或密碼錯誤）統一回傳「電子郵件或密碼錯誤」訊息
 - **FR-009-2**: 系統必須在註冊時，若電子郵件已存在則明確回傳「此電子郵件已被使用」訊息（註冊情境優先使用者體驗）
-- **FR-009-3**: 系統不得提供獨立的電子郵件存在性檢查API端點（避免帳號枚舉攻擊）## Success Criteria *(mandatory)*
+- **FR-009-3**: 系統不得提供獨立的電子郵件存在性檢查API端點（避免帳號枚舉攻擊）
 
 - **FR-010**: 系統必須允許使用者使用有效的 Refresh Token 換取新的 JWT
 
@@ -245,16 +237,12 @@
 - **FR-016-1**: 系統必須在使用者變更密碼時，立即撤銷該使用者所有現有的 Refresh Token（強制所有裝置重新登入）
 - **FR-017**: 系統必須記錄每個使用者的建立時間與最後更新時間
 
-- **FR-018**: 系統必須確保使用者只能修改自己的資料，不可修改其他使用者的資料- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
+- **FR-018**: 系統必須確保使用者只能修改自己的資料，不可修改其他使用者的資料
 
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-
-### 關鍵實體 *(包含資料相關功能)*- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+### 關鍵實體 *(包含資料相關功能)*
 
 - **使用者 (User)**: 代表系統的會員，包含雪花ID（64-bit Long，主鍵）、電子郵件（唯一）、bcrypt雜湊後的密碼（結合雪花ID）、使用者名稱、建立時間、更新時間
-- **更新權杖 (RefreshToken)**: 代表使用者的長期身份驗證權杖，包含權杖字串、所屬使用者識別碼（雪花ID）、過期時間、是否已撤銷狀態
+- **Refresh Token**: 代表使用者的長期身份驗證權杖，包含權杖字串、所屬使用者識別碼（雪花ID）、過期時間、是否已撤銷狀態
 
 ## 成功指標 *(必填)*
 
