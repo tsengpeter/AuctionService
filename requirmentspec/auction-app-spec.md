@@ -39,6 +39,11 @@
 - 提供個人資料編輯（名稱、電子郵件）。
 - 支援更改密碼與登出。
 
+### 2.7 通知中心
+
+- 在網站右上角應有通知 icon，點擊後可透過 API 讀取歷史通知，例如「您追蹤的商品已上架」、「恭喜您得標」等。
+- 未讀通知應有紅點提示。
+
 ## 3. 系統架構
 
 ### 3.1 NX 專案結構
@@ -59,8 +64,8 @@
 - 國際化（i18n）：支援多語系切換，預設 zh-TW。
 
 ### 3.3 後端
-
-- 採用 ASP.NET Core 8（C#）開發 RESTful API，處理商品、使用者、出價等資料。
+  
+- 採用 ASP.NET Core 9（C#）開發 RESTful API，處理商品、使用者、出價等資料。
 - API 提供標準 CRUD、驗證（JWT）、權限控管。
 - 日誌與錯誤監控（如 Sentry）。
 
@@ -86,9 +91,9 @@
 - 測試：Jest（單元）、Playwright（E2E）
 
 ### 5.2 後端
-
+  
 - 程式語言：C#
-- 框架：ASP.NET Core 8
+- 框架：ASP.NET Core 9
 - 資料庫：PostgreSQL
 - 測試：xUnit
 
@@ -138,6 +143,11 @@
 
 - `GET /api/account`、`PUT /api/account`、`POST /api/account/password`
   - 回應：200 OK，400 Bad Request
+
+### 6.8 取得通知紀錄
+
+- `GET /api/notifications/history`
+  - 回應：200 OK（該使用者的通知歷史紀錄），401 Unauthorized
 
 ## 7. 測試計畫
 
