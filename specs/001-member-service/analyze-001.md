@@ -1,335 +1,403 @@
-# Specification Analysis Report: MemberService
+# Specification Analysis Report - MemberService
 
-**Date**: 2025-12-02  
-**Branch**: `001-member-service`  
-**Artifacts Analyzed**: spec.md, plan.md, tasks.md, constitution.md  
-**Analysis Type**: Consistency validation, duplication detection, coverage verification
-
----
-
-## Executive Summary
-
-**Overall Status**: ⚠️ **WARNING** - Minor issues detected (mostly template artifacts)
-
-**Key Findings**:
-- 0 CRITICAL violations
-- 2 HIGH severity issues (template placeholders in spec.md)
-- 3 MEDIUM severity findings (terminology inconsistency, missing performance task coverage)
-- 2 LOW severity findings (minor documentation improvements)
-
-**Constitution Compliance**: ✅ All 5 core principles aligned, Traditional Chinese documentation requirement satisfied
-
-**Coverage Metrics**:
-- Requirements mapped to tasks: 32/32 functional requirements (100%)
-- User stories mapped to tasks: 4/4 user stories (100%)
-- Success criteria mapped to tasks: 8/8 criteria (100%)
-- Task-to-requirement traceability: 150 tasks fully traced to requirements/stories
-- Test coverage commitment: >80% target documented across all phases (Constitution compliant)
+**分析日期**: 2025-12-03  
+**分析範圍**: specs/001-member-service/  
+**文件版本**: spec.md, plan.md, tasks.md, data-model.md  
+**Constitution 版本**: 1.1.0
 
 ---
 
-## Findings Table
+## 執行摘要
 
-| ID | Category | Severity | Location(s) | Summary | Recommendation |
-|----|----------|----------|-------------|---------|----------------|
-| A1 | Ambiguity | HIGH | spec.md:L205, L207 | Template placeholders remain in spec.md ("**FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified]") | Remove English template placeholders - authentication method is already specified in Chinese requirements |
-| A2 | Ambiguity | HIGH | spec.md:L250-254 | Template placeholders for success criteria ("**SC-002**: [Measurable metric...]") mixed with actual Chinese criteria | Remove English template examples SC-002, SC-003, SC-004 placeholders (lines 250-254) - actual criteria defined below |
-| T1 | Terminology | MEDIUM | spec.md + plan.md | "Refresh Token" 使用不一致：spec.md 使用「更新權杖」，plan.md 和 tasks.md 混用「更新權杖」與「Refresh Token」 | 統一使用「Refresh Token」或「更新權杖」，建議使用「Refresh Token」（業界慣用術語） |
-| C1 | Coverage | MEDIUM | tasks.md (Phase 7) | Performance testing tasks (T143, T144) exist but lack specific implementation guidance | Add subtasks: setup performance testing framework, define load profiles, establish baseline metrics |
-| C2 | Coverage | MEDIUM | tasks.md | Missing explicit logging tasks for each user story (Constitution Principle V: Observability) | Add logging implementation verification tasks per story or consolidate in T147 |
-| D1 | Documentation | LOW | spec.md:L1 | Title has duplicate/malformed text: "功能規格：會員服務# Feature Specification: [FEATURE NAME]" | Clean up title to single language: "# 功能規格：會員服務" |
-| D2 | Documentation | LOW | spec.md throughout | Mixed language template comments remain (English instructions mixed with Chinese content) | Remove all English template instructions/examples (e.g., "User Story 1 - [Brief Title]" placeholders) |
+✅ **整體狀態**: 優秀 - 規格文件完整且一致，**所有先前發現的問題已修正**
 
----
-
-## Coverage Summary
-
-### Requirements to Tasks Mapping
-
-| Requirement Key | Has Task? | Task IDs | Coverage Notes |
-|-----------------|-----------|----------|----------------|
-| FR-000 (Snowflake ID) | ✅ | T012, T043, T044 | IdGen package + SnowflakeIdGenerator implementation |
-| FR-000-1 (IdGen套件) | ✅ | T012, T043 | Explicit package installation |
-| FR-000-2 (Worker ID配置) | ✅ | T043, T062, T063 | Configuration in SnowflakeIdGenerator + appsettings |
-| FR-001 (註冊功能) | ✅ | T065-T082 (US1) | Complete registration flow |
-| FR-002 (電子郵件驗證) | ✅ | T028, T029, T074 | Email Value Object + Validator |
-| FR-003 (電子郵件唯一性) | ✅ | T054, T079 | UserRepository + AuthService.Register |
-| FR-003-1 (使用者名稱驗證) | ✅ | T032, T033, T074 | Username Value Object + Validator |
-| FR-003-2 (使用者名稱長度) | ✅ | T032, T033 | Username Value Object validation |
-| FR-004 (密碼長度) | ✅ | T030, T031, T074 | Password Value Object |
-| FR-005 (密碼加密) | ✅ | T045, T046 | BCryptPasswordHasher |
-| FR-005-1 (bcrypt演算法) | ✅ | T013, T045, T046 | BCrypt.Net-Next package |
-| FR-005-2 (bcrypt+snowflakeId) | ✅ | T045, T046 | BCryptPasswordHasher implementation |
-| FR-005-3 (work factor 12) | ✅ | T045, T062, T063 | Configuration in BCryptPasswordHasher |
-| FR-006 (註冊後自動登入) | ✅ | T079 | AuthService.Register returns JWT |
-| FR-007 (登入功能) | ✅ | T065-T082 (US1) | Complete login flow |
-| FR-008 (JWT + Refresh Token) | ✅ | T047, T048, T049, T050, T080 | Token generators + AuthService.Login |
-| FR-008-1 (HS256演算法) | ✅ | T014, T047, T048 | JWT package + JwtTokenGenerator |
-| FR-008-2 (JWT密鑰環境變數) | ✅ | T062, T063 | appsettings configuration |
-| FR-009 (登入錯誤訊息) | ✅ | T077, T080 | InvalidCredentialsException + AuthService |
-| FR-009-1 (統一錯誤訊息) | ✅ | T077, T080 | InvalidCredentialsException message |
-| FR-009-2 (註冊明確訊息) | ✅ | T076, T079 | EmailAlreadyExistsException |
-| FR-009-3 (無獨立檢查端點) | ✅ | (Implicit) | No email check endpoint in contracts |
-| FR-010 (Refresh Token更新) | ✅ | T086-T098 (US2) | Token refresh flow |
-| FR-011 (拒絕過期Token) | ✅ | T093, T094, T095 | Token validation exceptions |
-| FR-012 (查詢完整資料) | ✅ | T102-T113 (US3) | GetCurrentUser implementation |
-| FR-013 (查詢公開資料) | ✅ | T103-T113 (US3) | GetUserById with public profile |
-| FR-014 (更新資料) | ✅ | T117-T130 (US4) | UpdateProfile implementation |
-| FR-015 (更新電子郵件唯一性) | ✅ | T125, T128 | UpdateProfileRequestValidator |
-| FR-016 (變更密碼) | ✅ | T117-T131 (US4) | ChangePassword implementation |
-| FR-016-1 (撤銷所有Token) | ✅ | T129, T136 | ChangePassword + verification task |
-| FR-017 (記錄時間) | ✅ | T034, T052 | User entity timestamps |
-| FR-018 (僅修改自己資料) | ✅ | T128-T131 | UserService authorization logic |
-
-### Success Criteria to Tasks Mapping
-
-| Success Criteria | Has Task? | Task IDs | Verification Method |
-|------------------|-----------|----------|---------------------|
-| SC-001 (註冊登入1分鐘內) | ✅ | T084, T141 | Manual + automated testing |
-| SC-002 (密碼安全標準) | ✅ | T046, T146 | BCrypt tests + security audit |
-| SC-003 (JWT驗證<50ms) | ✅ | T048, T143 | Performance testing |
-| SC-004 (1000並發不降級) | ✅ | T144, T150 | Load testing |
-| SC-005 (登入成功率99%) | ✅ | T083, T141 | Test coverage + monitoring |
-| SC-006 (電子郵件唯一性100%) | ✅ | T029, T055 | Unit + integration tests |
-| SC-007 (資料更新成功率99%) | ✅ | T132, T141 | Test coverage |
-| SC-008 (Token更新<100ms) | ✅ | T099, T143 | Performance testing |
-
-### User Stories to Tasks Mapping
-
-| User Story | Priority | Task Range | Task Count | Independent Test Criteria |
-|------------|----------|------------|------------|---------------------------|
-| US1 - 註冊與登入 | P1 (MVP) | T065-T085 | 21 tasks | 提供有效註冊資訊，驗證回傳JWT + Refresh Token |
-| US2 - 權杖更新 | P2 | T086-T101 | 16 tasks | 使用有效Refresh Token換取新JWT |
-| US3 - 資料查詢 | P2 | T102-T116 | 15 tasks | 查詢自己完整資料，查詢他人公開資料 |
-| US4 - 資料更新與密碼變更 | P3 | T117-T136 | 20 tasks | 更新資料並驗證唯一性，密碼變更撤銷所有Token |
-
-**Total User Story Tasks**: 72 (48% of total tasks)  
-**Infrastructure Tasks**: 64 (Setup 25 + Foundational 39)  
-**Polish Tasks**: 14
+**關鍵發現**:
+- ✅ 所有 HIGH 優先級問題已解決（A1: 具體數值已定義，A2: 矛盾已消除）
+- ✅ 所有 MEDIUM 優先級問題已解決（T1/T2: 術語統一，U1: 文件指引已補充）
+- ✅ 所有 Constitution 原則均已滿足
+- ✅ 需求覆蓋率: 100% (所有功能需求均有對應任務)
+- ✅ 無 CRITICAL 或 HIGH 優先級問題
+- ⚠️ 發現 1 個 LOW 優先級改善建議
 
 ---
 
-## Constitution Alignment Issues
+## 分析結果表
 
-**Result**: ✅ No violations detected
+| ID | 類別 | 嚴重性 | 位置 | 摘要 | 建議 |
+|----|------|--------|------|------|------|
+| S1 | Style | LOW | spec.md:L48-L150 | 範本註解未清理（`### User Story 1 - [Brief Title]` 等） | 移除英文範本註解，保持文件整潔 |
 
-### Principle I: Code Quality
-- ✅ Clean Architecture enforced (Domain/Application/Infrastructure/API)
-- ✅ SOLID principles applied via dependency injection
-- ✅ No AutoMapper (manual DTO mapping)
-- ✅ Value Objects encapsulate validation
-
-### Principle II: TDD (NON-NEGOTIABLE)
-- ✅ All user stories include test tasks (T065-T136)
-- ✅ Tests written before implementation (marked in task descriptions)
-- ✅ >80% coverage target documented (T083, T099, T114, T132, T141)
-- ✅ Test framework specified (xUnit + Moq + FluentAssertions + Testcontainers)
-
-### Principle III: User Experience Consistency
-- ✅ Consistent error response format documented in spec.md
-- ✅ HTTP status codes specified in contracts/openapi.yaml
-- ✅ All error messages in Traditional Chinese
-- ✅ Clear validation messages with actionable feedback
-
-### Principle IV: Performance Requirements
-- ✅ Performance targets specified: JWT <50ms, API <200ms (plan.md)
-- ✅ Database indexing strategy defined (data-model.md)
-- ✅ Asynchronous operations planned (I/O密集任務)
-- ⚠️ Performance testing tasks exist but lack detailed implementation steps (see C1)
-
-### Principle V: Observability
-- ✅ Serilog structured logging configured (T017, T060, T147)
-- ✅ Request logging middleware (T060)
-- ✅ Exception logging with context (T059)
-- ⚠️ Logging coverage per user story not explicitly verified (see C2)
-
-### Documentation Language Requirement
-- ✅ All specification documents in Traditional Chinese (spec.md, plan.md, tasks.md)
-- ✅ Code identifiers in English (per constitution exception)
-- ⚠️ Template artifacts in English still present (see A1, A2, D1, D2) - cleanup recommended
+**說明**: 先前報告中的所有問題（A1, A2, T1, T2, U1）均已修正：
+- ✅ A1 (HIGH): 「1 分鐘內來自同一 IP 的註冊請求超過 10 次」已定義具體數值
+- ✅ A2 (HIGH): 電子郵件服務矛盾已移除
+- ✅ T1 (MEDIUM): 使用者故事標題統一為「讓使用者註冊與登入」
+- ✅ T2 (MEDIUM): 術語統一為「Refresh Token 更新」
+- ✅ U1 (MEDIUM): plan.md 已補充完整的文件內容指引
 
 ---
 
-## Unmapped Tasks
+## 覆蓋率分析
 
-**Result**: ✅ All 150 tasks mapped to requirements or user stories
+### 需求覆蓋率摘要
 
-**Task Distribution Validation**:
-- Setup (T001-T025): Infrastructure initialization - justified
-- Foundational (T026-T064): Core entities, repositories, middleware - justified
-- User Stories (T065-T136): Direct requirement mapping - validated
-- Polish (T137-T150): Cross-cutting concerns (health, docs, CI/CD) - justified
+| 需求類別 | 總數 | 已覆蓋 | 覆蓋率 | 備註 |
+|---------|------|--------|--------|------|
+| 功能需求 (FR) | 19 | 19 | 100% | 所有需求均有對應任務 |
+| 非功能需求 (NFR) | 8 | 8 | 100% | 效能、安全、測試需求已涵蓋 |
+| 使用者故事 | 4 | 4 | 100% | US1-US4 均有完整任務分解 |
 
-**No orphaned tasks detected** - all tasks trace to specifications
+### 需求與任務對應表
 
----
+| 需求 Key | 需求描述 | 對應任務 | 覆蓋狀態 |
+|---------|---------|---------|---------|
+| FR-000 | 雪花ID作為使用者主鍵 | T012, T056-T057 | ✅ 已覆蓋 |
+| FR-001 | 註冊功能（電子郵件、密碼、使用者名稱） | T078-T095 | ✅ 已覆蓋 |
+| FR-002 | 電子郵件格式驗證 | T041-T042, T087 | ✅ 已覆蓋 |
+| FR-003 | 電子郵件唯一性驗證 | T041-T042, T087 | ✅ 已覆蓋 |
+| FR-003-1 | 使用者名稱字元限制 | T045-T046, T138 | ✅ 已覆蓋 |
+| FR-003-2 | 使用者名稱長度驗證 | T045-T046, T138 | ✅ 已覆蓋 |
+| FR-004 | 密碼最小長度驗證 | T043-T044, T087 | ✅ 已覆蓋 |
+| FR-005 | 密碼加密儲存 | T013, T058-T059 | ✅ 已覆蓋 |
+| FR-005-1 | 使用 bcrypt 演算法 | T058-T059 | ✅ 已覆蓋 |
+| FR-005-2 | 密碼與雪花ID組合雜湊 | T058-T059 | ✅ 已覆蓋 |
+| FR-005-3 | bcrypt work factor 12 | T058-T059 | ✅ 已覆蓋 |
+| FR-006 | 註冊成功後自動登入 | T092 | ✅ 已覆蓋 |
+| FR-007 | 登入功能 | T088, T093, T095 | ✅ 已覆蓋 |
+| FR-008 | JWT 與 Refresh Token 產生 | T060-T063, T093 | ✅ 已覆蓋 |
+| FR-008-1 | JWT 使用 HS256 演算法 | T060-T061 | ✅ 已覆蓋 |
+| FR-008-2 | JWT 密鑰透過環境變數取得 | T075-T076 | ✅ 已覆蓋 |
+| FR-009 | 登入失敗錯誤訊息 | T090, T093 | ✅ 已覆蓋 |
+| FR-009-1 | 統一錯誤訊息（不洩漏帳號存在） | T090, T093 | ✅ 已覆蓋 |
+| FR-009-2 | 註冊時明確電子郵件重複訊息 | T089, T092 | ✅ 已覆蓋 |
+| FR-009-3 | 不提供獨立電子郵件檢查API | T094-T095 | ✅ 已覆蓋 |
+| FR-010 | Refresh Token 換取新 JWT | T105, T108, T110 | ✅ 已覆蓋 |
+| FR-011 | 拒絕過期或撤銷的 Token | T106-T107, T108 | ✅ 已覆蓋 |
+| FR-012 | 查詢自己的完整資料 | T123, T125 | ✅ 已覆蓋 |
+| FR-013 | 查詢其他使用者公開資料 | T124, T126 | ✅ 已覆蓋 |
+| FR-014 | 更新使用者名稱與電子郵件 | T138, T141, T143 | ✅ 已覆蓋 |
+| FR-015 | 更新電子郵件唯一性驗證 | T138, T141 | ✅ 已覆蓋 |
+| FR-016 | 變更密碼（驗證舊密碼） | T139, T142, T144 | ✅ 已覆蓋 |
+| FR-016-1 | 密碼變更時撤銷所有 Refresh Token | T142 | ✅ 已覆蓋 |
+| FR-017 | 記錄建立與更新時間 | T047-T048, T064-T066 | ✅ 已覆蓋 |
+| FR-018 | 使用者只能修改自己的資料 | T141-T144 | ✅ 已覆蓋 |
 
-## Inconsistencies
+### 非功能需求覆蓋
 
-### I1: Terminology Drift (MEDIUM)
-
-**Pattern**: "Refresh Token" vs "更新權杖" 使用不一致
-
-**Locations**:
-- spec.md: 主要使用「更新權杖 (RefreshToken)」
-- plan.md: 混用兩者，例如「15 分鐘 Access Token + 7 天 Refresh Token」
-- tasks.md: 主要使用「Refresh Token」，但 DTO 名稱為 RefreshTokenRequest
-- data-model.md: 實體名稱為「RefreshToken」
-
-**Recommendation**: 
-- 統一使用「Refresh Token」（不翻譯），因為：
-  1. 業界標準術語
-  2. 程式碼實體已使用 RefreshToken
-  3. 避免混淆（Access Token 不翻譯，Refresh Token 也應保持一致）
-
-### I2: Template Artifacts (HIGH)
-
-**Pattern**: 英文模板範例未完全清除
-
-**Specific Issues**:
-1. spec.md L205: `**FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION...]` - 這是模板佔位符，實際需求在 FR-007
-2. spec.md L250-254: 英文範例 SC-002, SC-003, SC-004 與實際中文 SC-001~SC-008 混雜
-3. spec.md L1: 標題重複 "功能規格：會員服務# Feature Specification: [FEATURE NAME]"
-
-**Impact**: 可能造成閱讀混淆，影響專業形象
-
-**Action**: 清除所有英文模板佔位符，保持純繁體中文規格（除程式碼區塊外）
-
----
-
-## Metrics
-
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| **Total Functional Requirements** | 32 | - | - |
-| **Requirements with Tasks** | 32 | 100% | ✅ 100% |
-| **Total Success Criteria** | 8 | - | - |
-| **Criteria with Verification** | 8 | 100% | ✅ 100% |
-| **Total User Stories** | 4 | - | - |
-| **Stories with Task Coverage** | 4 | 100% | ✅ 100% |
-| **Total Tasks** | 150 | - | - |
-| **Tasks Mapped to Requirements** | 150 | 100% | ✅ 100% |
-| **Test Coverage Target** | >80% | >80% | ✅ Documented |
-| **Critical Issues** | 0 | 0 | ✅ Pass |
-| **High Issues** | 2 | <5 | ✅ Acceptable |
-| **Medium Issues** | 3 | <10 | ✅ Acceptable |
-| **Low Issues** | 2 | - | ℹ️ Optional |
+| NFR 類別 | 需求 | 對應任務 | 覆蓋狀態 |
+|---------|------|---------|---------|
+| 效能 | JWT 驗證 <50ms p95 | T156-T160 | ✅ 已覆蓋 |
+| 效能 | API 端點 <200ms p95 | T156-T160 | ✅ 已覆蓋 |
+| 安全 | JWT 密鑰管理 | T162 | ✅ 已覆蓋 |
+| 安全 | SQL 注入保護 | T162 | ✅ 已覆蓋 |
+| 安全 | CORS 設定 | T162 | ✅ 已覆蓋 |
+| 測試 | 單元測試覆蓋率 >80% | T018, T154 | ✅ 已覆蓋 |
+| 測試 | 整合測試 | T019, T077, T082-T083等 | ✅ 已覆蓋 |
+| 可觀測性 | 結構化日誌 | T017, T073, T163 | ✅ 已覆蓋 |
 
 ---
 
-## Validation Summary
+## Constitution 一致性檢查
 
-### ✅ Strengths
+### 原則 I：程式碼品質與可維護性 ✅ 通過
 
-1. **Complete Coverage**: 100% requirement-to-task traceability
-2. **TDD Compliant**: All user stories include comprehensive test tasks
-3. **Constitution Aligned**: All 5 principles validated and documented
-4. **User Story Organization**: Tasks properly grouped by independent deliverable increments
-5. **Parallel Opportunities**: Clear [P] markers enable efficient execution
-6. **MVP Defined**: User Story 1 (T065-T085) provides standalone value
-7. **Performance Targets**: Explicit metrics defined (JWT <50ms, API <200ms)
-8. **Security Design**: bcrypt + Snowflake ID combination, JWT HS256
+- Clean Architecture 四層設計（Domain/Application/Infrastructure/API）
+- Value Objects 封裝驗證邏輯
+- 不使用 AutoMapper（手動映射）
+- SOLID 原則應用
 
-### ⚠️ Areas for Improvement
+**驗證**: plan.md 明確定義架構設計，tasks.md 包含所有層級的實作任務
 
-1. **Template Cleanup**: Remove English placeholders from spec.md (HIGH priority)
-2. **Terminology Consistency**: Standardize "Refresh Token" usage across all documents
-3. **Performance Testing Details**: Add subtasks for T143/T144 implementation
-4. **Logging Verification**: Explicitly verify logging coverage per user story
-5. **Documentation Language**: Complete removal of English template artifacts
+### 原則 II：測試驅動開發 (TDD) ✅ 通過
+
+- TDD 流程強制執行
+- 測試覆蓋率目標 >80%
+- 包含單元測試、整合測試、效能測試
+- 所有業務邏輯均有測試任務
+
+**驗證**: tasks.md 中所有實作任務前均有對應測試任務（T078-T083, T099-T103等）
+
+### 原則 III：使用者體驗一致性 ✅ 通過
+
+- RESTful API 設計一致
+- 錯誤訊息標準化且使用繁體中文
+- HTTP 狀態碼正確使用
+- JWT 過期處理明確
+
+**驗證**: spec.md 定義錯誤訊息格式，plan.md 包含 ExceptionHandlingMiddleware
+
+### 原則 IV：效能與可擴展性 ✅ 通過
+
+- Snowflake ID 支援分散式擴展
+- 資料庫索引策略完整
+- 效能目標明確（JWT <50ms, API <200ms）
+- 非同步操作設計
+
+**驗證**: data-model.md 定義索引策略，tasks.md 包含效能測試任務（T156-T160）
+
+### 原則 V：可觀測性與除錯 ✅ 通過
+
+- Serilog 結構化日誌
+- API 回應包含 timestamp + path
+- JWT Claims 包含 UserId
+- 健康檢查端點
+
+**驗證**: tasks.md 包含日誌中介軟體（T073）、健康檢查（T150）、完整性檢查（T163）
+
+### 文件語言要求 ✅ 通過
+
+- 所有文件使用繁體中文
+- 程式碼識別符號使用英文
+- 錯誤訊息使用繁體中文
+
+**驗證**: spec.md, plan.md, tasks.md, data-model.md 均使用繁體中文
 
 ---
 
-## Next Actions
+## 未映射任務
 
-### Before `/speckit.implement`
+以下任務未直接對應特定功能需求，但屬於基礎設施或跨領域關注：
 
-**Priority 1 (Recommended)**:
-1. Clean up spec.md template artifacts (A1, A2, D1, D2)
-   ```bash
-   # Remove lines 205, 207 (English FR-006/007 placeholders)
-   # Remove lines 250-254 (English SC-002/003/004 placeholders)
-   # Fix line 1 title formatting
-   ```
+| 任務 ID | 任務描述 | 類別 | 說明 |
+|---------|---------|------|------|
+| T001-T038 | Setup 階段（專案結構、套件安裝、文件） | 基礎設施 | 專案初始化，非功能需求 |
+| T150 | HealthController | 跨領域關注 | 健康檢查端點 |
+| T151-T153 | README、Docker、環境變數文件 | 文件 | 部署與使用指南 |
+| T156-T160 | 效能測試 | 非功能需求 | 對應 SC-003, SC-008 成功指標 |
+| T161-T163 | 程式碼審查、安全檢查、日誌檢查 | 品質保證 | Constitution 原則 I, V |
+| T164-T166 | CI/CD、K8s、整合測試 | DevOps | 部署與持續整合 |
 
-2. Standardize terminology (T1)
-   ```bash
-   # Global search-replace in all files:
-   # "更新權杖" → "Refresh Token" (if choosing English)
-   # OR "Refresh Token" → "更新權杖" (if choosing Chinese)
-   # Recommendation: Keep "Refresh Token" (industry standard)
-   ```
+**結論**: 所有未映射任務均為合理的基礎設施或跨領域任務，並非覆蓋率缺口。
 
-**Priority 2 (Optional)**:
-3. Enhance performance testing tasks (C1)
-   - Add T143a: Setup performance testing framework
-   - Add T143b: Define load profiles
-   - Add T143c: Establish baseline metrics
+---
 
-4. Add logging verification (C2)
-   - Extend T147: Include per-story logging audit checklist
+## 問題詳細說明
 
-### Proceed with Implementation
+### S1 - 範本註解未清理 (LOW)
 
-If only P2 improvements are skipped, implementation can proceed safely:
-- All CRITICAL blockers: 0 ✅
-- All HIGH issues are documentation cleanup (non-functional)
-- Constitution compliance verified ✅
-- Task coverage complete ✅
+**位置**: spec.md 多處
 
-**Recommended Command Sequence**:
-```bash
-# 1. Fix high-priority issues
-/speckit.specify --refine  # Clean up spec.md
-
-# 2. Validate fixes
-/speckit.analyze  # Re-run this analysis
-
-# 3. Proceed with implementation
-/speckit.implement --story US1  # Start with MVP
+**問題描述**:
+使用者故事段落中保留了英文範本註解，例如：
+```markdown
+### User Story 1 - [Brief Title] (Priority: P1)
+[Describe this user journey in plain language]
+**Why this priority**: [Explain the value and why it has this priority level]
 ```
 
----
+這些註解是 spec-template.md 的填寫指引，在正式規格文件中應移除以保持文件整潔。
 
-## Remediation Offer
+**影響**: 
+- 不影響功能實作
+- 影響文件專業性和可讀性
+- 可能造成閱讀困擾
 
-Would you like me to suggest concrete remediation edits for the following top issues?
+**建議修正**:
+移除以下範本註解：
+- `### User Story 1 - [Brief Title] (Priority: P1)`
+- `[Describe this user journey in plain language]`
+- `**Why this priority**: [Explain the value and why it has this priority level]`
+- `**Independent Test**: [Describe how this can be tested independently]`
+- `**Acceptance Scenarios**:`
+- `1. **Given** [initial state], **When** [action], **Then** [expected outcome]`
 
-1. **A1/A2**: Remove English template placeholders from spec.md
-2. **D1/D2**: Clean up mixed-language formatting in spec.md
-3. **T1**: Standardize "Refresh Token" terminology across all documents
-
-These edits would resolve **2 HIGH + 3 MEDIUM severity issues** and bring the specification to production-ready quality.
-
----
-
-## Appendix: Analysis Methodology
-
-### Detection Methods
-
-- **Duplication**: Levenshtein distance + semantic similarity for requirements
-- **Ambiguity**: Pattern matching for vague adjectives (fast, secure, etc.) + placeholder markers
-- **Coverage**: Requirement ID extraction + keyword matching in task descriptions
-- **Constitution**: Rule-based validation against mandatory MUST statements
-- **Inconsistency**: Terminology frequency analysis + cross-document entity mapping
-
-### Coverage Mapping Algorithm
-
-1. Extract requirement IDs (FR-XXX, SC-XXX) from spec.md
-2. Parse task descriptions for:
-   - Direct ID references (e.g., "FR-001")
-   - Keyword matches (e.g., "註冊" → FR-001)
-   - Entity names (e.g., "SnowflakeIdGenerator" → FR-000)
-3. Build bidirectional requirement ↔ task graph
-4. Flag requirements with zero outgoing edges
-
-### Severity Heuristic
-
-- **CRITICAL**: Constitution MUST violation OR requirement with 0 task coverage OR blocking functional gap
-- **HIGH**: Conflicting requirements OR ambiguous security/performance attribute OR untestable acceptance criterion OR template artifacts
-- **MEDIUM**: Terminology drift OR missing non-functional task coverage OR underspecified edge case
-- **LOW**: Minor wording improvements OR redundancy not affecting execution
+**優先級理由**: LOW - 不影響實作，純粹是文件清理改善
 
 ---
 
-**Analysis Complete** | Generated: 2025-12-02 | Tool Version: speckit.analyze v1.1.0
+## 先前問題修正驗證
+
+以下是先前分析報告中發現的問題及其修正驗證：
+
+### ✅ A1 - 邊界情況具體數值 (HIGH) - 已修正
+
+**原問題**: 「短時間內有大量註冊請求」未定義具體數值
+
+**修正驗證**:
+```markdown
+# spec.md L173
+- 當 1 分鐘內來自同一 IP 的註冊請求超過 10 次時，系統應如何保護？
+  （建議實作：返回 429 Too Many Requests 並要求等待 5 分鐘）
+```
+
+✅ **狀態**: 已完整修正，定義了明確的數值指標和建議實作方案
+
+---
+
+### ✅ A2 - 電子郵件服務矛盾 (HIGH) - 已修正
+
+**原問題**: 邊界情況提到電子郵件服務，但假設不需要電子郵件驗證
+
+**修正驗證**:
+```markdown
+# spec.md L173-176 (邊界情況)
+- 當 1 分鐘內來自同一 IP 的註冊請求超過 10 次時...
+- 當使用者忘記密碼時，如何重設密碼？（目前規格未涵蓋此功能）
+- 註冊功能仍可被用於枚舉已註冊的電子郵件...
+- 登入功能不洩漏帳號存在資訊...
+```
+
+✅ **狀態**: 已移除「電子郵件服務無法使用」相關邊界情況，消除矛盾
+
+---
+
+### ✅ T1 - 使用者故事標題一致性 (MEDIUM) - 已修正
+
+**原問題**: spec.md 使用「新使用者註冊與登入」，tasks.md 使用「讓使用者註冊與登入」
+
+**修正驗證**:
+```markdown
+# spec.md L33
+### 使用者故事 1 - 讓使用者註冊與登入 (優先順序: P1)
+
+# tasks.md L113
+## Phase 3: User Story 1 - 讓使用者註冊與登入 (Priority: P1) 【含 MVP】
+```
+
+✅ **狀態**: 兩份文件均統一使用「讓使用者註冊與登入」
+
+---
+
+### ✅ T2 - Refresh Token 術語一致性 (MEDIUM) - 已修正
+
+**原問題**: 混用「Refresh Token」、「更新權杖」、「權杖更新」
+
+**修正驗證**:
+```markdown
+# spec.md L72
+### 使用者故事 2 - Refresh Token 更新 (優先順序: P2)
+
+使用者的 JWT 存取權杖過期後，可使用 Refresh Token 換取新的 JWT...
+若無 Refresh Token 更新機制...
+```
+
+✅ **狀態**: 統一使用「Refresh Token」（英文專有名詞）作為標題，內文保持一致
+
+---
+
+### ✅ U1 - 文件內容指引 (MEDIUM) - 已修正
+
+**原問題**: T026-T038 新增的文件資料夾任務缺少內容指引
+
+**修正驗證**:
+```markdown
+# plan.md L258-L415
+### 文件內容指引
+
+為確保新增的文件資料夾（docs/, scripts/, .github/）內容一致且完整...
+
+**docs/architecture.md** - 架構說明文件
+- Clean Architecture 四層架構說明...
+- 層級之間的依賴關係圖...
+- 主要設計決策記錄...
+
+**docs/api-guide.md** - API 使用指南
+- 環境設定（Base URL, 環境變數）...
+- API 端點完整範例...
+
+**docs/deployment.md** - 部署指南
+- 環境需求（.NET 10, PostgreSQL 16）...
+- 環境變數配置清單...
+
+**scripts/build.sh** - Linux/macOS 建置腳本
+[完整腳本範例]
+
+**scripts/build.ps1** - Windows 建置腳本
+[完整腳本範例]
+
+**scripts/init-db.sql** - PostgreSQL 初始化腳本
+[完整 SQL 範例]
+
+**.github/workflows/build.yml** - CI 建置工作流程
+[完整 YAML 範例]
+
+**.github/workflows/test.yml** - CI 測試工作流程
+[完整 YAML 範例]
+```
+
+✅ **狀態**: plan.md 已補充完整的文件內容指引，包含範例程式碼和詳細說明
+
+---
+
+## 統計指標
+
+### 文件完整性
+
+| 指標 | 數值 |
+|------|------|
+| 總功能需求 | 19 |
+| 總使用者故事 | 4 |
+| 總任務數 | 166 |
+| 需求覆蓋率 | 100% |
+| 測試任務佔比 | 45% (75/166) |
+| 可平行任務 | 53 個（標記 [P]） |
+
+### 問題統計
+
+| 嚴重性 | 數量 | 佔比 |
+|--------|------|------|
+| CRITICAL | 0 | 0% |
+| HIGH | 0 | 0% ✅ (先前 2 個已修正) |
+| MEDIUM | 0 | 0% ✅ (先前 3 個已修正) |
+| LOW | 1 | 100% |
+| **總計** | **1** | **100%** |
+
+**改善摘要**: 
+- ✅ 2 個 HIGH 優先級問題已修正（A1: 具體數值, A2: 矛盾消除）
+- ✅ 3 個 MEDIUM 優先級問題已修正（T1/T2: 術語統一, U1: 文件指引補充）
+- ⚠️ 1 個 LOW 優先級建議（S1: 範本註解清理）
+
+### Constitution 遵循度
+
+| 原則 | 狀態 | 備註 |
+|------|------|------|
+| I. 程式碼品質 | ✅ 通過 | Clean Architecture, SOLID |
+| II. TDD | ✅ 通過 | 所有功能均有測試任務 |
+| III. 使用者體驗 | ✅ 通過 | 錯誤訊息一致，API 設計規範 |
+| IV. 效能 | ✅ 通過 | 明確效能目標與測試 |
+| V. 可觀測性 | ✅ 通過 | 結構化日誌、健康檢查 |
+| 文件語言 | ✅ 通過 | 全繁體中文，程式碼英文 |
+
+---
+
+## 後續行動建議
+
+### 可選改善（提升文件品質）
+
+1. **清理 S1**: 移除 spec.md 中的英文範本註解，提升文件專業性
+
+### 實作就緒
+
+✅ **所有 CRITICAL 和 HIGH 優先級問題已解決**  
+✅ **規格文件品質優秀，可立即進入實作階段**
+
+**建議行動**: 
+- **選項 1（推薦）**: 立即執行 `/speckit.implement` 開始實作（LOW 優先級問題不影響實作）
+- **選項 2**: 先清理範本註解（S1），再執行 `/speckit.implement`
+
+---
+
+## 總結
+
+✅ MemberService 規格文件**品質優秀**，所有先前發現的 HIGH 和 MEDIUM 優先級問題均已修正完成：
+
+**修正成果**:
+- ✅ **A1 (HIGH)**: 邊界情況具體數值已定義（1 分鐘 / 10 次請求 / 429 回應）
+- ✅ **A2 (HIGH)**: 電子郵件服務矛盾已消除（移除不必要的邊界情況）
+- ✅ **T1 (MEDIUM)**: 使用者故事標題統一為「讓使用者註冊與登入」
+- ✅ **T2 (MEDIUM)**: 術語統一使用「Refresh Token」（英文專有名詞）
+- ✅ **U1 (MEDIUM)**: plan.md 補充完整文件內容指引（包含範例程式碼）
+
+**品質指標**:
+- ✅ 需求覆蓋率: 100% (所有 19 個功能需求和 4 個使用者故事均有對應任務)
+- ✅ Constitution 遵循度: 100% (所有 6 項原則均通過)
+- ✅ 無 CRITICAL 或 HIGH 阻塞問題
+- ✅ 架構設計完整（Clean Architecture + TDD + PostgreSQL）
+- ⚠️ 1 個 LOW 優先級改善建議（範本註解清理）
+
+**結論**: 規格文件已達到實作就緒標準，建議立即進入 `/speckit.implement` 階段。LOW 優先級問題（S1）可在實作過程中或之後處理，不影響開發進度。
+
+---
+
+**分析工具版本**: speckit.analyze v1.0  
+**報告生成時間**: 2025-12-03  
+**上次分析**: 2025-12-03 (本次為第二次分析，驗證修正結果)

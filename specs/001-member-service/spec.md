@@ -33,7 +33,7 @@
 
   IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
 
-### 使用者故事 1 - 新使用者註冊與登入 (優先順序: P1)  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
+### 使用者故事 1 - 讓使用者註冊與登入 (優先順序: P1)  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
 
   you should still have a viable MVP (Minimum Viable Product) that delivers value.
 
@@ -71,7 +71,7 @@
 
 
 
-### 使用者故事 2 - 權杖更新 (優先順序: P2)**Acceptance Scenarios**:
+### 使用者故事 2 - Refresh Token 更新 (優先順序: P2)**Acceptance Scenarios**:
 
 
 
@@ -79,7 +79,7 @@
 
 2. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
-**優先順序理由**: JWT 有效期限僅 15 分鐘，若無權杖更新機制，使用者需頻繁重新登入，嚴重影響使用體驗。此功能是基本身份驗證流程的重要補充。
+**優先順序理由**: JWT 有效期限僅 15 分鐘，若無 Refresh Token 更新機制，使用者需頻繁重新登入，嚴重影響使用體驗。此功能是基本身份驗證流程的重要補充。
 
 ---
 
@@ -145,17 +145,11 @@
 
 
 
-**優先順序理由**: 資料更新與密碼變更是帳號管理的輔助功能，雖然重要但非系統初期運作的必要條件。### Edge Cases
+**優先順序理由**: 資料更新與密碼變更是帳號管理的輔助功能，雖然重要但非系統初期運作的必要條件。
 
+**獨立測試**: 可透過已登入的使用者更新資料欄位，驗證系統正確更新並驗證資料唯一性；透過密碼變更流程驗證舊密碼驗證與新密碼設定。
 
-
-**獨立測試**: 可透過已登入的使用者更新資料欄位，驗證系統正確更新並驗證資料唯一性；透過密碼變更流程驗證舊密碼驗證與新密碼設定。<!--
-
-  ACTION REQUIRED: The content in this section represents placeholders.
-
-**驗收情境**:  Fill them out with the right edge cases.
-
--->
+**驗收情境**:
 
 1. **Given** 使用者已登入, **When** 使用者更新使用者名稱, **Then** 系統成功更新並回傳更新後的資料
 
@@ -177,9 +171,8 @@
 
 ### 邊界情況
 
-- 當短時間內有大量註冊請求（潛在攻擊），系統如何保護？
+- 當 1 分鐘內來自同一 IP 的註冊請求超過 10 次時，系統應如何保護？（建議實作：返回 429 Too Many Requests 並要求等待 5 分鐘）
 - 當使用者忘記密碼時，如何重設密碼？（目前規格未涵蓋此功能）
-- 當電子郵件服務無法使用時，註冊流程如何處理？（如需發送驗證信）
 - 註冊功能仍可被用於枚舉已註冊的電子郵件（安全性與使用者體驗的取捨，優先使用者體驗）
 - 登入功能不洩漏帳號存在資訊（統一回傳模糊錯誤訊息）
 

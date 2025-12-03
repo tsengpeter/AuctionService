@@ -259,6 +259,181 @@ specs/001-member-service/
 └── tasks.md             # Phase 2 輸出（/speckit.tasks 指令 - 非 /speckit.plan 建立）
 ```
 
+### 文件內容指引
+
+為確保新增的文件資料夾（docs/, scripts/, .github/）內容一致且完整，以下提供各文件的建議內容大綱：
+
+**docs/architecture.md** - 架構說明文件
+- Clean Architecture 四層架構說明（Domain/Application/Infrastructure/API）
+- 層級之間的依賴關係圖（使用 Mermaid 或 PlantUML）
+- 主要設計決策記錄：
+  - Snowflake ID 選擇理由（vs GUID）
+  - bcrypt + snowflakeId 組合雜湊策略
+  - JWT HS256 vs RS256 選擇原因
+  - 不使用 AutoMapper 的考量
+- 資料流程圖（API → Application → Domain → Infrastructure）
+- 關鍵設計模式應用（Repository, Value Object, Domain Exception）
+
+**docs/api-guide.md** - API 使用指南
+- 環境設定（Base URL, 環境變數）
+- 驗證機制說明（JWT Bearer Token 使用方式）
+- API 端點完整範例（包含 Request/Response）：
+  - POST /api/auth/register（註冊範例）
+  - POST /api/auth/login（登入範例）
+  - POST /api/auth/refresh（更新 Token 範例）
+  - GET /api/users/{id}（查詢使用者範例）
+  - PUT /api/users/{id}（更新資料範例）
+  - PUT /api/users/{id}/password（變更密碼範例）
+- 錯誤處理說明（錯誤代碼對照表）
+- 常見使用情境（註冊後自動登入、Token 過期處理）
+- Postman Collection / curl 範例
+
+**docs/deployment.md** - 部署指南
+- 環境需求（.NET 10, PostgreSQL 16）
+- 環境變數配置清單：
+  - DB_CONNECTION_STRING（資料庫連線字串）
+  - JWT_SECRET_KEY（JWT 密鑰）
+  - JWT_ISSUER / JWT_AUDIENCE
+  - BCRYPT_WORK_FACTOR
+  - SNOWFLAKE_WORKER_ID / SNOWFLAKE_DATACENTER_ID
+- Docker 部署步驟（docker-compose.yml 使用說明）
+- Kubernetes 部署範例（Deployment + Service + ConfigMap + Secret）
+- 資料庫遷移執行步驟（dotnet ef database update）
+- 健康檢查端點設定（/health/ready, /health/live）
+- 監控與日誌配置（Serilog 輸出設定）
+- Blue-Green / Rolling Update 策略說明
+
+**scripts/build.sh** - Linux/macOS 建置腳本
+```bash
+#!/bin/bash
+# 清理舊建置
+dotnet clean
+# 還原套件
+dotnet restore
+# 建置專案（Release 模式）
+dotnet build --configuration Release --no-restore
+# 執行單元測試
+dotnet test --no-build --configuration Release --logger "console;verbosity=detailed"
+# 建置 Docker 映像（可選）
+# docker build -t memberservice:latest .
+```
+
+**scripts/build.ps1** - Windows 建置腳本
+```powershell
+# 清理舊建置
+dotnet clean
+# 還原套件
+dotnet restore
+# 建置專案（Release 模式）
+dotnet build --configuration Release --no-restore
+# 執行單元測試
+dotnet test --no-build --configuration Release --logger "console;verbosity=detailed"
+# 建置 Docker 映像（可選）
+# docker build -t memberservice:latest .
+```
+
+**scripts/init-db.sql** - PostgreSQL 初始化腳本
+```sql
+-- 建立資料庫（如果不存在）
+CREATE DATABASE memberservice_dev;
+
+-- 建立使用者與授權（本地開發用）
+CREATE USER memberservice WITH PASSWORD 'Dev@Password123';
+GRANT ALL PRIVILEGES ON DATABASE memberservice_dev TO memberservice;
+
+-- 啟用 UUID 擴充功能（如未來需要）
+-- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 建議：正式環境不使用此腳本，應透過 EF Core Migrations 建立結構
+```
+
+**scripts/run-tests.sh** - 測試執行腳本
+```bash
+#!/bin/bash
+# 執行所有測試（包含整合測試）
+dotnet test --configuration Debug --logger "console;verbosity=normal"
+
+# 產生測試覆蓋率報告（需安裝 coverlet）
+# dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=./coverage/
+
+# 執行特定測試類別
+# dotnet test --filter "FullyQualifiedName~MemberService.Domain.Tests"
+```
+
+**.github/workflows/build.yml** - CI 建置工作流程
+```yaml
+name: Build
+
+on:
+  push:
+    branches: [ main, develop, '**-member-service' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+      - name: Test
+        run: dotnet test --no-build --configuration Release
+```
+
+**.github/workflows/test.yml** - CI 測試工作流程
+```yaml
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: memberservice
+          POSTGRES_PASSWORD: Test@Password123
+          POSTGRES_DB: memberservice_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run tests
+        run: dotnet test --configuration Debug --logger "trx;LogFileName=test-results.trx"
+        env:
+          DB_CONNECTION_STRING: "Host=localhost;Port=5432;Database=memberservice_test;Username=memberservice;Password=Test@Password123"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+```
+
+這些內容指引確保實作者在建立文件時有明確的方向，避免內容不一致或遺漏關鍵資訊。
+
 ### 原始碼（儲存庫根目錄）
 
 **專案組織結構**：所有 MemberService 相關檔案集中在單一根目錄 `MemberService/` 中，包含：
