@@ -202,11 +202,13 @@ Based on plan.md, this project uses single-folder structure:
 
 ---
 
-## Phase 5: User Story 3 - 追蹤感興趣的商品 (Priority: P2)
+## Phase 5: User Story 3 - 商品追蹤功能 (Priority: P2)
 
 **Goal**: 使用者可將感興趣的商品加入追蹤清單，方便隨時查看這些商品的最新狀態，也可取消不再關注的商品。
 
 **Independent Test**: 可透過追蹤商品 API (POST /api/follows)、取消追蹤 API (DELETE /api/follows/{auctionId})、查看追蹤清單 API (GET /api/follows) 來完整測試此功能，驗證使用者能成功管理追蹤清單。
+
+**Note**: 本功能對應 spec.md 中的 "使用者故事 3 - 追蹤感興趣的商品"，為保持術語一致性統一稱為 "商品追蹤功能 (Follow Feature)"。
 
 ### Tests for User Story 3 (Write FIRST - ensure they FAIL before implementation)
 

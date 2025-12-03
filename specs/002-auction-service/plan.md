@@ -156,7 +156,7 @@ DB_CONNECTION_STRING="Host=auctionservice-prod.abc123.us-east-1.rds.amazonaws.co
 | **Staging** | Azure/AWS（小規格） | **必須** | 7 天自動備份 | 20-50 | 啟用（測試） |
 | **Production** | Azure/AWS（HA 部署） | **必須** | 30 天自動備份 + 異地備援 | 100+ | **全面監控** |
 
-### 資料庫遷移注意事項
+### 遷移注意事項
 
 ⚠️ **破壞性變更檢查清單**:
 - [ ] 刪除資料表/欄位前確認無程式碼引用
@@ -169,6 +169,44 @@ DB_CONNECTION_STRING="Host=auctionservice-prod.abc123.us-east-1.rds.amazonaws.co
 - 保留遷移回滾腳本（`dotnet ef migrations remove`）
 - 大規模資料變更使用批次處理（避免 Lock Table）
 - 重要遷移前手動備份資料庫快照
+
+## Bidding Service 整合策略
+
+### 日誌記錄規格（FR-029）
+
+所有對 Bidding Service 的 HTTP 呼叫必須記錄以下資訊：
+
+**必要欄位**:
+- `Timestamp` (DateTime UTC, ISO 8601): 請求發起時間
+- `CorrelationId` (Guid): 追蹤 ID，與當前請求的 Correlation ID 一致
+- `Endpoint` (string): 完整 API 端點，例如 `GET /api/bids/{auctionId}/current`
+- `RequestDuration` (int, milliseconds): 請求執行時間（從發送到收到回應）
+- `ResponseStatusCode` (int): HTTP 狀態碼（200, 404, 503 等）
+
+**選填欄位**:
+- `RequestPayload` (JSON string, truncated to 1000 chars): 請求內容（POST/PUT 時）
+- `ResponsePayload` (JSON string, truncated to 1000 chars): 回應內容（成功時）
+- `ErrorMessage` (string): 錯誤訊息（失敗時）
+- `RetryCount` (int): Polly 重試次數（如有重試）
+
+**記錄等級**:
+- `Information`: 成功呼叫（StatusCode 2xx）
+- `Warning`: 重試成功或客戶端錯誤（StatusCode 4xx）
+- `Error`: 伺服器錯誤或重試失敗（StatusCode 5xx 或 Timeout）
+
+**實作範例**（Serilog 結構化日誌）:
+```csharp
+_logger.LogInformation(
+    "BiddingService call completed: {Endpoint} | Status: {StatusCode} | Duration: {Duration}ms | CorrelationId: {CorrelationId}",
+    endpoint, statusCode, duration, correlationId);
+```
+
+### 容錯策略
+
+- **Polly Retry Policy**: 3 次指數退避重試（1s, 2s, 4s）
+- **Circuit Breaker**: 連續 5 次失敗後開啟，30 秒後半開
+- **Timeout**: 單次呼叫 5 秒逾時
+- **降級處理**: 若 Bidding Service 無法回應，商品詳細資訊中 `CurrentBid` 欄位回傳 `null`，前端顯示 "目前出價資訊暫時無法取得"
 
 ## Constitution Check
 

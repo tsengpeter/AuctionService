@@ -20,7 +20,7 @@
   - 商品詳細資訊與目前競標價格使用兩個獨立 API:
     - GET /api/auctions/{id}: 查詢商品詳細資訊 (包含商品基本資料、建立者 ID)
     - GET /api/auctions/{id}/current-bid: 查詢目前競標價格 (輕量化查詢,適合高頻輪詢)
-  - 對 Bidding Service 的呼叫必須記錄 (請求時間、回應時間、狀態碼) 以利監控與除錯
+  - 對 Bidding Service 的呼叫日誌記錄規格參見 FR-029
 
 - Q3: 商品狀態自動更新機制的設計策略？ → A: 採用被動式即時判斷
   - Auction 資料表不儲存 Status 欄位,僅儲存 StartTime 與 EndTime
