@@ -79,6 +79,92 @@
     - 空間效率: 8 bytes vs GUID 的 16 bytes，節省 50% 儲存空間與索引大小
   - 注意事項: 需在應用程式啟動時初始化 Snowflake ID 生成器，確保 Worker ID 唯一性
 
+### Session 2025-12-03
+
+- Q: 服務水平擴展策略? → A: 選項 C - 單一實例搭配 Redis/PostgreSQL 擴展
+  - Bidding Service 採用單一實例部署策略
+  - 雪花 ID 生成器配置固定的 Worker ID (例如: Worker ID = 1, Datacenter ID = 1)
+  - Redis 與 PostgreSQL 可獨立進行垂直或水平擴展以應對負載增長
+  - 理由: 根據假設 A-003 (單一商品出價頻率不超過 1000 次/秒),單實例足以應對,架構更簡單
+  - 服務本身設計為無狀態 (狀態存於 Redis/PostgreSQL),理論上可支援未來水平擴展
+  - 未來擴展路徑: 若需要多實例,需實作 Worker ID 動態分配機制 (例如透過配置中心或資料庫分配)
+
+- Q: 商品結束後的得標資訊更新機制? → A: 選項 C - Auction Service 主動查詢 Bidding Service
+  - Bidding Service 職責: 僅提供 `GET /api/auctions/{id}/highest-bid` API 供查詢得標者
+  - Auction Service 職責: 商品競標時間結束時,主動呼叫 Bidding Service API 查詢得標者資訊
+  - Auction Service 取得得標資訊後,自行更新商品資料表 (winnerId, finalPrice 等)
+  - 理由: 商品生命週期由 Auction Service 掌控,Bidding Service 專注競標邏輯,服務邊界清晰
+  - 解耦優勢: Bidding Service 不需知道商品何時結束,不需監聽事件或定期檢查
+  - 與 Session 2025-11-06 Q7 保持一致: Bidding Service 僅提供查詢,不負責通知或狀態管理
+
+- Q: 是否在 Bidding Service 儲存出價者的 Email? → A: 選項 B - 僅儲存 bidderId,需要時查 Member Service
+  - Bids 資料表不儲存 bidderEmail 欄位,僅儲存 bidderId (雪花 ID)
+  - 需要 Email 時 (例如查詢「我的出價記錄」),跨服務呼叫 Member Service 取得使用者資訊
+  - 理由: Member Service 是使用者資訊的單一資料來源 (Single Source of Truth)
+  - 優點: 避免資料重複,Email 變更時無需同步更新多處
+  - 快取策略: 實作短期快取 (例如 5 分鐘) 減少跨服務呼叫,但不永久儲存
+  - 資料一致性: 保證查詢到的 Email 永遠是最新的
+
+- Q: 敏感資料加密策略? → A: 選項 B - HTTPS 傳輸加密 + PostgreSQL 欄位層級加密
+  - 傳輸層: 所有 API 強制使用 HTTPS (TLS 1.2+)
+  - PostgreSQL 加密: 僅加密敏感欄位 `amount` (出價金額) 和 `bidderId` (出價者 ID)
+  - 實作方式: 使用 EF Core Value Converter 在應用層自動加解密,加密演算法 AES-256-GCM
+  - 金鑰管理: 加密金鑰儲存在 Azure Key Vault 或環境變數,不寫入程式碼或版本控制
+  - Redis 不加密: 假設部署在可信內網,資料生命週期短 (< 7 天),效能優先
+  - 理由: 平衡安全性與效能,保護核心商業資料,不影響 Redis < 10ms 寫入目標
+  - 風險接受: 資料庫備份洩漏時,攻擊者無法直接讀取出價金額和出價者身份
+  - 索引限制: 加密欄位無法建立索引,但查詢主要依賴 auctionId 和 bidAt,影響有限
+
+- Q: 跨服務請求追蹤機制? → A: 選項 B - Correlation ID + 結構化日誌
+  - 每個 API 請求生成唯一的 Correlation ID (GUID 格式)
+  - HTTP Header 傳遞: 使用 `X-Correlation-ID` Header 在服務間傳遞追蹤 ID
+  - 請求來源: 若前端或上游服務已提供 Correlation ID,則沿用;否則由 Bidding Service 生成
+  - 跨服務呼叫: 呼叫 Auction Service 或 Member Service 時,在 HTTP Header 加入 `X-Correlation-ID`
+  - 結構化日誌: 所有日誌 (Info/Warning/Error) 都包含 CorrelationId 欄位 (JSON 格式)
+  - 日誌範例: `{"timestamp":"2025-12-03T10:15:30Z","level":"Info","correlationId":"abc-123","message":"Bid created","bidId":456}`
+  - 問題排查: 透過 Correlation ID 串聯 Bidding Service → Auction Service → Member Service 的完整請求鏈
+  - 實作工具: 使用 ASP.NET Core Middleware 自動注入 Correlation ID,Serilog 自動記錄到日誌
+  - 理由: 輕量級且高效,無需引入複雜的分散式追蹤系統 (如 OpenTelemetry),但保留未來升級路徑
+
+- Q: Redis Lua Script 併發控制邏輯? → A: 選項 A - 完整原子操作 (檢查 + 更新 Sorted Set + 更新 Hash)
+  - Lua Script 執行流程:
+    1. 從 `auction:{auctionId}:highest_bid` Hash 取得當前最高出價金額
+    2. 檢查新出價金額是否 > 當前最高出價 (首次出價則檢查是否 >= 起標價)
+    3. 若檢查通過,執行以下原子操作:
+       - ZADD `auction:{auctionId}:bids` {amount} `{bidId}:{timestamp}:{bidderId}` (加入 Sorted Set)
+       - HSET `auction:{auctionId}:highest_bid` bidId {bidId} bidderId {bidderId} amount {amount} bidAt {timestamp} (更新最高出價)
+       - SADD `pending_bids` {bidId} (標記為待同步到 PostgreSQL)
+       - 設定 TTL (商品結束時間 + 7 天)
+    4. 回傳操作結果: success (出價成功) 或 rejected (金額不足)
+  - 理由: Lua Script 保證原子性,避免競態條件 (兩筆出價同時通過檢查但只有一筆應該成功)
+  - 錯誤處理: Script 執行失敗時回傳明確錯誤碼,應用層可重試或降級到 PostgreSQL
+  - 效能優勢: 單次 Redis 往返完成所有檢查與更新,減少網路開銷
+  - 測試策略: 使用併發測試驗證 100 個請求同時出價時,只有金額最高的成功
+
+- Q: Auction Service API 依賴契約? → A: 選項 B - 定義 3 個必要端點 + 快取策略
+  - **端點 1: 取得商品基本資訊** (用於出價驗證)
+    - API: `GET /api/auctions/{id}/basic`
+    - 用途: 驗證商品存在、取得擁有者、檢查狀態、取得起標價
+    - 回應: `{ auctionId, ownerId, status, title, startingPrice, endTime }`
+    - 快取策略: Redis 快取 5 分鐘, Key: `auction:basic:{auctionId}`
+    - 錯誤碼: 404 (商品不存在)
+  - **端點 2: 批次查詢商品資訊** (用於使用者出價記錄)
+    - API: `POST /api/auctions/batch`
+    - 用途: 一次查詢多個商品的標題和狀態 (避免 N+1 查詢問題)
+    - 請求: `{ "auctionIds": [long, long, ...] }`
+    - 回應: `{ "items": [{ auctionId, title, status }, ...] }`
+    - 快取策略: 個別商品快取 5 分鐘,批次查詢先檢查快取,僅查詢未快取的商品
+  - **端點 3: 驗證商品是否可出價** (可選,簡化出價流程)
+    - API: `GET /api/auctions/{id}/can-bid?bidderId={bidderId}`
+    - 用途: 一次呼叫檢查所有出價前提條件 (商品存在、未結束、非擁有者)
+    - 回應: `{ "canBid": boolean, "reason": string | null }`
+    - 快取策略: 不快取 (狀態可能快速變化)
+  - **超時與降級策略**:
+    - 呼叫超時: 100ms
+    - 重試: 失敗時重試 1 次,總超時 200ms
+    - 降級: 超時或失敗時使用快取過期資料,標記為 "資訊可能過時",記錄 Warning 日誌
+  - **理由**: 明確 API 契約避免實作時反覆協調,批次查詢確保效能達標,快取策略減少跨服務呼叫開銷
+
 ---
 
 ## 概述
@@ -263,12 +349,21 @@
 - 驗證出價者 != 商品擁有者
 
 ### FR-004: 併發控制
-- 使用 Redis 原子操作 (ZADD, INCR, WATCH/MULTI/EXEC) 確保併發安全
+- 使用 Redis Lua Script 確保出價的原子性與併發安全
+- **Lua Script 執行流程**:
+  1. 從 `auction:{auctionId}:highest_bid` Hash 取得當前最高出價金額
+  2. 檢查新出價金額是否 > 當前最高出價 (首次出價則檢查是否 >= 起標價)
+  3. 若檢查通過,執行以下原子操作:
+     - ZADD `auction:{auctionId}:bids` {amount} `{bidId}:{timestamp}:{bidderId}` (加入 Sorted Set)
+     - HSET `auction:{auctionId}:highest_bid` (更新最高出價: bidId, bidderId, amount, bidAt)
+     - SADD `pending_bids` {bidId} (標記為待同步到 PostgreSQL)
+     - 設定 TTL (商品結束時間 + 7 天)
+  4. 回傳操作結果: success (出價成功) 或 rejected (金額不足)
 - 出價資料結構: Sorted Set (key: `auction:{auctionId}:bids`, score: amount, member: `{bidId}:{timestamp}:{bidderId}`)
 - 最高出價: `auction:{auctionId}:highest_bid` (Hash 類型,包含 bidId, amount, bidderId, bidAt)
-- 併發場景: 多筆出價同時進來時,Redis 原子操作保證只有金額最高的成為最高出價
-- 背景任務: 每秒執行一次,批次讀取 Redis 中標記為 pending 的出價並寫入 PostgreSQL
-- 寫入成功後更新 Redis 標記為 processed (或從 pending set 移除)
+- 併發場景: 多筆出價同時進來時,Lua Script 原子性保證只有金額最高的成為最高出價
+- 背景任務: 每秒執行一次,批次讀取 `pending_bids` Set 中的出價並寫入 PostgreSQL
+- 寫入成功後從 `pending_bids` Set 移除該 bidId
 - 降級機制: Redis 不可用時,切換為直接寫入 PostgreSQL (使用樂觀鎖作為後備)
 
 ### FR-005: 出價歷史紀錄
@@ -308,7 +403,10 @@
 - **端點**: `GET /api/me/bids`
 - **查詢參數**: `status` (all/active/won/lost), `page`, `pageSize`
 - **查詢邏輯**: 統一從 PostgreSQL 查詢 (WHERE bidderId = currentUserId)
-- **JOIN 商品資訊**: 需要跨服務呼叫 Auction Service 或快取商品資料 (標題、狀態)
+- **跨服務查詢**: 
+  - 呼叫 Auction Service 取得商品資訊 (標題、狀態)
+  - 呼叫 Member Service 取得出價者 Email (不儲存在 Bids 表)
+  - 實作短期快取 (5 分鐘) 減少跨服務呼叫
 - **延遲說明**: 最新出價可能有最多 1 秒同步延遲 (背景任務週期)
 - **回應**:
   ```json
@@ -330,10 +428,76 @@
 
 ### FR-008: 跨服務資料同步
 - 呼叫 Auction Service 取得商品資訊:
-  - 商品標題 (用於使用者出價記錄)
-  - 商品狀態 (Active/Ended/Sold)
-  - 商品擁有者 ID
+  - 商品基本資訊 (擁有者、狀態、起標價、結束時間) - 用於出價驗證
+  - 商品標題與狀態 (批次查詢) - 用於使用者出價記錄
+  - 商品是否可出價 (可選) - 簡化出價流程
 - 實作快取機制減少跨服務呼叫
+
+### FR-008-1: Auction Service API 依賴契約
+
+Bidding Service 需要 Auction Service 提供以下 API 端點:
+
+#### 1. 取得商品基本資訊 (用於出價驗證)
+- **端點**: `GET /api/auctions/{id}/basic`
+- **用途**: 驗證商品存在、取得擁有者、檢查狀態、取得起標價
+- **回應**:
+  ```json
+  {
+    "auctionId": "long",
+    "ownerId": "long",
+    "status": "Active" | "Ended" | "Sold",
+    "title": "string",
+    "startingPrice": "decimal",
+    "endTime": "ISO8601 datetime"
+  }
+  ```
+- **錯誤碼**: 404 (商品不存在)
+- **快取策略**: Redis 快取 5 分鐘, Key: `auction:basic:{auctionId}`
+- **超時**: 100ms
+
+#### 2. 批次查詢商品資訊 (用於使用者出價記錄)
+- **端點**: `POST /api/auctions/batch`
+- **用途**: 一次查詢多個商品的標題和狀態,避免 N+1 查詢問題
+- **請求**:
+  ```json
+  {
+    "auctionIds": ["long", "long", ...]
+  }
+  ```
+- **回應**:
+  ```json
+  {
+    "items": [
+      {
+        "auctionId": "long",
+        "title": "string",
+        "status": "Active" | "Ended" | "Sold"
+      }
+    ]
+  }
+  ```
+- **快取策略**: 個別商品快取 5 分鐘,批次查詢先檢查快取,僅查詢未快取的商品
+- **超時**: 100ms
+
+#### 3. 驗證商品是否可出價 (可選)
+- **端點**: `GET /api/auctions/{id}/can-bid?bidderId={bidderId}`
+- **用途**: 一次呼叫檢查所有出價前提條件 (商品存在、未結束、非擁有者)
+- **回應**:
+  ```json
+  {
+    "canBid": true,
+    "reason": null  // 或 "AuctionEnded" | "AuctionNotFound" | "IsOwner"
+  }
+  ```
+- **快取策略**: 不快取 (狀態可能快速變化)
+- **超時**: 100ms
+
+#### 跨服務呼叫策略
+- **超時設定**: 100ms
+- **重試策略**: 失敗時重試 1 次,總超時 200ms
+- **降級策略**: 超時或失敗時使用快取過期資料,標記為 "資訊可能過時",記錄 Warning 日誌
+- **熔斷機制**: 連續失敗超過 5 次,暫停呼叫 30 秒,直接使用快取
+- **Header 傳遞**: 所有跨服務呼叫必須傳遞 `X-Correlation-ID` 用於追蹤
 
 ### FR-009: 最高出價快取
 - 使用 Redis Hash 儲存每個商品的最高出價
@@ -393,8 +557,8 @@
 **Bids 資料表** (PostgreSQL):
 - bidId (BIGINT, PK) - 雪花ID (64-bit Long)
 - auctionId (BIGINT, indexed) - 雪花ID，指向 Auction Service 的商品
-- bidderId (BIGINT, indexed) - 雪花ID，指向 Member Service 的使用者
-- amount (decimal)
+- bidderId (BIGINT, indexed) - 雪花ID，指向 Member Service 的使用者 (不儲存 Email,需要時查 Member Service)
+- amount (decimal, encrypted) - 使用 AES-256-GCM 加密
 - bidAt (timestamp, indexed)
 - createdAt (timestamp) - 實際寫入 DB 的時間
 - syncedFromRedis (boolean) - 標記是否從 Redis 同步而來
@@ -442,12 +606,13 @@
 ### FR-015: 日誌與監控
 - 記錄所有出價嘗試 (成功與失敗)
 - 記錄併發衝突次數
-- 記錄跨服務呼叫延遲
+- 記錄跨服務呼叫延遲與 Correlation ID
 - 記錄快取命中率
 - 記錄 Redis 降級/恢復事件 (Warning 級別)
 - 記錄背景 Worker 同步延遲 (正常 < 1 秒)
 - 記錄死信佇列大小與新增事件 (Error 級別)
-- 使用結構化日誌 (JSON 格式)
+- 使用結構化日誌 (JSON 格式),所有日誌包含 `correlationId` 欄位
+- Correlation ID 追蹤: 透過 `X-Correlation-ID` Header 在服務間傳遞,串聯完整請求鏈
 - 提供 Prometheus metrics: bid_requests_total, bid_latency_seconds, redis_fallback_active, dead_letter_queue_size
 
 ### FR-016: 效能優化
@@ -463,9 +628,12 @@
 
 ### FR-017: 安全性
 - 所有 API 需要 JWT 驗證
+- 強制使用 HTTPS (TLS 1.2+) 傳輸加密
+- PostgreSQL 欄位層級加密: amount 和 bidderId 使用 AES-256-GCM 加密
+- 加密金鑰儲存在 Azure Key Vault 或安全的環境變數,不寫入程式碼
 - 驗證使用者身份與 Token 中的 UserId 一致
 - 防止 SQL Injection (使用參數化查詢)
-- 敏感資訊 (如出價者身份) 不記錄於日誌
+- 敏感資訊 (如出價者身份、出價金額) 不以明文記錄於日誌
 
 ### FR-018: 可測試性
 - 所有業務邏輯封裝於 Service 層
@@ -534,6 +702,7 @@
 
 ### 架構決策
 - **語言/框架**: ASP.NET Core 8
+- **部署策略**: 單一實例部署 (雪花 ID 使用固定 Worker ID),服務無狀態設計保留未來水平擴展能力
 - **主要儲存**: Redis (寫入層) + PostgreSQL (持久層)
 - **快取策略**: Write-Behind Cache (先寫 Redis,非同步回寫 DB)
 - **併發控制**: Redis 原子操作 (ZADD, Lua Script) + PostgreSQL 降級時使用樂觀鎖
