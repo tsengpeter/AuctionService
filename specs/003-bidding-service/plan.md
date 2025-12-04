@@ -325,3 +325,213 @@ BiddingService/                              # 專案根目錄 (所有內容在�
 | 測試策略 | TDD + 80% 覆蓋率 | ✅ 符合憲法 II |
 | 效能優化 | Redis Write-Behind Cache | ✅ 有明確效能目標 |
 | 可觀測性 | Serilog + Prometheus | ✅ 符合憲法 V |
+
+---
+
+## 資料庫部署策略 (Database Deployment Strategy)
+
+### 開發環境（Local Development）
+
+**資料庫部署方式**:
+- **選項 A（推薦）**: 使用 Docker Compose 同時執行 PostgreSQL 14 + Redis 7
+  ```bash
+  # docker-compose.yml 已包含 PostgreSQL 和 Redis 配置
+  docker-compose up -d
+  
+  # 驗證容器狀態
+  docker-compose ps
+  # 預期輸出: postgres_bidding (Up), redis_bidding (Up)
+  ```
+- **選項 B**: 本機安裝 PostgreSQL 14 + Redis 7（Windows/macOS/Linux）
+
+**連線字串**:
+```bash
+# PostgreSQL
+DB_CONNECTION_STRING="Host=localhost;Port=5432;Database=bidding_dev;Username=bidding_user;Password=bidding_pass"
+
+# Redis
+REDIS_CONNECTION_STRING="localhost:6379,abortConnect=false"
+```
+
+**資料庫初始化流程**（EF Core Code-First）:
+```bash
+# 1. 建立遷移檔案（開發者在新增/修改實體後執行）
+cd src/BiddingService.Infrastructure
+dotnet ef migrations add InitialCreate --startup-project ../BiddingService.Api
+
+# 2. 執行遷移，自動建立/更新資料庫結構
+dotnet ef database update --startup-project ../BiddingService.Api
+
+# 3. 驗證資料庫建立成功
+docker exec -it postgres_bidding psql -U bidding_user -d bidding_dev -c "\dt"
+# 預期輸出: Bids 資料表
+```
+
+**優點**:
+- ✅ 完全本地控制，無需網路連線
+- ✅ 快速啟動與測試（Docker 容器秒級啟動）
+- ✅ 開發者可自由建立/刪除資料庫進行測試
+- ✅ 支援離線開發
+- ✅ 無雲端資源成本
+- ✅ Redis 與 PostgreSQL 同步管理
+
+### 正式環境（Production）
+
+**雲端資料庫服務**（選擇其一）:
+
+#### 選項 1: Azure Database for PostgreSQL - Flexible Server + Azure Cache for Redis
+- **PostgreSQL 規格建議**: 
+  - Compute: General Purpose, 2 vCores, 8GB RAM（初期）
+  - Storage: 128GB, Auto-growth enabled
+  - Backup: 7 天自動備份，異地備援
+- **Redis 規格建議**:
+  - Tier: Standard C1 (1GB cache)（初期）
+  - Persistence: AOF enabled (appendfsync everysec)
+  - Replication: Zone-redundant (HA)
+- **連線方式**: Private Endpoint（透過 VNet 連線，不對外公開）
+- **高可用性**: Zone-redundant HA（建議正式環境啟用）
+
+#### 選項 2: AWS RDS for PostgreSQL + Amazon ElastiCache for Redis
+- **PostgreSQL 規格建議**: 
+  - Instance: db.t4g.medium (2 vCPU, 4GB RAM)（初期）
+  - Storage: 100GB gp3, Auto-scaling enabled
+  - Backup: 7 天自動備份，Multi-AZ 部署（HA）
+- **Redis 規格建議**:
+  - Node Type: cache.t4g.micro (1 vCPU, 0.5GB)（初期）
+  - Persistence: AOF enabled
+  - Multi-AZ: Enabled (自動故障轉移)
+- **連線方式**: 置於 Private Subnet，透過 Security Group 限制存取
+
+**連線字串配置**（透過環境變數注入）:
+```bash
+# Azure 範例
+DB_CONNECTION_STRING="Host=biddingservice-prod.postgres.database.azure.com;Port=5432;Database=bidding_prod;Username=adminuser;Password=${PROD_DB_PASSWORD};SslMode=Require"
+REDIS_CONNECTION_STRING="${PROD_REDIS_HOST}:6380,password=${PROD_REDIS_PASSWORD},ssl=true,abortConnect=false"
+
+# AWS RDS + ElastiCache 範例
+DB_CONNECTION_STRING="Host=biddingservice-prod.abc123.us-east-1.rds.amazonaws.com;Port=5432;Database=bidding_prod;Username=adminuser;Password=${PROD_DB_PASSWORD};SslMode=Require"
+REDIS_CONNECTION_STRING="${PROD_REDIS_HOST}:6379,password=${PROD_REDIS_PASSWORD},ssl=true,abortConnect=false"
+```
+
+**安全設定**:
+- ✅ **強制 SSL/TLS 連線**（PostgreSQL: `SslMode=Require`, Redis: `ssl=true`）
+- ✅ **密碼透過 Azure Key Vault / AWS Secrets Manager 管理**（絕不硬編碼）
+- ✅ **IP 白名單 / Private Endpoint**（僅允許 API Server 存取）
+- ✅ **定期自動備份**（PostgreSQL: 7-30 天保留期, Redis: AOF 持久化）
+- ✅ **啟用查詢效能監控**（Azure Query Performance Insight / AWS Performance Insights）
+- ✅ **Redis 加密金鑰管理**（AES-256-GCM 金鑰存於 Key Vault）
+
+### 部署與資料庫遷移流程
+
+**Code-First 遷移策略**:
+
+1. **開發階段**:
+   ```bash
+   # 開發者在本地執行
+   dotnet ef migrations add AddBidderIdHashIndex --project src/BiddingService.Infrastructure --startup-project src/BiddingService.Api
+   dotnet ef database update --project src/BiddingService.Infrastructure --startup-project src/BiddingService.Api  # 更新本地資料庫
+   git add src/BiddingService.Infrastructure/Migrations/
+   git commit -m "feat: add bidder id hash index for encrypted field queries"
+   ```
+
+2. **CI/CD Pipeline**（Azure DevOps / GitHub Actions）:
+   ```yaml
+   # 自動化部署流程
+   - name: Build Docker Image
+     run: docker build -t biddingservice:${{ github.sha }} .
+   
+   - name: Run Database Migrations
+     run: |
+       docker run --rm \
+         -e ConnectionStrings__DefaultConnection="${{ secrets.PROD_DB_CONNECTION }}" \
+         -e ConnectionStrings__Redis="${{ secrets.PROD_REDIS_CONNECTION }}" \
+         biddingservice:${{ github.sha }} \
+         dotnet ef database update --project src/BiddingService.Infrastructure \
+                                    --startup-project src/BiddingService.Api
+   
+   - name: Deploy to Production
+     run: kubectl apply -f k8s/deployment.yaml
+   ```
+
+3. **正式環境資料庫更新**:
+   - ✅ 部署前自動執行 `dotnet ef database update`
+   - ✅ 使用 Blue-Green Deployment 確保零停機時間
+   - ✅ 遷移失敗自動回滾（透過 CI/CD Pipeline 監控）
+   - ✅ 建立資料庫快照備份（AWS RDS Snapshot / Azure PITR）
+
+### Redis 資料管理策略
+
+**Redis 資料持久化**:
+- **AOF (Append-Only File)**: `appendfsync everysec`（每秒同步一次）
+- **RDB Snapshot**: 每 6 小時自動快照（備援機制）
+- **資料恢復**: AOF 優先，RDB 作為備用
+
+**Redis 資料過期策略**:
+| 資料類型 | TTL | 過期後行為 |
+|---------|-----|-----------|
+| `auction:{id}:bids` | EndTime + 7 days | 自動刪除，查詢降級到 PostgreSQL |
+| `auction:{id}:highest_bid` | EndTime + 1 day | 自動刪除，查詢降級到 PostgreSQL |
+| `pending_bids` | 無 (手動管理) | 背景 Worker 同步後移除 |
+| `dead_letter_bids` | 無 (手動管理) | 需人工處理或自動告警 |
+
+**Redis 監控與告警**:
+- ✅ 記憶體使用率 > 80% 觸發告警
+- ✅ 待同步佇列 (`pending_bids`) > 10000 筆觸發告警
+- ✅ 死信佇列 (`dead_letter_bids`) 有新增項目時觸發告警
+- ✅ Redis 連線失敗超過 3 次觸發自動降級（僅使用 PostgreSQL）
+
+### 資料庫效能優化
+
+**PostgreSQL 索引策略**:
+```sql
+-- 主鍵索引（自動建立）
+CREATE UNIQUE INDEX PK_Bids ON Bids(BidId);
+
+-- 出價歷史查詢優化（依商品和時間降序）
+CREATE INDEX IX_Bids_AuctionId_BidAt ON Bids(AuctionId, BidAt DESC);
+
+-- 時間範圍查詢優化
+CREATE INDEX IX_Bids_BidAt ON Bids(BidAt DESC);
+
+-- 使用者出價記錄查詢優化（使用 Hash，因 BidderId 加密）
+CREATE INDEX IX_Bids_BidderIdHash_BidAt ON Bids(BidderIdHash, BidAt DESC);
+```
+
+**查詢效能目標**:
+| 查詢場景 | 資料來源 | 目標延遲 | 索引策略 |
+|---------|---------|---------|---------|
+| 商品出價歷史 (前 20 筆) | Redis Sorted Set | < 20ms | N/A (記憶體查詢) |
+| 商品出價歷史 (分頁) | PostgreSQL | < 100ms | `IX_Bids_AuctionId_BidAt` |
+| 最高出價 | Redis Hash | < 5ms | N/A (記憶體查詢) |
+| 使用者出價記錄 | PostgreSQL | < 200ms | `IX_Bids_BidderIdHash_BidAt` |
+
+**連線池配置**:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=...;Pooling=true;Minimum Pool Size=10;Maximum Pool Size=50;Connection Idle Lifetime=300",
+    "Redis": "...,ConnectTimeout=5000,SyncTimeout=5000"
+  }
+}
+```
+
+### 災難復原計畫（Disaster Recovery）
+
+**備份策略**:
+- **PostgreSQL**: 
+  - 自動備份頻率: 每 6 小時
+  - 保留期限: 30 天
+  - Point-in-Time Recovery (PITR): 支援任意時間點恢復
+- **Redis**: 
+  - AOF 檔案: 即時持久化
+  - RDB 快照: 每 6 小時
+  - 備份存放: Azure Blob Storage / AWS S3
+
+**恢復時間目標（RTO/RPO）**:
+- **RTO (Recovery Time Objective)**: < 1 小時
+- **RPO (Recovery Point Objective)**: < 5 分鐘（AOF 每秒同步）
+
+**故障演練**:
+- ✅ 每季執行一次資料庫故障轉移測試
+- ✅ 驗證 Redis 降級機制（僅使用 PostgreSQL）
+- ✅ 測試從備份完整恢復資料庫

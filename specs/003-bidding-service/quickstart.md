@@ -87,7 +87,7 @@ services:
     image: postgres:14-alpine
     container_name: postgres_bidding
     environment:
-      POSTGRES_DB: bidding_db
+      POSTGRES_DB: bidding_dev
       POSTGRES_USER: bidding_user
       POSTGRES_PASSWORD: bidding_pass
     ports:
@@ -133,7 +133,7 @@ cp appsettings.Development.json.example appsettings.Development.json
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=bidding_db;Username=bidding_user;Password=bidding_pass",
+    "DefaultConnection": "Host=localhost;Port=5432;Database=bidding_dev;Username=bidding_user;Password=bidding_pass",
     "Redis": "localhost:6379,abortConnect=false"
   },
   "IdGenerator": {
@@ -174,7 +174,7 @@ dotnet ef migrations add InitialCreate --project src/BiddingService.Infrastructu
 dotnet ef database update --project src/BiddingService.Infrastructure
 
 # 驗證資料庫
-docker exec -it postgres_bidding psql -U bidding_user -d bidding_db -c "\dt"
+docker exec -it postgres_bidding psql -U bidding_user -d bidding_dev -c "\dt"
 # 預期輸出: Bids 資料表
 ```
 
