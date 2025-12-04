@@ -132,79 +132,135 @@ specs/004-api-gateway/
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
-### Source Code (repository root)
+### Source Code (single root directory)
+
+**專案配置**: 所有原始碼、測試、建置文檔、Docker 配置均位於單一 `ApiGateway/` 資料夾中,採用自包含 (self-contained) 結構,便於獨立開發與部署。
 
 ```text
-src/ApiGateway/
-├── ApiGateway.csproj
-├── Program.cs                    # 應用程式進入點與 DI 設定
-├── appsettings.json             # 設定檔 (路由、Redis、JWT)
-├── appsettings.Development.json
+ApiGateway/                                  # 專案根目錄 (所有內容在此資料夾)
+├── ApiGateway.sln                           # Visual Studio 解決方案檔
+├── README.md                                # 專案說明文檔
+├── .gitignore                               # Git 忽略規則
+├── .editorconfig                            # 程式碼風格配置
+├── global.json                              # .NET SDK 版本鎖定 (10.0)
 │
-├── Controllers/                  # 傳統 Controller (非 Minimal APIs)
-│   ├── HealthController.cs      # 健康檢查端點
-│   └── AggregationController.cs # 請求聚合端點
+├── docker-compose.yml                       # 本地開發環境 (Redis + Backend Mocks)
+├── docker-compose.override.yml              # 本地環境覆寫配置
+├── Dockerfile                               # 生產環境多階段建置
+├── .dockerignore                            # Docker 建置忽略規則
 │
-├── Middleware/                   # 自訂 Middleware
-│   ├── ErrorHandlingMiddleware.cs      # 統一錯誤處理
-│   ├── RequestLoggingMiddleware.cs     # 請求日誌記錄
-│   ├── RateLimitingMiddleware.cs       # Rate Limiting
-│   └── JwtEnrichmentMiddleware.cs      # 加入 X-User-Id 標頭
+├── src/                                     # 原始碼目錄
+│   ├── ApiGateway.Api/                      # ASP.NET Core Web API 專案
+│   │   ├── Controllers/
+│   │   │   ├── AggregationController.cs     # 請求聚合端點
+│   │   │   └── HealthController.cs          # 健康檢查端點
+│   │   ├── Middlewares/
+│   │   │   ├── JwtAuthMiddleware.cs         # JWT 驗證中介軟體
+│   │   │   ├── RateLimitMiddleware.cs       # 速率限制中介軟體
+│   │   │   ├── RequestLoggingMiddleware.cs  # 請求日誌記錄
+│   │   │   ├── CorrelationIdMiddleware.cs   # Correlation ID 追蹤
+│   │   │   └── ExceptionHandlingMiddleware.cs  # 全域錯誤處理
+│   │   ├── Filters/
+│   │   │   └── ValidationFilter.cs          # 模型驗證過濾器
+│   │   ├── Program.cs                       # 應用程式進入點
+│   │   ├── appsettings.json                 # 基礎配置 (YARP routes + JWT)
+│   │   ├── appsettings.Development.json     # 開發環境配置
+│   │   └── ApiGateway.Api.csproj            # 專案檔 (net10.0)
+│   │
+│   ├── ApiGateway.Core/                     # 核心業務邏輯層 (不依賴基礎設施)
+│   │   ├── Services/
+│   │   │   ├── RateLimitService.cs          # 速率限制邏輯 (Redis INCR)
+│   │   │   ├── AggregationService.cs        # 並行請求聚合 (Task.WhenAll)
+│   │   │   └── HealthCheckService.cs        # 後端健康監控
+│   │   ├── Interfaces/
+│   │   │   ├── IRateLimitService.cs         # 速率限制服務介面
+│   │   │   ├── IAggregationService.cs       # 聚合服務介面
+│   │   │   └── IHealthCheckService.cs       # 健康檢查服務介面
+│   │   ├── DTOs/
+│   │   │   ├── Requests/
+│   │   │   │   └── AggregationRequest.cs    # 聚合請求 DTO
+│   │   │   └── Responses/
+│   │   │       ├── AggregatedAuctionResponse.cs  # 聚合拍賣回應 DTO
+│   │   │       ├── ErrorResponse.cs         # 統一錯誤回應 (RFC 7807)
+│   │   │       └── HealthCheckResponse.cs   # 健康檢查回應 DTO
+│   │   ├── ValueObjects/
+│   │   │   └── RateLimitKey.cs              # 速率限制鍵值物件 (ratelimit:{ip}:{minute})
+│   │   ├── Exceptions/
+│   │   │   ├── RateLimitExceededException.cs    # 速率超限例外
+│   │   │   ├── UnauthorizedException.cs     # 未授權例外
+│   │   │   └── ServiceUnavailableException.cs   # 服務不可用例外
+│   │   └── ApiGateway.Core.csproj
+│   │
+│   ├── ApiGateway.Infrastructure/           # 基礎設施層 (Redis 與 HTTP 客戶端)
+│   │   ├── Redis/
+│   │   │   ├── RedisConnection.cs           # Redis 連線管理
+│   │   │   └── RateLimitRepository.cs       # Redis INCR + EXPIRE 操作
+│   │   ├── HttpClients/
+│   │   │   ├── AuctionServiceClient.cs      # Auction Service HTTP 客戶端 (Polly 重試)
+│   │   │   ├── BiddingServiceClient.cs      # Bidding Service HTTP 客戶端
+│   │   │   └── UserServiceClient.cs         # User Service HTTP 客戶端
+│   │   └── ApiGateway.Infrastructure.csproj
+│   │
+│   └── ApiGateway.Shared/                   # 共用元件庫 (常數/擴充/輔助工具)
+│       ├── Constants/
+│       │   └── ErrorCodes.cs                # 錯誤代碼常數 (UNAUTHORIZED, RATE_LIMIT_EXCEEDED...)
+│       ├── Extensions/
+│       │   ├── ServiceCollectionExtensions.cs   # DI 擴充方法
+│       │   └── HttpContextExtensions.cs     # HttpContext 擴充 (GetClientIp)
+│       └── ApiGateway.Shared.csproj
 │
-├── Services/                     # 業務邏輯服務
-│   ├── IAggregationService.cs
-│   ├── AggregationService.cs           # 請求聚合邏輯
-│   ├── IServiceHealthChecker.cs
-│   ├── ServiceHealthChecker.cs         # 後端服務健康檢查
-│   ├── IRateLimitService.cs
-│   ├── RateLimitService.cs             # Rate Limiting 邏輯 (Redis)
-│   └── IServiceDiscovery.cs
-│       └── StaticServiceDiscovery.cs   # 靜態服務發現 (appsettings.json)
+├── tests/                                   # 測試專案目錄
+│   ├── ApiGateway.UnitTests/                # 單元測試
+│   │   ├── Services/
+│   │   │   ├── RateLimitServiceTests.cs
+│   │   │   ├── AggregationServiceTests.cs
+│   │   │   └── HealthCheckServiceTests.cs
+│   │   ├── Middlewares/
+│   │   │   ├── JwtAuthMiddlewareTests.cs
+│   │   │   ├── RateLimitMiddlewareTests.cs
+│   │   │   └── ExceptionHandlingMiddlewareTests.cs
+│   │   ├── Controllers/
+│   │   │   └── AggregationControllerTests.cs
+│   │   └── ApiGateway.UnitTests.csproj
+│   │
+│   ├── ApiGateway.IntegrationTests/         # 整合測試 (Testcontainers)
+│   │   ├── Controllers/
+│   │   │   └── AggregationControllerIntegrationTests.cs
+│   │   ├── Routing/
+│   │   │   └── YarpRoutingTests.cs          # YARP 路由驗證測試
+│   │   ├── Infrastructure/
+│   │   │   └── RedisTestContainer.cs        # Testcontainers Redis Fixture
+│   │   └── ApiGateway.IntegrationTests.csproj
+│   │
+│   └── ApiGateway.LoadTests/                # 負載測試 (NBomber/K6)
+│       ├── GatewayLoadTests.cs              # 吞吐量與延遲測試
+│       └── ApiGateway.LoadTests.csproj
 │
-├── Models/                       # POCO 模型
-│   ├── ErrorResponse.cs                # 錯誤回應模型
-│   ├── HealthCheckResponse.cs          # 健康檢查回應
-│   ├── AggregatedAuctionResponse.cs    # 商品聚合回應
-│   └── ServiceHealthStatus.cs          # 服務健康狀態
+├── scripts/                                 # 輔助建置腳本
+│   ├── build.sh                             # Linux/macOS 建置腳本
+│   ├── build.ps1                            # Windows 建置腳本 (PowerShell)
+│   ├── run-tests.sh                         # 測試執行腳本
+│   └── deploy.sh                            # 部署腳本
 │
-├── Configuration/                # 設定類別
-│   ├── YarpRouteConfig.cs              # YARP 路由設定模型
-│   ├── RateLimitConfig.cs              # Rate Limit 設定
-│   └── BackendServiceConfig.cs         # 後端服務設定
+├── docs/                                    # 專案文檔
+│   ├── architecture.md                      # 架構設計說明
+│   ├── api-guide.md                         # API 使用指南
+│   └── deployment.md                        # 部署指南
 │
-└── Extensions/                   # 擴充方法
-    ├── ServiceCollectionExtensions.cs  # DI 註冊擴充
-    └── HttpContextExtensions.cs        # HttpContext 輔助方法
-
-tests/ApiGateway.Tests/
-├── Unit/                         # 單元測試
-│   ├── Services/
-│   │   ├── RateLimitServiceTests.cs
-│   │   ├── AggregationServiceTests.cs
-│   │   └── ServiceHealthCheckerTests.cs
-│   └── Middleware/
-│       ├── ErrorHandlingMiddlewareTests.cs
-│       └── RateLimitingMiddlewareTests.cs
-│
-├── Integration/                  # 整合測試
-│   ├── RoutingTests.cs                 # 路由規則測試
-│   ├── JwtAuthenticationTests.cs       # JWT 驗證測試
-│   ├── RateLimitingTests.cs            # Rate Limiting 整合測試
-│   ├── AggregationTests.cs             # 請求聚合測試
-│   └── HealthCheckTests.cs             # 健康檢查測試
-│
-└── Fixtures/                     # 測試基礎設施
-    ├── ApiGatewayWebApplicationFactory.cs  # WebApplicationFactory
-    ├── RedisTestContainer.cs                # Testcontainers Redis
-    └── MockBackendServices.cs               # 模擬後端服務
-
-docker/
-├── Dockerfile                    # API Gateway 容器映像
-└── docker-compose.yml           # 本地開發環境 (Gateway + Redis)
+└── .github/                                 # GitHub Actions CI/CD
+    └── workflows/
+        ├── ci.yml                           # 持續整合流程 (build + test)
+        └── cd.yml                           # 持續部署流程 (Docker push + K8s deploy)
 ```
 
 **Structure Decision**: 
-選用 **單一專案結構** (Option 1)，因為 API Gateway 是獨立的後端微服務，不包含前端或移動應用。使用傳統 Controller-based 架構而非 Minimal APIs，提供更好的組織性與測試性。YARP 透過 appsettings.json 設定路由規則，自訂邏輯 (聚合、限流) 實作為 Middleware 與 Services。
+選用 **單一根目錄結構**，所有專案相關檔案（解決方案、原始碼、測試、Docker、文檔）都在同一個 `ApiGateway/` 資料夾中。這種結構便於：
+1. **獨立部署**: 整個 API Gateway 可作為獨立微服務部署
+2. **版本控制**: 單一資料夾便於追蹤變更
+3. **CI/CD 整合**: 建置與部署腳本集中管理
+4. **文檔完整性**: README.md 與技術文檔就近存放
+
+使用傳統 Controller-based 架構而非 Minimal APIs，提供更好的組織性與測試性。YARP 透過 appsettings.json 設定路由規則，自訂邏輯 (聚合、限流) 實作為 Middleware 與 Services。
 
 ## Complexity Tracking
 

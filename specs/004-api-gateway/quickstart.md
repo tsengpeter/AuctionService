@@ -26,55 +26,180 @@
 ### 1. 建立專案結構
 
 ```powershell
-# 建立解決方案
-dotnet new sln -n AuctionService
+# 建立根目錄
+mkdir ApiGateway
+cd ApiGateway
 
-# 建立 API Gateway 專案 (Web API)
-dotnet new webapi -n ApiGateway -o src/ApiGateway --no-openapi --use-controllers
+# 建立解決方案
+dotnet new sln -n ApiGateway
+
+# 建立原始碼專案 (分層架構)
+dotnet new webapi -n ApiGateway.Api -o src/ApiGateway.Api --framework net10.0 --no-minimal-apis
+dotnet new classlib -n ApiGateway.Core -o src/ApiGateway.Core --framework net10.0
+dotnet new classlib -n ApiGateway.Infrastructure -o src/ApiGateway.Infrastructure --framework net10.0
+dotnet new classlib -n ApiGateway.Shared -o src/ApiGateway.Shared --framework net10.0
 
 # 建立測試專案
-dotnet new xunit -n ApiGateway.Tests -o tests/ApiGateway.Tests
+dotnet new xunit -n ApiGateway.UnitTests -o tests/ApiGateway.UnitTests --framework net10.0
+dotnet new xunit -n ApiGateway.IntegrationTests -o tests/ApiGateway.IntegrationTests --framework net10.0
+dotnet new xunit -n ApiGateway.LoadTests -o tests/ApiGateway.LoadTests --framework net10.0
 
 # 加入專案到解決方案
-dotnet sln add src/ApiGateway/ApiGateway.csproj
-dotnet sln add tests/ApiGateway.Tests/ApiGateway.Tests.csproj
+dotnet sln add src/ApiGateway.Api/ApiGateway.Api.csproj
+dotnet sln add src/ApiGateway.Core/ApiGateway.Core.csproj
+dotnet sln add src/ApiGateway.Infrastructure/ApiGateway.Infrastructure.csproj
+dotnet sln add src/ApiGateway.Shared/ApiGateway.Shared.csproj
+dotnet sln add tests/ApiGateway.UnitTests/ApiGateway.UnitTests.csproj
+dotnet sln add tests/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj
+dotnet sln add tests/ApiGateway.LoadTests/ApiGateway.LoadTests.csproj
 
-# 加入專案參考 (測試專案參考主專案)
-dotnet add tests/ApiGateway.Tests reference src/ApiGateway
+# 建立專案參考 (Api → Core/Infrastructure/Shared, Infrastructure → Core)
+dotnet add src/ApiGateway.Api reference src/ApiGateway.Core src/ApiGateway.Infrastructure src/ApiGateway.Shared
+dotnet add src/ApiGateway.Infrastructure reference src/ApiGateway.Core
+dotnet add tests/ApiGateway.UnitTests reference src/ApiGateway.Core src/ApiGateway.Infrastructure
+dotnet add tests/ApiGateway.IntegrationTests reference src/ApiGateway.Api
+
+# 建立 Docker 目錄與檔案
+New-Item Dockerfile, docker-compose.yml, docker-compose.override.yml, .dockerignore
+
+# 建立文檔目錄
+mkdir docs
+New-Item docs/architecture.md, docs/api-guide.md, docs/deployment.md
+
+# 建立腳本目錄
+mkdir scripts
+New-Item scripts/build.sh, scripts/build.ps1, scripts/run-tests.sh, scripts/deploy.sh
+
+# 建立根目錄檔案
+New-Item README.md, .gitignore, .editorconfig, global.json
+
+# 建立 global.json 鎖定 .NET 10 SDK
+@"
+{
+  "sdk": {
+    "version": "10.0.0",
+    "rollForward": "latestFeature"
+  }
+}
+"@ | Out-File -FilePath global.json -Encoding utf8
+
+# 建立 .editorconfig
+@"
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+"@ | Out-File -FilePath .editorconfig -Encoding utf8
 ```
+
+**專案結構說明**:
+```
+ApiGateway/                       # 單一根目錄
+├── ApiGateway.sln               # 解決方案檔案
+├── README.md                    # 專案說明
+├── src/                         # 主要程式碼
+├── tests/                       # 測試專案
+├── docker/                      # Docker 檔案
+├── docs/                        # 建置文檔
+└── scripts/                     # 建置腳本
+```
+
 
 ### 2. 安裝 NuGet 套件
 
 ```powershell
-cd src/ApiGateway
+# ApiGateway.Api 專案套件
+cd src/ApiGateway.Api
+dotnet add package Yarp.ReverseProxy --version 2.1.0
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version 10.0.0
+dotnet add package Serilog.AspNetCore --version 8.0.0
+dotnet add package Serilog.Sinks.Console --version 5.0.0
+dotnet add package Serilog.Sinks.File --version 5.0.0
+dotnet add package Swashbuckle.AspNetCore --version 6.5.0
+cd ../..
 
-# YARP 反向代理
-dotnet add package Yarp.ReverseProxy
+# ApiGateway.Infrastructure 專案套件
+cd src/ApiGateway.Infrastructure
+dotnet add package StackExchange.Redis --version 2.7.0
+dotnet add package Polly --version 8.2.0
+dotnet add package Polly.Extensions.Http --version 3.0.0
+cd ../..
 
-# JWT 驗證
-dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+# ApiGateway.UnitTests 測試套件
+cd tests/ApiGateway.UnitTests
+dotnet add package Moq --version 4.20.0
+dotnet add package FluentAssertions --version 6.12.0
+cd ../..
 
-# Redis
-dotnet add package StackExchange.Redis
+# ApiGateway.IntegrationTests 測試套件
+cd tests/ApiGateway.IntegrationTests
+dotnet add package Microsoft.AspNetCore.Mvc.Testing --version 10.0.0
+dotnet add package Testcontainers.Redis --version 3.7.0
+cd ../..
 
-# 結構化日誌
-dotnet add package Serilog.AspNetCore
-dotnet add package Serilog.Sinks.Console
-dotnet add package Serilog.Sinks.File
-
-# 健康檢查 (內建，無需額外安裝)
-
-cd ../../tests/ApiGateway.Tests
-
-# 測試相關套件
-dotnet add package Moq
-dotnet add package FluentAssertions
-dotnet add package Microsoft.AspNetCore.Mvc.Testing
-dotnet add package Testcontainers
-dotnet add package WireMock.Net
+# ApiGateway.LoadTests 負載測試套件
+cd tests/ApiGateway.LoadTests
+dotnet add package NBomber --version 5.0.0
+cd ../..
 ```
 
 ### 3. 設定檔範本
+
+**README.md** (根目錄):
+
+```markdown
+# API Gateway
+
+拍賣系統的統一 API 入口點，使用 YARP 處理請求路由、JWT 驗證、Rate Limiting 與請求聚合。
+
+## 快速開始
+
+```bash
+# 使用 Docker Compose
+docker-compose up -d
+
+# 或手動啟動
+cd src/ApiGateway.Api
+dotnet run
+```
+
+## 技術堆疊
+
+- .NET 10.0 (ASP.NET Core 10)
+- YARP (反向代理)
+- Redis (Rate Limiting)
+- JWT Authentication (HS256)
+- Serilog (結構化日誌)
+
+## 專案結構
+
+- `src/ApiGateway.Api/` - Web API 層
+- `src/ApiGateway.Core/` - 核心業務邏輯
+- `src/ApiGateway.Infrastructure/` - 基礎設施層
+- `src/ApiGateway.Shared/` - 共用元件
+- `tests/` - 單元測試與整合測試
+- `docs/` - 專案文檔
+- `scripts/` - 建置與部署腳本
+
+## 文檔
+
+- [架構說明](docs/architecture.md)
+- [API 使用指南](docs/api-guide.md)
+- [部署指南](docs/deployment.md)
+
+## 授權
+
+MIT License
+```
 
 **appsettings.json** (根據 contracts/routes.yaml):
 
@@ -242,7 +367,7 @@ dotnet add package WireMock.Net
 docker run -d -p 6379:6379 --name redis-dev redis:7-alpine
 
 # 2. 啟動 API Gateway
-cd src/ApiGateway
+cd src/ApiGateway.Api
 dotnet run
 
 # 預設監聽: http://localhost:5000 (或 https://localhost:5001)
@@ -250,7 +375,7 @@ dotnet run
 
 ### 使用 Docker Compose (建議)
 
-**docker-compose.yml**:
+**docker-compose.yml** (根目錄):
 
 ```yaml
 version: '3.8'
@@ -269,7 +394,7 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "5000:8080"
     environment:
@@ -298,6 +423,7 @@ services:
 執行:
 
 ```powershell
+# 在 ApiGateway 根目錄
 docker-compose up -d
 ```
 
@@ -386,14 +512,20 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
 ### 整合測試範例
 
-**RoutingTests.cs**:
+**ApiGateway.IntegrationTests/Routing/YarpRoutingTests.cs**:
 
 ```csharp
-public class RoutingTests : IClassFixture<WebApplicationFactory<Program>>
+using Microsoft.AspNetCore.Mvc.Testing;
+using FluentAssertions;
+using Xunit;
+
+namespace ApiGateway.IntegrationTests.Routing;
+
+public class YarpRoutingTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
-    public RoutingTests(WebApplicationFactory<Program> factory)
+    public YarpRoutingTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
     }
@@ -577,7 +709,7 @@ export Cors__AllowedOrigins="https://auction.example.com,https://www.auction.exa
 
 ### Kubernetes 部署範例
 
-**deployment.yaml**:
+**k8s/deployment.yaml**:
 
 ```yaml
 apiVersion: apps/v1
@@ -640,6 +772,11 @@ spec:
     targetPort: 8080
   selector:
     app: api-gateway
+```
+
+**部署**:
+```powershell
+kubectl apply -f k8s/deployment.yaml
 ```
 
 ---
