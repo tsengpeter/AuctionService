@@ -701,7 +701,7 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 ## 技術考量
 
 ### 架構決策
-- **語言/框架**: ASP.NET Core 8
+- **語言/框架**: ASP.NET Core 10
 - **部署策略**: 單一實例部署 (雪花 ID 使用固定 Worker ID),服務無狀態設計保留未來水平擴展能力
 - **主要儲存**: Redis (寫入層) + PostgreSQL (持久層)
 - **快取策略**: Write-Behind Cache (先寫 Redis,非同步回寫 DB)

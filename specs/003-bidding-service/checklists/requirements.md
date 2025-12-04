@@ -132,7 +132,7 @@
 ## 技術準備度
 
 ### ✅ 架構清晰
-- [x] 定義技術棧: ASP.NET Core 8, PostgreSQL, Redis
+- [x] 定義技術棧: ASP.NET Core 10, PostgreSQL, Redis
 - [x] 說明併發控制機制: EF Core Optimistic Concurrency
 - [x] 定義跨服務通訊方式: HTTP REST API
 - [x] 資料庫設計完整 (資料表結構、索引策略)

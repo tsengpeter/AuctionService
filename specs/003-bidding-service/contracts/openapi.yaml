@@ -1,0 +1,930 @@
+openapi: 3.0.3
+info:
+  title: Bidding Service API
+  description: |
+    競標服務 API - 提供商品出價、查詢出價歷史與最高出價功能
+    
+    **特色**:
+    - 高效能寫入 (< 10ms P95)
+    - Redis 快取層加速查詢
+    - PostgreSQL 持久化儲存
+    - 加密敏感資料 (BidderId, Amount)
+    
+    **架構**:
+    - Write-Behind Cache: Redis → PostgreSQL
+    - 雪花 ID 生成器
+    - Correlation ID 追蹤
+    
+    **相依服務**:
+    - Auction Service (商品資訊)
+    - Member Service (使用者資訊)
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@auction.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.auction.com/bidding
+    description: Production
+  - url: https://staging-api.auction.com/bidding
+    description: Staging
+  - url: http://localhost:5001
+    description: Local Development
+
+tags:
+  - name: Bids
+    description: 出價相關操作
+  - name: Health
+    description: 健康檢查與監控
+
+paths:
+  /api/bids:
+    post:
+      summary: 新增出價
+      description: |
+        使用者對指定商品出價
+        
+        **業務規則**:
+        - 出價金額必須高於當前最高價 (或起始價)
+        - 無法對自己的商品出價
+        - 商品必須處於 Active 狀態
+        - 使用 Lua Script 原子操作確保一致性
+        
+        **效能目標**: < 10ms (P95)
+      operationId: createBid
+      tags:
+        - Bids
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBidRequest'
+            examples:
+              validBid:
+                summary: 有效出價
+                value:
+                  auctionId: 123456789
+                  amount: 1500.00
+              minimumBid:
+                summary: 最低出價
+                value:
+                  auctionId: 987654321
+                  amount: 100.00
+      responses:
+        '201':
+          description: 出價成功
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationIdHeader'
+            Location:
+              description: 出價資源 URI
+              schema:
+                type: string
+                example: /api/bids/123456789012345
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+              examples:
+                success:
+                  value:
+                    bidId: 123456789012345
+                    auctionId: 123456789
+                    bidderId: 111222333444
+                    amount: 1500.00
+                    bidAt: "2025-12-03T12:30:45Z"
+                    isHighest: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/auctions/{auctionId}/bids:
+    get:
+      summary: 查詢商品出價歷史
+      description: |
+        取得指定商品的出價記錄 (降序，最高價在前)
+        
+        **資料來源**:
+        - Redis Sorted Set (快取優先)
+        - PostgreSQL (降級備援)
+        
+        **效能目標**: < 20ms (P95)
+      operationId: listBidsByAuction
+      tags:
+        - Bids
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          description: 商品 ID (雪花 ID)
+          schema:
+            type: integer
+            format: int64
+            example: 123456789
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: 查詢成功
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationIdHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidListResponse'
+              examples:
+                success:
+                  value:
+                    items:
+                      - bidId: 123456789012345
+                        auctionId: 123456789
+                        amount: 1700.00
+                        bidAt: "2025-12-03T12:35:00Z"
+                        isHighest: true
+                      - bidId: 123456789012344
+                        auctionId: 123456789
+                        amount: 1600.00
+                        bidAt: "2025-12-03T12:30:00Z"
+                        isHighest: false
+                    pagination:
+                      currentPage: 1
+                      pageSize: 20
+                      totalItems: 45
+                      totalPages: 3
+                    metadata:
+                      dataSource: "redis"
+                      queryTime: "15ms"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auctions/{auctionId}/highest-bid:
+    get:
+      summary: 查詢最高出價
+      description: |
+        取得指定商品的當前最高出價
+        
+        **資料來源**:
+        - Redis Hash (快取優先)
+        - PostgreSQL (降級備援)
+        
+        **效能目標**: < 5ms (P95)
+      operationId: getHighestBid
+      tags:
+        - Bids
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          description: 商品 ID (雪花 ID)
+          schema:
+            type: integer
+            format: int64
+            example: 123456789
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: 查詢成功
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationIdHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+              examples:
+                success:
+                  value:
+                    bidId: 123456789012345
+                    auctionId: 123456789
+                    bidderId: 111222333444
+                    amount: 1700.00
+                    bidAt: "2025-12-03T12:35:00Z"
+                    isHighest: true
+        '404':
+          description: 商品尚無出價
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationIdHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noBids:
+                  value:
+                    code: "NO_BIDS"
+                    message: "此商品尚無出價記錄"
+                    correlationId: "abc123-def456-ghi789"
+                    timestamp: "2025-12-03T12:00:00Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/me/bids:
+    get:
+      summary: 查詢我的出價記錄
+      description: |
+        取得當前使用者的出價歷史 (降序，最新在前)
+        
+        **資料來源**: PostgreSQL (使用 BidderIdHash 索引)
+        
+        **效能目標**: < 200ms (P95)
+      operationId: listMyBids
+      tags:
+        - Bids
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: 查詢成功
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationIdHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyBidListResponse'
+              examples:
+                success:
+                  value:
+                    items:
+                      - bidId: 123456789012345
+                        auctionId: 123456789
+                        auctionTitle: "全新 iPhone 15 Pro Max"
+                        amount: 1700.00
+                        bidAt: "2025-12-03T12:35:00Z"
+                        isHighest: true
+                        auctionStatus: "Active"
+                      - bidId: 123456789012344
+                        auctionId: 987654321
+                        auctionTitle: "二手 MacBook Pro 2023"
+                        amount: 30000.00
+                        bidAt: "2025-12-02T10:20:00Z"
+                        isHighest: false
+                        auctionStatus: "Ended"
+                    pagination:
+                      currentPage: 1
+                      pageSize: 20
+                      totalItems: 12
+                      totalPages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/bids/{bidId}:
+    get:
+      summary: 查詢出價詳細資料
+      description: |
+        取得指定出價的完整資訊
+        
+        **資料來源**: PostgreSQL
+      operationId: getBidById
+      tags:
+        - Bids
+      parameters:
+        - name: bidId
+          in: path
+          required: true
+          description: 出價 ID (雪花 ID)
+          schema:
+            type: integer
+            format: int64
+            example: 123456789012345
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: 查詢成功
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationIdHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      summary: 健康檢查
+      description: |
+        服務健康狀態檢查
+        
+        **檢查項目**:
+        - Redis 連線
+        - PostgreSQL 連線
+        - Auction Service 可用性
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: 服務健康
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  value:
+                    status: "Healthy"
+                    checks:
+                      redis:
+                        status: "Healthy"
+                        responseTime: "2ms"
+                      postgresql:
+                        status: "Healthy"
+                        responseTime: "5ms"
+                      auctionService:
+                        status: "Healthy"
+                        responseTime: "12ms"
+                    timestamp: "2025-12-03T12:00:00Z"
+        '503':
+          description: 服務異常
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                unhealthy:
+                  value:
+                    status: "Unhealthy"
+                    checks:
+                      redis:
+                        status: "Unhealthy"
+                        responseTime: "timeout"
+                        error: "Connection timeout"
+                      postgresql:
+                        status: "Healthy"
+                        responseTime: "5ms"
+                      auctionService:
+                        status: "Degraded"
+                        responseTime: "150ms"
+                    timestamp: "2025-12-03T12:00:00Z"
+
+  /metrics:
+    get:
+      summary: Prometheus 指標
+      description: |
+        Prometheus 格式的監控指標
+        
+        **指標項目**:
+        - `bidding_bids_total` (出價總數)
+        - `bidding_bid_duration_seconds` (出價延遲)
+        - `bidding_redis_hit_ratio` (快取命中率)
+      operationId: getMetrics
+      tags:
+        - Health
+      responses:
+        '200':
+          description: 指標輸出
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP bidding_bids_total Total number of bids
+                # TYPE bidding_bids_total counter
+                bidding_bids_total 12345
+                
+                # HELP bidding_bid_duration_seconds Bid creation duration
+                # TYPE bidding_bid_duration_seconds histogram
+                bidding_bid_duration_seconds_bucket{le="0.005"} 8500
+                bidding_bid_duration_seconds_bucket{le="0.01"} 11200
+                bidding_bid_duration_seconds_bucket{le="+Inf"} 12345
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Token 格式: `Authorization: Bearer <token>`
+        
+        **Token Claims**:
+        - `sub`: 使用者 ID (BidderId)
+        - `exp`: 過期時間
+        - `iat`: 簽發時間
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: 頁碼 (1-based)
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+
+    PageSizeParam:
+      name: pageSize
+      in: query
+      description: 每頁筆數
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+
+    CorrelationIdHeader:
+      name: X-Correlation-Id
+      in: header
+      description: 追蹤 ID (選填，未提供則自動生成)
+      required: false
+      schema:
+        type: string
+        format: uuid
+        example: "abc123-def456-ghi789"
+
+  headers:
+    CorrelationIdHeader:
+      description: 追蹤 ID
+      schema:
+        type: string
+        format: uuid
+        example: "abc123-def456-ghi789"
+
+  schemas:
+    CreateBidRequest:
+      type: object
+      required:
+        - auctionId
+        - amount
+      properties:
+        auctionId:
+          type: integer
+          format: int64
+          description: 商品 ID (雪花 ID)
+          example: 123456789
+        amount:
+          type: number
+          format: decimal
+          description: 出價金額 (最多 2 位小數)
+          minimum: 0.01
+          maximum: 999999999.99
+          example: 1500.00
+
+    BidResponse:
+      type: object
+      required:
+        - bidId
+        - auctionId
+        - bidderId
+        - amount
+        - bidAt
+        - isHighest
+      properties:
+        bidId:
+          type: integer
+          format: int64
+          description: 出價 ID (雪花 ID)
+          example: 123456789012345
+        auctionId:
+          type: integer
+          format: int64
+          description: 商品 ID
+          example: 123456789
+        bidderId:
+          type: integer
+          format: int64
+          description: 出價者 ID
+          example: 111222333444
+        amount:
+          type: number
+          format: decimal
+          description: 出價金額
+          example: 1500.00
+        bidAt:
+          type: string
+          format: date-time
+          description: 出價時間 (UTC)
+          example: "2025-12-03T12:30:45Z"
+        isHighest:
+          type: boolean
+          description: 是否為最高出價
+          example: true
+
+    BidListResponse:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: 出價清單
+          items:
+            type: object
+            required:
+              - bidId
+              - auctionId
+              - amount
+              - bidAt
+              - isHighest
+            properties:
+              bidId:
+                type: integer
+                format: int64
+                example: 123456789012345
+              auctionId:
+                type: integer
+                format: int64
+                example: 123456789
+              amount:
+                type: number
+                format: decimal
+                example: 1700.00
+              bidAt:
+                type: string
+                format: date-time
+                example: "2025-12-03T12:35:00Z"
+              isHighest:
+                type: boolean
+                example: true
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+        metadata:
+          type: object
+          description: 查詢元資料
+          properties:
+            dataSource:
+              type: string
+              description: 資料來源
+              enum: [redis, postgresql]
+              example: "redis"
+            queryTime:
+              type: string
+              description: 查詢時間
+              example: "15ms"
+
+    MyBidListResponse:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: 我的出價清單
+          items:
+            type: object
+            required:
+              - bidId
+              - auctionId
+              - auctionTitle
+              - amount
+              - bidAt
+              - isHighest
+              - auctionStatus
+            properties:
+              bidId:
+                type: integer
+                format: int64
+                example: 123456789012345
+              auctionId:
+                type: integer
+                format: int64
+                example: 123456789
+              auctionTitle:
+                type: string
+                description: 商品標題
+                example: "全新 iPhone 15 Pro Max"
+              amount:
+                type: number
+                format: decimal
+                example: 1700.00
+              bidAt:
+                type: string
+                format: date-time
+                example: "2025-12-03T12:35:00Z"
+              isHighest:
+                type: boolean
+                description: 是否為該商品的最高出價
+                example: true
+              auctionStatus:
+                type: string
+                description: 商品狀態
+                enum: [Active, Ended, Sold, Cancelled]
+                example: "Active"
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+
+    PaginationMetadata:
+      type: object
+      required:
+        - currentPage
+        - pageSize
+        - totalItems
+        - totalPages
+      properties:
+        currentPage:
+          type: integer
+          description: 當前頁碼
+          example: 1
+        pageSize:
+          type: integer
+          description: 每頁筆數
+          example: 20
+        totalItems:
+          type: integer
+          description: 總筆數
+          example: 45
+        totalPages:
+          type: integer
+          description: 總頁數
+          example: 3
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - correlationId
+        - timestamp
+      properties:
+        code:
+          type: string
+          description: 錯誤代碼
+          example: "INVALID_AMOUNT"
+        message:
+          type: string
+          description: 錯誤訊息
+          example: "出價金額必須高於當前最高價"
+        correlationId:
+          type: string
+          description: 追蹤 ID
+          example: "abc123-def456-ghi789"
+        timestamp:
+          type: string
+          format: date-time
+          description: 錯誤發生時間
+          example: "2025-12-03T12:30:45Z"
+        details:
+          type: object
+          description: 錯誤詳細資訊 (選填)
+          additionalProperties: true
+          example:
+            currentHighestBid: 1600.00
+            yourBid: 1500.00
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - correlationId
+        - timestamp
+        - errors
+      properties:
+        code:
+          type: string
+          description: 錯誤代碼
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: 錯誤訊息
+          example: "請求資料驗證失敗"
+        correlationId:
+          type: string
+          example: "abc123-def456-ghi789"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-12-03T12:30:45Z"
+        errors:
+          type: array
+          description: 驗證錯誤清單
+          items:
+            type: object
+            required:
+              - field
+              - message
+            properties:
+              field:
+                type: string
+                description: 欄位名稱
+                example: "amount"
+              message:
+                type: string
+                description: 驗證訊息
+                example: "出價金額必須大於 0"
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - checks
+        - timestamp
+      properties:
+        status:
+          type: string
+          description: 整體健康狀態
+          enum: [Healthy, Degraded, Unhealthy]
+          example: "Healthy"
+        checks:
+          type: object
+          description: 各元件健康狀態
+          additionalProperties:
+            type: object
+            required:
+              - status
+              - responseTime
+            properties:
+              status:
+                type: string
+                enum: [Healthy, Degraded, Unhealthy]
+                example: "Healthy"
+              responseTime:
+                type: string
+                description: 回應時間
+                example: "2ms"
+              error:
+                type: string
+                description: 錯誤訊息 (選填)
+                example: "Connection timeout"
+        timestamp:
+          type: string
+          format: date-time
+          description: 檢查時間
+          example: "2025-12-03T12:00:00Z"
+
+  responses:
+    BadRequest:
+      description: 請求格式錯誤
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidFormat:
+              value:
+                code: "BAD_REQUEST"
+                message: "請求格式錯誤"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+
+    Unauthorized:
+      description: 未授權
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            noToken:
+              value:
+                code: "UNAUTHORIZED"
+                message: "缺少 Authorization Token"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+
+    Forbidden:
+      description: 禁止操作
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            selfBid:
+              value:
+                code: "FORBIDDEN"
+                message: "無法對自己的商品出價"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+
+    NotFound:
+      description: 資源不存在
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notFound:
+              value:
+                code: "NOT_FOUND"
+                message: "找不到指定的出價記錄"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+
+    Conflict:
+      description: 業務邏輯衝突
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            lowBid:
+              value:
+                code: "BID_TOO_LOW"
+                message: "出價金額必須高於當前最高價"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+                details:
+                  currentHighestBid: 1600.00
+                  yourBid: 1500.00
+
+    UnprocessableEntity:
+      description: 驗證失敗
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          examples:
+            validation:
+              value:
+                code: "VALIDATION_ERROR"
+                message: "請求資料驗證失敗"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+                errors:
+                  - field: "amount"
+                    message: "出價金額必須大於 0"
+                  - field: "auctionId"
+                    message: "商品 ID 格式錯誤"
+
+    InternalServerError:
+      description: 伺服器內部錯誤
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            serverError:
+              value:
+                code: "INTERNAL_ERROR"
+                message: "伺服器內部錯誤，請稍後再試"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+
+    ServiceUnavailable:
+      description: 服務暫時無法使用
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            redisDown:
+              value:
+                code: "SERVICE_UNAVAILABLE"
+                message: "快取服務暫時無法使用"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
