@@ -43,7 +43,7 @@
 - **Contract Tests**: 跨服務 API 契約驗證
 - **Load Tests**: K6 或 NBomber (併發測試)
 
-**Target Platform**: Linux container (Docker), Kubernetes 部署  
+**Target Platform**: Linux container (Docker)  
 **Project Type**: Backend REST API 微服務 (無前端)  
 
 **Performance Goals**: 
@@ -152,139 +152,164 @@ specs/003-bidding-service/
 └── tasks.md             # Phase 2 輸出 (/speckit.tasks 指令 - 本指令不產生)
 ```
 
-### 原始碼 (儲存庫根目錄)
+### 原始碼 (單一專案資料夾結構)
+
+**專案配置**: 所有原始碼、測試、建置文檔、Docker 配置均位於單一 `BiddingService/` 資料夾中，採用自包含 (self-contained) 結構，便於獨立開發與部署。
 
 ```text
-BiddingService/                          # .NET 解決方案根目錄
-├── src/
-│   └── BiddingService.API/              # ASP.NET Core Web API 專案
-│       ├── Controllers/                 # API Controllers (非 Minimal APIs)
-│       │   ├── BidsController.cs       # 出價相關端點
-│       │   ├── AuctionsController.cs   # 商品出價查詢端點
-│       │   └── HealthController.cs     # Health Check
-│       ├── Models/                      # Domain Models & DTOs
-│       │   ├── Entities/               # EF Core Entities
-│       │   │   └── Bid.cs
-│       │   ├── DTOs/                   # Request/Response DTOs
-│       │   │   ├── CreateBidRequest.cs
-│       │   │   ├── BidResponse.cs
-│       │   │   ├── BidHistoryResponse.cs
-│       │   │   └── ...
-│       │   └── ValueObjects/           # Domain Value Objects
-│       │       └── BidAmount.cs
-│       ├── Services/                    # Business Logic Services
-│       │   ├── Interfaces/
-│       │   │   ├── IBiddingService.cs
-│       │   │   ├── IAuctionServiceClient.cs
-│       │   │   └── IMemberServiceClient.cs
-│       │   ├── BiddingService.cs       # 核心出價邏輯
-│       │   ├── AuctionServiceClient.cs # Auction Service HTTP Client
-│       │   └── MemberServiceClient.cs  # Member Service HTTP Client
-│       ├── Repositories/                # Data Access Layer
-│       │   ├── Interfaces/
-│       │   │   ├── IBidRepository.cs
-│       │   │   └── IRedisRepository.cs
-│       │   ├── BidRepository.cs        # EF Core Repository
-│       │   └── RedisRepository.cs      # Redis Operations
-│       ├── Infrastructure/              # Infrastructure Concerns
-│       │   ├── Data/
-│       │   │   ├── BiddingDbContext.cs # EF Core DbContext
-│       │   │   └── Migrations/         # EF Core Migrations
-│       │   ├── Redis/
-│       │   │   ├── RedisConnection.cs  # Redis 連線管理
-│       │   │   └── LuaScripts.cs       # Lua Script 定義
-│       │   ├── Encryption/
-│       │   │   └── EncryptionService.cs # AES-256-GCM 加密
-│       │   ├── IdGeneration/
-│       │   │   └── SnowflakeIdGenerator.cs # 雪花 ID 生成
-│       │   └── BackgroundServices/
-│       │       ├── RedisSyncWorker.cs  # 背景同步 Worker
-│       │       └── RedisHealthCheckService.cs # Redis 健康檢查
-│       ├── Middleware/                  # ASP.NET Middleware
-│       │   ├── CorrelationIdMiddleware.cs # Correlation ID 注入
-│       │   └── ExceptionHandlingMiddleware.cs # 全域錯誤處理
-│       ├── Filters/                     # Action Filters
-│       │   └── ValidationFilter.cs     # 模型驗證
-│       ├── Extensions/                  # Extension Methods
-│       │   ├── ServiceCollectionExtensions.cs # DI 註冊
-│       │   └── ConfigurationExtensions.cs
-│       ├── Configuration/               # 配置類別
-│       │   ├── RedisSettings.cs
-│       │   ├── SnowflakeSettings.cs
-│       │   └── EncryptionSettings.cs
-│       ├── appsettings.json
-│       ├── appsettings.Development.json
-│       ├── Program.cs                   # 應用程式進入點
-│       └── BiddingService.API.csproj
+BiddingService/                              # 專案根目錄 (所有內容在此資料夾)
+├── BiddingService.sln                       # Visual Studio 解決方案檔
+├── README.md                                # 專案說明文檔
+├── .gitignore                               # Git 忽略規則
+├── .editorconfig                            # 程式碼風格配置
+├── global.json                              # .NET SDK 版本鎖定 (10.0)
 │
-├── tests/
-│   ├── BiddingService.UnitTests/        # 單元測試
+├── docker-compose.yml                       # 本地開發環境 (PostgreSQL + Redis)
+├── docker-compose.override.yml              # 本地環境覆寫配置
+├── Dockerfile                               # 生產環境多階段建置
+├── .dockerignore                            # Docker 建置忽略規則
+│
+├── src/                                     # 原始碼目錄
+│   ├── BiddingService.Api/                  # ASP.NET Core Web API 專案
+│   │   ├── Controllers/
+│   │   │   ├── BidsController.cs            # 出價端點 (POST/GET)
+│   │   │   └── HealthController.cs          # 健康檢查端點
+│   │   ├── Middlewares/
+│   │   │   ├── ExceptionHandlingMiddleware.cs   # 全域錯誤處理
+│   │   │   ├── CorrelationIdMiddleware.cs       # Correlation ID 追蹤
+│   │   │   └── RequestLoggingMiddleware.cs      # 請求日誌記錄
+│   │   ├── Filters/
+│   │   │   └── ValidationFilter.cs              # 模型驗證過濾器
+│   │   ├── Program.cs                       # 應用程式進入點
+│   │   ├── appsettings.json                 # 基礎配置
+│   │   ├── appsettings.Development.json     # 開發環境配置
+│   │   └── BiddingService.Api.csproj        # 專案檔 (net10.0)
+│   │
+│   ├── BiddingService.Core/                 # 核心業務邏輯層 (不依賴基礎設施)
+│   │   ├── Entities/
+│   │   │   └── Bid.cs                       # 出價實體
+│   │   ├── DTOs/
+│   │   │   ├── Requests/
+│   │   │   │   └── CreateBidRequest.cs      # 新增出價請求 DTO
+│   │   │   └── Responses/
+│   │   │       ├── BidResponse.cs           # 出價回應 DTO
+│   │   │       ├── BidHistoryResponse.cs    # 出價歷史清單 DTO
+│   │   │       └── HighestBidResponse.cs    # 最高出價 DTO
+│   │   ├── ValueObjects/
+│   │   │   └── BidAmount.cs                 # 出價金額值物件 (含驗證)
+│   │   ├── Interfaces/
+│   │   │   ├── IRepository.cs               # 通用儲存庫介面
+│   │   │   ├── IBidRepository.cs            # 出價儲存庫介面
+│   │   │   ├── IRedisRepository.cs          # Redis 快取介面
+│   │   │   ├── IBiddingService.cs           # 出價服務介面
+│   │   │   ├── IAuctionServiceClient.cs     # Auction Service HTTP 客戶端介面
+│   │   │   ├── IEncryptionService.cs        # 加密服務介面
+│   │   │   └── ISnowflakeIdGenerator.cs     # 雪花 ID 生成器介面
+│   │   ├── Services/
+│   │   │   └── BiddingService.cs            # 核心出價邏輯實作
+│   │   ├── Validators/
+│   │   │   └── BidValidator.cs              # 出價驗證規則
+│   │   ├── Exceptions/
+│   │   │   ├── BidTooLowException.cs        # 出價過低例外
+│   │   │   ├── AuctionNotFoundException.cs  # 商品不存在例外
+│   │   │   └── UnauthorizedException.cs     # 未授權例外
+│   │   └── BiddingService.Core.csproj
+│   │
+│   ├── BiddingService.Infrastructure/       # 基礎設施層 (資料存取與外部服務)
+│   │   ├── Data/
+│   │   │   ├── BiddingDbContext.cs          # EF Core DbContext
+│   │   │   └── Configurations/
+│   │   │       └── BidConfiguration.cs      # Bid 實體配置 (含加密 Value Converter)
+│   │   ├── Repositories/
+│   │   │   ├── GenericRepository.cs         # 通用儲存庫基礎實作
+│   │   │   ├── BidRepository.cs             # PostgreSQL 出價儲存庫
+│   │   │   └── RedisRepository.cs           # Redis 快取儲存庫 (Lua Script)
+│   │   ├── Redis/
+│   │   │   ├── RedisConnection.cs           # Redis 連線管理
+│   │   │   └── Scripts/
+│   │   │       └── place-bid.lua            # 出價原子操作 Lua Script
+│   │   ├── HttpClients/
+│   │   │   └── AuctionServiceClient.cs      # Auction Service HTTP 客戶端 (Polly 重試)
+│   │   ├── BackgroundServices/
+│   │   │   ├── RedisSyncWorker.cs           # Redis → PostgreSQL 背景同步
+│   │   │   └── RedisHealthCheckService.cs   # Redis 健康檢查服務
+│   │   ├── Encryption/
+│   │   │   ├── EncryptionService.cs         # AES-256-GCM 加密實作
+│   │   │   └── EncryptionValueConverter.cs  # EF Core 加密 Value Converter
+│   │   ├── IdGeneration/
+│   │   │   └── SnowflakeIdGenerator.cs      # 雪花 ID 生成器 (IdGen)
+│   │   ├── Migrations/
+│   │   │   └── 20251204000000_InitialCreate.cs  # 初始資料庫遷移
+│   │   └── BiddingService.Infrastructure.csproj
+│   │
+│   └── BiddingService.Shared/               # 共用元件庫 (常數/擴充/輔助工具)
+│       ├── Constants/
+│       │   └── ErrorCodes.cs                # 錯誤代碼常數
+│       ├── Extensions/
+│       │   ├── ServiceCollectionExtensions.cs   # DI 擴充方法
+│       │   └── BidExtensions.cs             # 出價擴充方法 (POCO 映射)
+│       ├── Helpers/
+│       │   └── HashHelper.cs                # SHA-256 雜湊輔助 (BidderIdHash)
+│       └── BiddingService.Shared.csproj
+│
+├── tests/                                   # 測試專案目錄
+│   ├── BiddingService.UnitTests/            # 單元測試
 │   │   ├── Services/
 │   │   │   └── BiddingServiceTests.cs
 │   │   ├── Repositories/
 │   │   │   └── BidRepositoryTests.cs
-│   │   └── Infrastructure/
-│   │       └── SnowflakeIdGeneratorTests.cs
-│   ├── BiddingService.IntegrationTests/ # 整合測試
 │   │   ├── Controllers/
 │   │   │   └── BidsControllerTests.cs
+│   │   ├── Validators/
+│   │   │   └── BidValidatorTests.cs
 │   │   ├── Infrastructure/
-│   │   │   ├── RedisIntegrationTests.cs
-│   │   │   └── DatabaseIntegrationTests.cs
-│   │   ├── TestFixtures/
-│   │   │   ├── PostgreSqlFixture.cs    # Testcontainers
-│   │   │   └── RedisFixture.cs         # Testcontainers
+│   │   │   ├── SnowflakeIdGeneratorTests.cs
+│   │   │   └── EncryptionServiceTests.cs
+│   │   └── BiddingService.UnitTests.csproj
+│   │
+│   ├── BiddingService.IntegrationTests/     # 整合測試 (Testcontainers)
+│   │   ├── Controllers/
+│   │   │   └── BidsControllerIntegrationTests.cs
+│   │   ├── Repositories/
+│   │   │   ├── BidRepositoryTests.cs
+│   │   │   └── RedisRepositoryTests.cs
+│   │   ├── Infrastructure/
+│   │   │   ├── PostgreSqlTestContainer.cs   # Testcontainers PostgreSQL Fixture
+│   │   │   └── RedisTestContainer.cs        # Testcontainers Redis Fixture
+│   │   ├── BackgroundServices/
+│   │   │   └── RedisSyncWorkerTests.cs
 │   │   └── BiddingService.IntegrationTests.csproj
-│   └── BiddingService.LoadTests/        # 負載測試
-│       └── ConcurrentBiddingTests.cs    # K6 或 NBomber
+│   │
+│   └── BiddingService.LoadTests/            # 負載測試 (NBomber/K6)
+│       ├── ConcurrentBiddingTests.cs        # 併發出價測試
+│       └── BiddingService.LoadTests.csproj
 │
-├── docker/
-│   ├── Dockerfile                       # 生產環境 Dockerfile
-│   ├── Dockerfile.dev                   # 開發環境 Dockerfile
-│   └── docker-compose.yml              # 本地開發環境
+├── scripts/                                 # 輔助建置腳本
+│   ├── build.sh                             # Linux/macOS 建置腳本
+│   ├── build.ps1                            # Windows 建置腳本 (PowerShell)
+│   ├── init-db.sql                          # PostgreSQL 初始化 SQL
+│   ├── run-tests.sh                         # 測試執行腳本
+│   └── deploy.sh                            # 部署腳本
 │
-├── k8s/                                 # Kubernetes 部署配置
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── configmap.yaml
-│   └── secrets.yaml
+├── docs/                                    # 專案文檔
+│   ├── architecture.md                      # 架構設計說明
+│   ├── api-guide.md                         # API 使用指南
+│   └── deployment.md                        # 部署指南
 │
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                       # CI Pipeline
-│       └── cd.yml                       # CD Pipeline
-│
-├── BiddingService.sln                   # Visual Studio 解決方案
-├── .editorconfig                        # 程式碼風格
-├── .gitignore
-└── README.md
-```
-
-### API Gateway 整合 (YARP)
-
-```text
-ApiGateway/                              # YARP Gateway 專案 (獨立儲存庫或共用)
-├── appsettings.json
-│   └── ReverseProxy:
-│       ├── Routes:
-│       │   └── bidding-route:
-│       │       ├── ClusterId: "bidding-cluster"
-│       │       └── Match:
-│       │           └── Path: "/api/bids/{**catch-all}"
-│       └── Clusters:
-│           └── bidding-cluster:
-│               └── Destinations:
-│                   └── destination1:
-│                       └── Address: "http://bidding-service:8080"
+└── .github/                                 # GitHub Actions CI/CD
+    └── workflows/
+        ├── build.yml                        # 建置工作流程
+        ├── test.yml                         # 測試工作流程
+        └── deploy.yml                       # 部署工作流程
 ```
 
 **結構決策**: 
-採用 **單一後端專案** 結構 (ASP.NET Core Web API)，因為:
-1. 本專案為純後端 REST API 服務，無前端實作
-2. 單一專案簡化部署與維護
-3. 微服務架構下，每個服務獨立儲存庫
-4. 測試分離為 UnitTests, IntegrationTests, LoadTests 三個專案
-5. 通過 YARP API Gateway 統一對外暴露，路由到 `/api/bids/*` 路徑
+採用 **單一資料夾自包含結構**，所有專案相關檔案均位於 `BiddingService/` 目錄下，理由如下：
+1. ✅ **自包含性**: 解決方案 (.sln)、Docker 配置、README、建置腳本等所有檔案集中管理
+2. ✅ **獨立部署**: 整個資料夾可獨立 clone、建置、測試、部署，無外部依賴
+3. ✅ **清晰分層**: 採用 Clean Architecture 分層 (Api/Core/Infrastructure/Shared)
+4. ✅ **測試分離**: 單元測試、整合測試、負載測試各自獨立專案，使用 Testcontainers 確保真實環境
+5. ✅ **標準慣例**: 符合 .NET 微服務專案標準結構，便於團隊協作與維護
 
 ## 複雜度追蹤 (Complexity Tracking)
 

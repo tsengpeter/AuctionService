@@ -60,18 +60,14 @@ git --version
 
 ```powershell
 # Clone 專案
-git clone https://github.com/your-org/auction-service.git
-cd auction-service
-
-# 切換到 Bidding Service 分支
-git checkout 003-bidding-service
+git clone https://github.com/tsengpeter/AuctionService.git
+cd BiddingService
 ```
 
 ### 步驟 2: 啟動基礎設施 (PostgreSQL + Redis)
 
 ```powershell
-# 啟動 Docker Compose
-cd specs/003-bidding-service
+# 啟動 Docker Compose (在專案根目錄)
 docker-compose up -d
 
 # 驗證容器狀態
@@ -127,7 +123,7 @@ volumes:
 
 ```powershell
 # 複製環境變數範本
-cd src/BiddingService.API
+cd src/BiddingService.Api
 cp appsettings.Development.json.example appsettings.Development.json
 
 # 編輯 appsettings.Development.json (選用，預設值已可使用)
@@ -172,10 +168,10 @@ cp appsettings.Development.json.example appsettings.Development.json
 dotnet tool install --global dotnet-ef
 
 # 新增初始 Migration
-dotnet ef migrations add InitialCreate --project src/BiddingService.API
+dotnet ef migrations add InitialCreate --project src/BiddingService.Infrastructure
 
 # 套用 Migration
-dotnet ef database update --project src/BiddingService.API
+dotnet ef database update --project src/BiddingService.Infrastructure
 
 # 驗證資料庫
 docker exec -it postgres_bidding psql -U bidding_user -d bidding_db -c "\dt"
@@ -207,7 +203,7 @@ Passed!  - Failed:     0, Passed:    42, Skipped:     0, Total:    42, Duration:
 
 ```powershell
 # 啟動 API
-cd src/BiddingService.API
+cd src/BiddingService.Api
 dotnet run
 
 # 預期輸出:
@@ -238,7 +234,7 @@ curl http://localhost:5001/api/auctions/123456789/highest-bid
 ```
 
 **使用 Postman**:
-1. 匯入 `specs/003-bidding-service/contracts/openapi.yaml`
+1. 匯入 `contracts/openapi.yaml`
 2. 設定環境變數 `baseUrl = http://localhost:5001`
 3. 執行 Collection Runner
 
@@ -247,66 +243,50 @@ curl http://localhost:5001/api/auctions/123456789/highest-bid
 ## 專案結構 (Project Structure)
 
 ```
-specs/003-bidding-service/
+BiddingService/                              # 專案根目錄
+├── BiddingService.sln                       # Visual Studio 解決方案
+├── README.md
+├── docker-compose.yml
+├── Dockerfile
+├── .gitignore
+├── .editorconfig
+│
 ├── src/
-│   └── BiddingService.API/
-│       ├── Controllers/          # API 控制器
-│       │   ├── BidsController.cs
-│       │   └── HealthController.cs
-│       ├── Services/             # 業務邏輯層
-│       │   ├── BidService.cs
-│       │   ├── RedisCacheService.cs
-│       │   └── AuctionServiceClient.cs
-│       ├── Repositories/         # 資料存取層
-│       │   ├── BidRepository.cs
-│       │   └── Interfaces/
-│       ├── Infrastructure/       # 基礎設施
-│       │   ├── Data/
-│       │   │   ├── BiddingDbContext.cs
-│       │   │   └── Configurations/
-│       │   ├── Encryption/
-│       │   │   ├── EncryptionService.cs
-│       │   │   └── EncryptionValueConverter.cs
-│       │   ├── IdGeneration/
-│       │   │   └── SnowflakeIdGenerator.cs
-│       │   └── BackgroundWorkers/
-│       │       └── RedisSyncWorker.cs
-│       ├── Middleware/           # 中介軟體
-│       │   ├── CorrelationIdMiddleware.cs
-│       │   └── ExceptionHandlingMiddleware.cs
-│       ├── Models/               # 資料模型
-│       │   ├── Entities/
-│       │   │   └── Bid.cs
-│       │   ├── DTOs/
-│       │   │   ├── CreateBidRequest.cs
-│       │   │   └── BidResponse.cs
-│       │   └── ValueObjects/
-│       │       └── BidAmount.cs
-│       ├── Scripts/              # Redis Lua Scripts
-│       │   └── place-bid.lua
-│       ├── appsettings.json
-│       ├── appsettings.Development.json
-│       └── Program.cs
+│   ├── BiddingService.Api/                  # ASP.NET Core Web API
+│   │   ├── Controllers/
+│   │   ├── Middlewares/
+│   │   ├── Program.cs
+│   │   └── appsettings.json
+│   ├── BiddingService.Core/                 # 核心業務邏輯
+│   │   ├── Entities/
+│   │   ├── DTOs/
+│   │   ├── Services/
+│   │   └── Interfaces/
+│   ├── BiddingService.Infrastructure/       # 基礎設施
+│   │   ├── Data/
+│   │   ├── Repositories/
+│   │   ├── Redis/
+│   │   ├── BackgroundServices/
+│   │   └── Encryption/
+│   └── BiddingService.Shared/               # 共用元件
+│       ├── Constants/
+│       └── Extensions/
+│
 ├── tests/
 │   ├── BiddingService.UnitTests/
-│   │   ├── Services/
-│   │   ├── Repositories/
-│   │   └── Controllers/
 │   ├── BiddingService.IntegrationTests/
-│   │   ├── Fixtures/
-│   │   │   ├── PostgreSqlFixture.cs
-│   │   │   └── RedisFixture.cs
-│   │   └── Scenarios/
 │   └── BiddingService.LoadTests/
-│       └── BidLoadTest.cs
-├── docker-compose.yml
-├── spec.md
-├── plan.md
-├── research.md
-├── data-model.md
-├── contracts/
-│   └── openapi.yaml
-└── quickstart.md (本文件)
+│
+├── scripts/
+│   ├── build.sh
+│   └── run-tests.sh
+│
+├── docs/
+│   ├── architecture.md
+│   └── api-guide.md
+│
+└── .github/
+    └── workflows/
 ```
 
 ---
@@ -321,7 +301,7 @@ git checkout -b feature/add-bid-notification
 
 # 2. 實作功能 (TDD)
 # - 撰寫測試 (tests/BiddingService.UnitTests/)
-# - 實作程式碼 (src/BiddingService.API/)
+# - 實作程式碼 (src/BiddingService.Api/ 或 src/BiddingService.Core/)
 # - 執行測試確保通過
 
 dotnet test
@@ -358,7 +338,7 @@ dotnet test --logger "console;verbosity=detailed"
 ```powershell
 # 啟用詳細日誌
 $env:ASPNETCORE_ENVIRONMENT="Development"
-dotnet run --project src/BiddingService.API
+dotnet run --project src/BiddingService.Api
 ```
 
 ### 4. 查看日誌
@@ -433,10 +413,10 @@ dotnet clean
 dotnet build
 
 # 3. 移除失敗的 Migration
-dotnet ef migrations remove --project src/BiddingService.API
+dotnet ef migrations remove --project src/BiddingService.Infrastructure
 
 # 4. 重新新增 Migration
-dotnet ef migrations add InitialCreate --project src/BiddingService.API
+dotnet ef migrations add InitialCreate --project src/BiddingService.Infrastructure
 ```
 
 ### 問題 4: 測試容器無法啟動 (Testcontainers)
@@ -534,8 +514,7 @@ ab -n 1000 -c 10 -H "Authorization: Bearer YOUR_JWT_TOKEN" `
 ### Docker 映像檔建置
 
 ```powershell
-# 建置映像檔
-cd src/BiddingService.API
+# 建置映像檔 (在專案根目錄)
 docker build -t bidding-service:1.0.0 .
 
 # 執行容器
@@ -557,18 +536,22 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["BiddingService.API.csproj", "./"]
-RUN dotnet restore
+COPY ["src/BiddingService.Api/BiddingService.Api.csproj", "src/BiddingService.Api/"]
+COPY ["src/BiddingService.Core/BiddingService.Core.csproj", "src/BiddingService.Core/"]
+COPY ["src/BiddingService.Infrastructure/BiddingService.Infrastructure.csproj", "src/BiddingService.Infrastructure/"]
+COPY ["src/BiddingService.Shared/BiddingService.Shared.csproj", "src/BiddingService.Shared/"]
+RUN dotnet restore "src/BiddingService.Api/BiddingService.Api.csproj"
 COPY . .
-RUN dotnet build -c Release -o /app/build
+WORKDIR "/src/src/BiddingService.Api"
+RUN dotnet build "BiddingService.Api.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet publish "BiddingService.Api.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "BiddingService.API.dll"]
+ENTRYPOINT ["dotnet", "BiddingService.Api.dll"]
 ```
 
 ---
@@ -596,10 +579,10 @@ ENTRYPOINT ["dotnet", "BiddingService.API.dll"]
 
 ## 下一步 (Next Steps)
 
-1. **閱讀規格文件**: `spec.md`
-2. **了解技術決策**: `research.md`
-3. **查看資料模型**: `data-model.md`
-4. **測試 API**: 匯入 `contracts/openapi.yaml` 到 Postman
+1. **閱讀規格文件**: 查看 `specs/003-bidding-service/spec.md`
+2. **了解技術決策**: 查看 `specs/003-bidding-service/research.md`
+3. **查看資料模型**: 查看 `specs/003-bidding-service/data-model.md`
+4. **測試 API**: 匯入專案根目錄的 `contracts/openapi.yaml` 到 Postman
 5. **執行整合測試**: `dotnet test tests/BiddingService.IntegrationTests`
 
 ---

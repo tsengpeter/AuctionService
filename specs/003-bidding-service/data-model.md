@@ -542,13 +542,13 @@ ALTER TABLE Bids ALTER COLUMN SyncedFromRedis SET DEFAULT true;
 
 ```bash
 # 新增 Migration
-dotnet ef migrations add InitialCreate --project BiddingService.API
+dotnet ef migrations add InitialCreate --project src/BiddingService.Infrastructure
 
 # 套用 Migration (Development)
-dotnet ef database update --project BiddingService.API
+dotnet ef database update --project src/BiddingService.Infrastructure
 
 # 套用 Migration (Production, 透過 CI/CD)
-dotnet ef database update --project BiddingService.API --connection "$PROD_CONNECTION_STRING"
+dotnet ef database update --project src/BiddingService.Infrastructure --connection "$PROD_CONNECTION_STRING"
 ```
 
 ### Migration 檔案範例
