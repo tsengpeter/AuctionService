@@ -8,23 +8,25 @@ endpoints:
     authentication: 不需要 (公開端點)
     
     # 並行呼叫的後端服務
+    # 注意: 所有呼叫共用單一 30 秒超時 (使用 CancellationTokenSource)
+    # 總延遲 = 最慢服務的延遲，非各服務延遲總和
     backend_calls:
       - service: Auction Service
         endpoint: GET /api/auctions/{id}
-        timeout: 30s
+        timeout: 30s (shared across all parallel calls)
         required: true  # 若失敗則整個請求失敗
         description: 取得商品基本資訊
         
       - service: Member Service
         endpoint: GET /api/members/{sellerId}
-        timeout: 30s
+        timeout: 30s (shared across all parallel calls)
         required: false  # 可選，失敗時回傳 null
         description: 取得賣家資訊
         note: sellerId 從 Auction 回應中提取
         
       - service: Bidding Service
         endpoint: GET /api/bids?auctionId={id}&limit=10
-        timeout: 30s
+        timeout: 30s (shared across all parallel calls)
         required: false
         description: 取得最近 10 筆出價記錄
     

@@ -79,8 +79,8 @@ Based on plan.md structure:
 - [ ] T043 [P] Create appsettings.Development.json with development-specific settings
 - [ ] T044 Create RedisConnection in src/ApiGateway.Infrastructure/Redis/RedisConnection.cs (ConnectionMultiplexer singleton pattern)
 - [ ] T045 Configure Redis connection in src/ApiGateway.Api/Program.cs DI container
-- [ ] T046 Create IServiceDiscovery interface in src/ApiGateway.Core/Interfaces/IServiceDiscovery.cs (abstraction for future Consul migration)
-- [ ] T047 Create StaticServiceDiscovery in src/ApiGateway.Infrastructure/HttpClients/StaticServiceDiscovery.cs (reads from appsettings.json)
+- [ ] T046 [P] Create IServiceDiscovery interface in src/ApiGateway.Core/Interfaces/IServiceDiscovery.cs (abstraction for future Consul migration)
+- [ ] T047 [P] Create StaticServiceDiscovery in src/ApiGateway.Infrastructure/HttpClients/StaticServiceDiscovery.cs (reads from appsettings.json)
 - [ ] T048 Configure YARP reverse proxy in src/ApiGateway.Api/Program.cs (load from appsettings.json ReverseProxy section)
 - [ ] T049 Configure CORS in src/ApiGateway.Api/Program.cs (AllowedOrigins from appsettings.json per FR-007)
 - [ ] T050 Configure request size limit (10MB) in src/ApiGateway.Api/Program.cs per FR-013
@@ -204,7 +204,7 @@ Based on plan.md structure:
 - [ ] T112 [US5] Add rate limit event logging in RateLimitService (log IP, timestamp, exceeded count per FR-012)
 - [ ] T113 [US5] Run unit tests to verify rate limiting logic
 - [ ] T114 [US5] Run integration tests with Testcontainers Redis to verify end-to-end rate limiting
-- [ ] T115 [US5] Verify CORS configuration already set in Phase 2 (T049) - test cross-origin requests (AC-3)
+- [ ] T115 [US5] Create CORS integration test in tests/ApiGateway.IntegrationTests/Security/CorsTests.cs - verify preflight OPTIONS requests and allowed origins (AC-3)
 - [ ] T116 [US5] Verify HTTPS redirection already set in Phase 2 (T051) - test HTTP → HTTPS redirect (AC-4)
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 5 should all work - routing + authentication + rate limiting + CORS + HTTPS
@@ -274,11 +274,11 @@ Based on plan.md structure:
 - [ ] T146 [P] [US4] Create IAggregationService interface in src/ApiGateway.Core/Interfaces/IAggregationService.cs
 - [ ] T147 [P] [US4] Create IAuctionServiceClient interface in src/ApiGateway.Core/Interfaces/IAuctionServiceClient.cs
 - [ ] T148 [P] [US4] Create IBiddingServiceClient interface in src/ApiGateway.Core/Interfaces/IBiddingServiceClient.cs
-- [ ] T149 [P] [US4] Create IUserServiceClient interface in src/ApiGateway.Core/Interfaces/IUserServiceClient.cs
-- [ ] T150 [US4] Implement AuctionServiceClient in src/ApiGateway.Infrastructure/HttpClients/AuctionServiceClient.cs (with Polly retry policy)
-- [ ] T151 [US4] Implement BiddingServiceClient in src/ApiGateway.Infrastructure/HttpClients/BiddingServiceClient.cs (with Polly retry policy)
-- [ ] T152 [US4] Implement UserServiceClient in src/ApiGateway.Infrastructure/HttpClients/UserServiceClient.cs (with Polly retry policy)
-- [ ] T153 [US4] Configure HttpClient factory with Polly in src/ApiGateway.Api/Program.cs (retry 3 times with exponential backoff)
+- [ ] T149 [P] [US4] Create IMemberServiceClient interface in src/ApiGateway.Core/Interfaces/IMemberServiceClient.cs
+- [ ] T150 [US4] Implement AuctionServiceClient in src/ApiGateway.Infrastructure/HttpClients/AuctionServiceClient.cs (with Polly retry policy for GET only)
+- [ ] T151 [US4] Implement BiddingServiceClient in src/ApiGateway.Infrastructure/HttpClients/BiddingServiceClient.cs (with Polly retry policy for GET only)
+- [ ] T152 [US4] Implement MemberServiceClient in src/ApiGateway.Infrastructure/HttpClients/MemberServiceClient.cs (with Polly retry policy for GET only)
+- [ ] T153 [US4] Configure HttpClient factory with Polly in src/ApiGateway.Api/Program.cs (retry 3 times with exponential backoff, GET requests only, not POST/PUT/DELETE)
 - [ ] T154 [US4] Implement AggregationService in src/ApiGateway.Core/Services/AggregationService.cs (parallel calls using Task.WhenAll, handle partial failures)
 - [ ] T155 [US4] Create AggregationController in src/ApiGateway.Api/Controllers/AggregationController.cs
 - [ ] T156 [US4] Implement GET /api/aggregated/auctions/{id} endpoint
@@ -329,6 +329,8 @@ Based on plan.md structure:
 - [ ] T185 Verify all success criteria from spec.md (SC-001 through SC-007)
 - [ ] T186 Load testing at scale (1000+ concurrent requests per plan.md Scale/Scope)
 - [ ] T187 Create production deployment checklist (environment variables, secrets, configuration)
+- [ ] T188 [P] Verify Dockerfile multi-stage build (test docker build locally and in CI pipeline)
+- [ ] T189 [P] Test Docker container startup and health check endpoint accessibility
 
 ---
 
