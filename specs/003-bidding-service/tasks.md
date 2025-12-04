@@ -56,6 +56,9 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [ ] T018 [P] Create RedisConnection manager in src/BiddingService.Infrastructure/Redis/RedisConnection.cs
 - [ ] T019 Implement CorrelationIdMiddleware in src/BiddingService.Api/Middlewares/CorrelationIdMiddleware.cs
 - [ ] T020 [P] Implement ExceptionHandlingMiddleware with standardized ErrorResponse DTO (per spec.md FR-014) in src/BiddingService.Api/Middlewares/ExceptionHandlingMiddleware.cs
+  - Map exceptions to HTTP status codes (400/401/403/404/409/500/503)
+  - Return consistent ErrorResponse format with error code and message
+  - Log errors with correlation ID
 - [ ] T021 [P] Implement RequestLoggingMiddleware with Serilog in src/BiddingService.Api/Middlewares/RequestLoggingMiddleware.cs
 
 ### Core Entities and Value Objects
@@ -275,6 +278,10 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [ ] T111 [P] Create api-guide.md with usage examples in BiddingService/docs/api-guide.md
 - [ ] T112 Add Prometheus metrics (bid_requests_total, bid_latency_seconds, redis_fallback_active) in Program.cs
 - [ ] T113 [P] Configure APM integration (Application Insights or Elastic APM) per plan.md monitoring strategy in src/BiddingService.Api/Program.cs
+  - Install NuGet package (Microsoft.ApplicationInsights.AspNetCore or Elastic.Apm.NetCoreAll)
+  - Configure connection string in appsettings.json
+  - Verify telemetry data flows to APM platform
+  - Document APM setup in docs/deployment.md
 - [ ] T114 [P] Create GitHub Actions workflow for build in .github/workflows/build.yml
 - [ ] T115 [P] Create GitHub Actions workflow for tests in .github/workflows/test.yml
 - [ ] T116 [P] Create GitHub Actions workflow step for EF Core database update (dotnet ef database update) in .github/workflows/deploy.yml
@@ -387,7 +394,7 @@ With multiple developers:
    - Developer A: User Story 3 (T073-T082)
    - Developer B: User Story 4 (T083-T091)
    - Developer C: User Story 5 (T092-T098)
-4. All: Polish phase together (T109-T122)
+4. All: Polish phase together (T109-T122, includes new APM integration & CI/CD tasks)
 
 ---
 
