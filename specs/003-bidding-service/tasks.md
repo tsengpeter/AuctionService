@@ -55,7 +55,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [ ] T017 [P] Implement EncryptionValueConverter for EF Core in src/BiddingService.Infrastructure/Encryption/EncryptionValueConverter.cs
 - [ ] T018 [P] Create RedisConnection manager in src/BiddingService.Infrastructure/Redis/RedisConnection.cs
 - [ ] T019 Implement CorrelationIdMiddleware in src/BiddingService.Api/Middlewares/CorrelationIdMiddleware.cs
-- [ ] T020 [P] Implement ExceptionHandlingMiddleware in src/BiddingService.Api/Middlewares/ExceptionHandlingMiddleware.cs
+- [ ] T020 [P] Implement ExceptionHandlingMiddleware with standardized ErrorResponse DTO (per spec.md FR-014) in src/BiddingService.Api/Middlewares/ExceptionHandlingMiddleware.cs
 - [ ] T021 [P] Implement RequestLoggingMiddleware with Serilog in src/BiddingService.Api/Middlewares/RequestLoggingMiddleware.cs
 
 ### Core Entities and Value Objects
@@ -262,6 +262,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [ ] T105 [P] Implement BidsController.GetBidById (GET /api/bids/{bidId}) in src/BiddingService.Api/Controllers/BidsController.cs
 - [ ] T106 [P] Unit test for GetBidById in tests/BiddingService.UnitTests/Controllers/BidsControllerTests.cs
 - [ ] T107 Add BidRepository.GetByIdAsync in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
+- [ ] T108 [P] Contract test for AuctionServiceClient endpoints (GET /api/auctions/{id}/basic, POST /api/auctions/batch) in tests/BiddingService.IntegrationTests/Contracts/AuctionServiceContractTests.cs
 
 ---
 
@@ -269,18 +270,20 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T108 [P] Update README.md with quickstart instructions in BiddingService/README.md
-- [ ] T109 [P] Create architecture.md documentation in BiddingService/docs/architecture.md
-- [ ] T110 [P] Create api-guide.md with usage examples in BiddingService/docs/api-guide.md
-- [ ] T111 Add Prometheus metrics (bid_requests_total, bid_latency_seconds, redis_fallback_active) in Program.cs
-- [ ] T112 [P] Create GitHub Actions workflow for build in .github/workflows/build.yml
-- [ ] T113 [P] Create GitHub Actions workflow for tests in .github/workflows/test.yml
-- [ ] T114 Code cleanup and refactoring (remove unused usings, apply code style)
-- [ ] T115 Security hardening (validate all inputs, sanitize error messages)
-- [ ] T116 Performance optimization (review connection pooling, Redis pipeline operations)
-- [ ] T117 Run quickstart.md validation (follow all steps, verify working)
-- [ ] T118 [P] Add OpenTelemetry support (optional future enhancement) in Program.cs
-- [ ] T119 Final integration test run covering all 5 user stories end-to-end
+- [ ] T109 [P] Update README.md with quickstart instructions in BiddingService/README.md
+- [ ] T110 [P] Create architecture.md documentation in BiddingService/docs/architecture.md
+- [ ] T111 [P] Create api-guide.md with usage examples in BiddingService/docs/api-guide.md
+- [ ] T112 Add Prometheus metrics (bid_requests_total, bid_latency_seconds, redis_fallback_active) in Program.cs
+- [ ] T113 [P] Configure APM integration (Application Insights or Elastic APM) per plan.md monitoring strategy in src/BiddingService.Api/Program.cs
+- [ ] T114 [P] Create GitHub Actions workflow for build in .github/workflows/build.yml
+- [ ] T115 [P] Create GitHub Actions workflow for tests in .github/workflows/test.yml
+- [ ] T116 [P] Create GitHub Actions workflow step for EF Core database update (dotnet ef database update) in .github/workflows/deploy.yml
+- [ ] T117 Code cleanup and refactoring (remove unused usings, apply code style)
+- [ ] T118 Security hardening (validate all inputs, sanitize error messages)
+- [ ] T119 Performance optimization (review connection pooling, Redis pipeline operations)
+- [ ] T120 Run quickstart.md validation (follow all steps, verify working)
+- [ ] T121 [P] Add OpenTelemetry support (optional future enhancement) in Program.cs
+- [ ] T122 Final integration test run covering all 5 user stories end-to-end
 
 ---
 
@@ -384,7 +387,7 @@ With multiple developers:
    - Developer A: User Story 3 (T073-T082)
    - Developer B: User Story 4 (T083-T091)
    - Developer C: User Story 5 (T092-T098)
-4. All: Polish phase together (T108-T119)
+4. All: Polish phase together (T109-T122)
 
 ---
 

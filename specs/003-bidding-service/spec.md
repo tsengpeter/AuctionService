@@ -350,6 +350,7 @@
 
 ### FR-004: 併發控制
 - 使用 Redis Lua Script 確保出價的原子性與併發安全
+- **併發定義**: 正常負載為 1000 requests/sec (單一商品), 高併發定義為 >1500 requests/sec (150% baseline)
 - **Lua Script 執行流程**:
   1. 從 `auction:{auctionId}:highest_bid` Hash 取得當前最高出價金額
   2. 檢查新出價金額是否 > 當前最高出價 (首次出價則檢查是否 >= 起標價)
@@ -457,6 +458,7 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 
 #### 2. 批次查詢商品資訊 (用於使用者出價記錄)
 - **端點**: `POST /api/auctions/batch`
+- **方法**: AuctionServiceClient.GetAuctionsBatchAsync
 - **用途**: 一次查詢多個商品的標題和狀態,避免 N+1 查詢問題
 - **請求**:
   ```json
@@ -561,7 +563,7 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 - amount (decimal, encrypted) - 使用 AES-256-GCM 加密
 - bidAt (timestamp, indexed)
 - createdAt (timestamp) - 實際寫入 DB 的時間
-- syncedFromRedis (boolean) - 標記是否從 Redis 同步而來
+- SyncedFromRedis (boolean) - 標記是否從 Redis 同步而來
 
 **Redis 資料結構**:
 1. Sorted Set: `auction:{auctionId}:bids`
@@ -596,9 +598,10 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 
 ### FR-014-1: Redis 降級機制
 - **健康檢查**: 獨立 HostedService 每 10 秒執行 `PING` 命令
-- **降級觸發**: 連續 3 次失敗 → 設定全域標記 `UsePostgreSQLFallback = true`
+- **降級觸發**: 連續 3 次失敗 → 設定全域標記 `UsePostgreSQLFallback = true` (in-memory flag, not persisted)
 - **降級模式**: 出價 API 檢查標記,為 true 時直接寫 PostgreSQL (使用 EF Core 樂觀鎖)
 - **自動恢復**: 連續 5 次健康檢查成功 → 設定 `UsePostgreSQLFallback = false`
+- **服務重啟**: 預設為 Redis-first mode (UsePostgreSQLFallback = false), 健康檢查重新評估
 - **冷卻期**: 狀態切換後 30 秒內不再切換,防止抖動
 - **告警**: 降級/恢復事件透過 ILogger 記錄 Warning 級別,並發送通知 (Email/Slack)
 - **監控指標**: 記錄當前模式 (Redis/PostgreSQL)、切換次數、降級持續時間
@@ -728,8 +731,8 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 
 ### 風險
 - **R-001**: Redis 故障導致出價服務完全不可用 → 降級到直接寫 PostgreSQL,犧牲效能保證可用性
-- **R-002**: 背景 Worker 故障導致 Redis 資料未同步到 DB → 實作健康檢查,監控同步延遲,Worker 自動重啟
-- **R-003**: 高併發導致 Redis 連線耗盡 → 連線池配置 max 100,監控連線使用率
+- **R-002**: 背景 Worker 故障導致 Redis 資料未同步到 DB → 實作健康檢查,監控同步延遲,背景 Worker 自動重啟
+- **R-003**: 高併發 (>1500 requests/sec, 150% of baseline 1000 req/sec) 導致 Redis 連線耗盡 → 連線池配置 max 100,監控連線使用率,超過 80% 使用率觸發告警
 - **R-004**: Redis 與 DB 資料不一致 → AOF 持久化 + 對帳機制 (定期比對 Redis 與 DB)
 - **R-005**: Auction Service 不可用 → 快取商品資訊,設定合理超時 (100ms)
 
