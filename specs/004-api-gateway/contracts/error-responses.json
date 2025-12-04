@@ -1,0 +1,224 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "API Gateway 錯誤回應格式",
+  "description": "定義所有錯誤回應的統一 JSON 格式 (符合 FR-004 規格)",
+  
+  "errorResponseSchema": {
+    "type": "object",
+    "required": ["error"],
+    "properties": {
+      "error": {
+        "type": "object",
+        "required": ["code", "message", "timestamp", "path"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "錯誤代碼 (大寫英文與底線)",
+            "pattern": "^[A-Z_]+$",
+            "examples": ["UNAUTHORIZED", "RATE_LIMIT_EXCEEDED", "SERVICE_UNAVAILABLE"]
+          },
+          "message": {
+            "type": "string",
+            "description": "使用者友善訊息 (繁體中文)",
+            "examples": ["未授權，請提供有效的認證資訊", "請求次數超過限制"]
+          },
+          "details": {
+            "type": "string",
+            "description": "選用的額外說明",
+            "examples": ["每分鐘最多 100 次請求", "JWT 簽章驗證失敗"]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "錯誤發生時間 (ISO8601 格式, UTC)",
+            "examples": ["2025-12-04T10:30:00Z"]
+          },
+          "path": {
+            "type": "string",
+            "description": "請求路徑",
+            "examples": ["/api/auctions", "/api/me/bids"]
+          }
+        }
+      }
+    }
+  },
+  
+  "examples": {
+    "unauthorized": {
+      "description": "401 Unauthorized - 未提供 JWT 或 JWT 無效",
+      "value": {
+        "error": {
+          "code": "UNAUTHORIZED",
+          "message": "未授權，請提供有效的認證資訊",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/me/bids"
+        }
+      }
+    },
+    
+    "tokenExpired": {
+      "description": "401 Unauthorized - JWT 已過期",
+      "value": {
+        "error": {
+          "code": "TOKEN_EXPIRED",
+          "message": "JWT 已過期，請重新登入",
+          "details": "Token expired at 2025-12-04T10:00:00Z",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/auctions/123"
+        }
+      }
+    },
+    
+    "invalidToken": {
+      "description": "401 Unauthorized - JWT 簽章錯誤",
+      "value": {
+        "error": {
+          "code": "INVALID_TOKEN",
+          "message": "JWT 無效或簽章錯誤",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/bids"
+        }
+      }
+    },
+    
+    "malformedToken": {
+      "description": "401 Unauthorized - JWT 格式錯誤",
+      "value": {
+        "error": {
+          "code": "MALFORMED_TOKEN",
+          "message": "JWT 格式錯誤",
+          "details": "Token must contain three parts separated by dots",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/me"
+        }
+      }
+    },
+    
+    "notFound": {
+      "description": "404 Not Found - 資源不存在",
+      "value": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "請求的資源不存在",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/auctions/99999"
+        }
+      }
+    },
+    
+    "payloadTooLarge": {
+      "description": "413 Payload Too Large - 請求內容過大",
+      "value": {
+        "error": {
+          "code": "PAYLOAD_TOO_LARGE",
+          "message": "請求內容過大，最大允許 10MB",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/auctions"
+        }
+      }
+    },
+    
+    "rateLimitExceeded": {
+      "description": "429 Too Many Requests - 超過請求次數限制",
+      "value": {
+        "error": {
+          "code": "RATE_LIMIT_EXCEEDED",
+          "message": "請求次數超過限制，請稍後再試",
+          "details": "每分鐘最多 100 次請求",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/auctions"
+        }
+      },
+      "headers": {
+        "Retry-After": "30"
+      }
+    },
+    
+    "internalServerError": {
+      "description": "500 Internal Server Error - 內部錯誤",
+      "value": {
+        "error": {
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "服務暫時無法使用，請稍後再試",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/bids"
+        }
+      },
+      "note": "生產環境不暴露堆疊追蹤或內部細節"
+    },
+    
+    "serviceUnavailable": {
+      "description": "503 Service Unavailable - 後端服務不可用",
+      "value": {
+        "error": {
+          "code": "SERVICE_UNAVAILABLE",
+          "message": "後端服務暫時無法使用，請稍後再試",
+          "details": "Member Service is currently unavailable",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/members/123"
+        }
+      }
+    },
+    
+    "gatewayTimeout": {
+      "description": "504 Gateway Timeout - 後端服務回應超時",
+      "value": {
+        "error": {
+          "code": "GATEWAY_TIMEOUT",
+          "message": "後端服務回應超時，請稍後再試",
+          "details": "Request to Auction Service timed out after 30 seconds",
+          "timestamp": "2025-12-04T10:30:00Z",
+          "path": "/api/auctions/123"
+        }
+      }
+    }
+  },
+  
+  "errorCodeMapping": {
+    "description": "HTTP 狀態碼與錯誤代碼對應表",
+    "mappings": [
+      {
+        "httpStatus": 401,
+        "codes": ["UNAUTHORIZED", "TOKEN_EXPIRED", "INVALID_TOKEN", "MALFORMED_TOKEN"],
+        "when": "JWT 驗證失敗或未提供"
+      },
+      {
+        "httpStatus": 404,
+        "codes": ["NOT_FOUND"],
+        "when": "後端服務回傳 404"
+      },
+      {
+        "httpStatus": 413,
+        "codes": ["PAYLOAD_TOO_LARGE"],
+        "when": "請求大小超過 10MB"
+      },
+      {
+        "httpStatus": 429,
+        "codes": ["RATE_LIMIT_EXCEEDED"],
+        "when": "同一 IP 每分鐘請求超過 100 次"
+      },
+      {
+        "httpStatus": 500,
+        "codes": ["INTERNAL_SERVER_ERROR"],
+        "when": "Gateway 內部錯誤"
+      },
+      {
+        "httpStatus": 503,
+        "codes": ["SERVICE_UNAVAILABLE"],
+        "when": "後端服務無回應或健康檢查失敗"
+      },
+      {
+        "httpStatus": 504,
+        "codes": ["GATEWAY_TIMEOUT"],
+        "when": "後端服務呼叫超過 30 秒"
+      }
+    ]
+  },
+  
+  "securityNotes": [
+    "生產環境不得暴露內部實作細節 (如類別名稱、檔案路徑、SQL 語句)",
+    "堆疊追蹤僅記錄於日誌，不回傳給客戶端",
+    "錯誤訊息使用繁體中文，提升使用者體驗",
+    "Details 欄位僅在開發環境或必要時提供，避免資訊洩漏"
+  ]
+}

@@ -1,0 +1,186 @@
+# 請求聚合端點定義
+# 用途: 定義 API Gateway 提供的聚合端點，組合多個後端服務的資料
+
+endpoints:
+  - name: 商品詳細頁聚合
+    path: GET /api/aggregated/auctions/{id}
+    description: 組合商品資訊、賣家資料、出價歷史，提供完整的商品詳細頁資料
+    authentication: 不需要 (公開端點)
+    
+    # 並行呼叫的後端服務
+    backend_calls:
+      - service: Auction Service
+        endpoint: GET /api/auctions/{id}
+        timeout: 30s
+        required: true  # 若失敗則整個請求失敗
+        description: 取得商品基本資訊
+        
+      - service: Member Service
+        endpoint: GET /api/members/{sellerId}
+        timeout: 30s
+        required: false  # 可選，失敗時回傳 null
+        description: 取得賣家資訊
+        note: sellerId 從 Auction 回應中提取
+        
+      - service: Bidding Service
+        endpoint: GET /api/bids?auctionId={id}&limit=10
+        timeout: 30s
+        required: false
+        description: 取得最近 10 筆出價記錄
+    
+    # 回應結構
+    response:
+      content_type: application/json
+      schema:
+        type: object
+        properties:
+          auction:
+            type: object
+            description: 商品資訊 (來自 Auction Service)
+            properties:
+              id: integer
+              title: string
+              description: string
+              startingPrice: number
+              currentPrice: number
+              startTime: string (ISO8601)
+              endTime: string (ISO8601)
+              sellerId: integer
+              status: string  # "Active", "Ended", "Cancelled"
+              
+          seller:
+            type: object
+            nullable: true
+            description: 賣家資訊 (來自 Member Service)
+            properties:
+              id: integer
+              username: string
+              email: string
+              rating: number
+              totalSales: integer
+              
+          bids:
+            type: array
+            description: 出價歷史 (來自 Bidding Service，最近 10 筆)
+            items:
+              type: object
+              properties:
+                id: integer
+                bidderId: integer
+                bidderName: string
+                amount: number
+                bidTime: string (ISO8601)
+                
+          metadata:
+            type: object
+            description: 資料可用性狀態
+            properties:
+              dataAvailability:
+                type: object
+                properties:
+                  auction: boolean
+                  seller: boolean
+                  bids: boolean
+    
+    # 錯誤處理
+    error_handling:
+      - condition: Auction Service 失敗
+        action: 回傳 503 Service Unavailable
+        reason: 商品資訊為必要資料
+        
+      - condition: Member Service 失敗
+        action: seller = null, metadata.dataAvailability.seller = false
+        reason: 賣家資訊非必要，回傳部分資料
+        
+      - condition: Bidding Service 失敗
+        action: bids = [], metadata.dataAvailability.bids = false
+        reason: 出價記錄非必要，回傳空陣列
+        
+      - condition: 所有服務超時
+        action: 回傳 504 Gateway Timeout
+    
+    # 效能要求
+    performance:
+      target_latency: < 300ms (P95)
+      execution_mode: 並行呼叫 (Task.WhenAll)
+      note: 總延遲取決於最慢的服務
+    
+    # 範例請求
+    example_request:
+      curl: |
+        curl -X GET https://api.auction.com/api/aggregated/auctions/123
+    
+    # 範例回應 (成功)
+    example_response_success:
+      status: 200 OK
+      body: |
+        {
+          "auction": {
+            "id": 123,
+            "title": "古董花瓶",
+            "description": "清代青花瓷花瓶",
+            "startingPrice": 1000,
+            "currentPrice": 5000,
+            "startTime": "2025-12-01T10:00:00Z",
+            "endTime": "2025-12-10T10:00:00Z",
+            "sellerId": 456,
+            "status": "Active"
+          },
+          "seller": {
+            "id": 456,
+            "username": "antique_seller",
+            "email": "seller@example.com",
+            "rating": 4.8,
+            "totalSales": 120
+          },
+          "bids": [
+            {
+              "id": 789,
+              "bidderId": 101,
+              "bidderName": "buyer1",
+              "amount": 5000,
+              "bidTime": "2025-12-04T10:00:00Z"
+            },
+            {
+              "id": 788,
+              "bidderId": 102,
+              "bidderName": "buyer2",
+              "amount": 4800,
+              "bidTime": "2025-12-04T09:55:00Z"
+            }
+          ],
+          "metadata": {
+            "dataAvailability": {
+              "auction": true,
+              "seller": true,
+              "bids": true
+            }
+          }
+        }
+    
+    # 範例回應 (部分失敗)
+    example_response_partial_failure:
+      status: 200 OK
+      body: |
+        {
+          "auction": {
+            "id": 123,
+            "title": "古董花瓶",
+            "currentPrice": 5000,
+            "status": "Active"
+          },
+          "seller": null,
+          "bids": [],
+          "metadata": {
+            "dataAvailability": {
+              "auction": true,
+              "seller": false,
+              "bids": false
+            }
+          }
+        }
+      note: Member Service 與 Bidding Service 失敗，但仍回傳商品資訊
+
+# 未來擴展 (暫不實作)
+# - 使用者個人資料聚合 (個人資料 + 出價記錄 + 追蹤商品)
+# - 商品清單聚合 (商品 + 賣家評分)

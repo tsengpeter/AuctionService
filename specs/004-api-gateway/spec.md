@@ -375,7 +375,7 @@ Gateway 必須維護以下路由對應規則:
 ## 技術考量
 
 ### 架構決策
-- **語言/框架**: ASP.NET Core 8 (或其他高效能 Gateway 解決方案如 Ocelot、YARP)
+- **語言/框架**: ASP.NET Core 10 (或其他高效能 Gateway 解決方案如 Ocelot、YARP)
 - **JWT 驗證**: 使用 HS256 對稱金鑰演算法 (HMAC-SHA256),密鑰透過環境變數管理
 - **Rate Limiting**: Redis 集中管理計數器 (支援多實例部署,使用 INCR 原子操作)
 - **後端服務發現**: 靜態設定檔 (appsettings.json),透過 IServiceDiscovery 介面抽象,未來可遷移到 Consul

@@ -1,0 +1,109 @@
+# YARP 路由設定
+# 用途: 定義 API Gateway 的路由規則與後端服務叢集
+# 檔案位置: src/ApiGateway/appsettings.json (ReverseProxy 區段)
+
+ReverseProxy:
+  # 路由規則定義
+  Routes:
+    # 會員服務路由
+    member-route:
+      ClusterId: member-cluster
+      Match:
+        Path: /api/members/{**catch-all}
+      Order: 100  # 較低優先級
+      Metadata:
+        RequireAuth: "false"  # 部分端點公開 (登入/註冊)
+
+    # 商品服務路由
+    auction-route:
+      ClusterId: auction-cluster
+      Match:
+        Path: /api/auctions/{**catch-all}
+      Order: 100
+
+    # 出價服務路由
+    bidding-route:
+      ClusterId: bidding-cluster
+      Match:
+        Path: /api/bids/{**catch-all}
+      Order: 100
+      Metadata:
+        RequireAuth: "true"  # 所有出價端點需認證
+
+    # 個人出價記錄 (優先匹配)
+    my-bids-route:
+      ClusterId: bidding-cluster
+      Match:
+        Path: /api/me/bids
+      Order: 1  # 高優先級，優先於 /api/me/**
+      Metadata:
+        RequireAuth: "true"
+
+    # 個人追蹤商品 (優先匹配)
+    my-follows-route:
+      ClusterId: auction-cluster
+      Match:
+        Path: /api/me/follows
+      Order: 1
+      Metadata:
+        RequireAuth: "true"
+
+    # 個人資料 (GET/PUT)
+    my-profile-route:
+      ClusterId: member-cluster
+      Match:
+        Path: /api/me
+        Methods: [GET, PUT]
+      Order: 1
+      Metadata:
+        RequireAuth: "true"
+
+  # 後端服務叢集定義
+  Clusters:
+    member-cluster:
+      Destinations:
+        destination1:
+          Address: http://member-service:5001
+      HealthCheck:
+        Active:
+          Enabled: true
+          Interval: 00:00:30  # 每 30 秒檢查一次
+          Timeout: 00:00:10
+          Path: /health
+          Policy: ConsecutiveFailures
+        Passive:
+          Enabled: true
+          Policy: TransportFailureRate
+          ReactivationPeriod: 00:01:00
+
+    auction-cluster:
+      Destinations:
+        destination1:
+          Address: http://auction-service:5002
+      HealthCheck:
+        Active:
+          Enabled: true
+          Interval: 00:00:30
+          Timeout: 00:00:10
+          Path: /health
+
+    bidding-cluster:
+      Destinations:
+        destination1:
+          Address: http://bidding-service:5003
+      HealthCheck:
+        Active:
+          Enabled: true
+          Interval: 00:00:30
+          Timeout: 00:00:10
+          Path: /health
+
+  # 全域設定
+  GlobalConfig:
+    RequestTimeout: 00:00:30  # 後端服務呼叫超時 30 秒
+
+# 注意事項:
+# 1. Order 值越小越優先 (1 > 100)
+# 2. {**catch-all} 匹配所有子路徑
+# 3. HealthCheck 用於自動標記不健康的後端服務
+# 4. Metadata 可用於自訂 Middleware 邏輯 (如認證檢查)
