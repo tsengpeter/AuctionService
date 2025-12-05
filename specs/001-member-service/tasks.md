@@ -244,28 +244,28 @@
 
 - [ ] T115 [P] [US3] 先寫 UserService.GetCurrentUser 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
 - [ ] T116 [P] [US3] 先寫 UserService.GetUserById 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
-- [ ] T117 [P] [US3] 先寫 UsersController.GetMe 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
-- [ ] T118 [P] [US3] 先寫 UsersController.GetUserById 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
+- [X] T117 [P] [US3] 先寫 UsersController.GetMe 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
+- [X] T118 [P] [US3] 先寫 UsersController.GetUserById 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
 
 ### DTOs
 
-- [ ] T119 [P] [US3] 建立 UserProfileResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Users/UserProfileResponse.cs
-- [ ] T120 [P] [US3] 建立 UserPublicProfileResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Users/UserPublicProfileResponse.cs
+- [X] T119 [P] [US3] 建立 UserProfileResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Users/UserProfileResponse.cs
+- [X] T120 [P] [US3] 建立 UserPublicProfileResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Users/UserPublicProfileResponse.cs
 
 ### 異常例外
 
-- [ ] T121 [P] [US3] 實作 UserNotFoundException 於 MemberService/src/MemberService.Domain/Exceptions/UserNotFoundException.cs
+- [X] T121 [P] [US3] 實作 UserNotFoundException 於 MemberService/src/MemberService.Domain/Exceptions/UserNotFoundException.cs
 
 ### Services
 
-- [ ] T122 [US3] 定義 IUserService 介面於 MemberService/src/MemberService.Application/Services/IUserService.cs
-- [ ] T123 [US3] 實作 UserService.GetCurrentUser 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T119)
-- [ ] T124 [US3] 實作 UserService.GetUserById 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T120, T121)
+- [X] T122 [US3] 定義 IUserService 介面於 MemberService/src/MemberService.Application/Services/IUserService.cs
+- [X] T123 [US3] 實作 UserService.GetCurrentUser 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T119)
+- [X] T124 [US3] 實作 UserService.GetUserById 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T120, T121)
 
 ### Controllers
 
-- [ ] T125 [US3] 實作 UsersController.GetMe 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T123)
-- [ ] T126 [US3] 實作 UsersController.GetUserById 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T124)
+- [X] T125 [US3] 實作 UsersController.GetMe 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T123)
+- [X] T126 [US3] 實作 UsersController.GetUserById 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T124)
 
 ### 驗證
 

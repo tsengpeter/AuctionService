@@ -66,6 +66,12 @@ public class AuthService : IAuthService
             AccessToken: accessToken,
             RefreshToken: refreshToken,
             ExpiresAt: DateTime.UtcNow.AddHours(1), // JWT typically expires in 1 hour
+            User: new UserInfo(
+                Id: user.Id,
+                Email: user.Email.Value,
+                Username: user.Username.Value,
+                CreatedAt: user.CreatedAt
+            ),
             TokenType: "Bearer"
         );
     }
@@ -95,6 +101,12 @@ public class AuthService : IAuthService
             AccessToken: accessToken,
             RefreshToken: refreshToken,
             ExpiresAt: DateTime.UtcNow.AddHours(1), // JWT typically expires in 1 hour
+            User: new UserInfo(
+                Id: user.Id,
+                Email: user.Email.Value,
+                Username: user.Username.Value,
+                CreatedAt: user.CreatedAt
+            ),
             TokenType: "Bearer"
         );
     }
@@ -136,6 +148,12 @@ public class AuthService : IAuthService
             AccessToken: accessToken,
             RefreshToken: newRefreshToken,
             ExpiresAt: DateTime.UtcNow.AddHours(1),
+            User: new UserInfo(
+                Id: user.Id,
+                Email: user.Email.Value,
+                Username: user.Username.Value,
+                CreatedAt: user.CreatedAt
+            ),
             TokenType: "Bearer"
         );
     }

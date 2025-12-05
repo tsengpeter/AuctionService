@@ -57,6 +57,7 @@ public class GlobalExceptionHandler : IMiddleware
     {
         return exception switch
         {
+            UserNotFoundException => (HttpStatusCode.NotFound, "User Not Found", exception.Message),
             DomainException domainEx => (HttpStatusCode.BadRequest, "Domain Error", domainEx.Message),
             ArgumentException argEx => (HttpStatusCode.BadRequest, "Invalid Argument", argEx.Message),
             KeyNotFoundException => (HttpStatusCode.NotFound, "Resource Not Found", "The requested resource was not found"),
