@@ -48,22 +48,22 @@
 - [X] T020 [P] 建立 Dockerfile 於 MemberService/Dockerfile
 - [X] T021 [P] 建立 docker-compose.yml 於 MemberService/docker-compose.yml
 - [X] T022 [P] 建立 README.md 於 MemberService/README.md
-- [ ] T023 [P] 建立 .gitignore 於 MemberService/.gitignore
-- [ ] T024 [P] 建立 .editorconfig 於 MemberService/.editorconfig
-- [ ] T025 [P] 建立 global.json 於 MemberService/global.json (指定 .NET 10 SDK)
-- [ ] T026 [P] 建立 docs 資料夾於 MemberService/docs/
-- [ ] T027 [P] 建立 architecture.md 於 MemberService/docs/architecture.md
-- [ ] T028 [P] 建立 api-guide.md 於 MemberService/docs/api-guide.md
-- [ ] T029 [P] 建立 deployment.md 於 MemberService/docs/deployment.md
-- [ ] T030 [P] 建立 scripts 資料夾於 MemberService/scripts/
-- [ ] T031 [P] 建立 build.sh 於 MemberService/scripts/build.sh
-- [ ] T032 [P] 建立 build.ps1 於 MemberService/scripts/build.ps1
-- [ ] T033 [P] 建立 init-db.sql 於 MemberService/scripts/init-db.sql
-- [ ] T034 [P] 建立 run-tests.sh 於 MemberService/scripts/run-tests.sh
-- [ ] T035 [P] 建立 .github 資料夾於 MemberService/.github/
-- [ ] T036 [P] 建立 workflows 資料夾於 MemberService/.github/workflows/
-- [ ] T037 [P] 建立 build.yml 於 MemberService/.github/workflows/build.yml
-- [ ] T038 [P] 建立 test.yml 於 MemberService/.github/workflows/test.yml
+- [X] T023 [P] 建立 .gitignore 於 MemberService/.gitignore
+- [X] T024 [P] 建立 .editorconfig 於 MemberService/.editorconfig
+- [X] T025 [P] 建立 global.json 於 MemberService/global.json (指定 .NET 10 SDK)
+- [X] T026 [P] 建立 docs 資料夾於 MemberService/docs/
+- [X] T027 [P] 建立 architecture.md 於 MemberService/docs/architecture.md
+- [X] T028 [P] 建立 api-guide.md 於 MemberService/docs/api-guide.md
+- [X] T029 [P] 建立 deployment.md 於 MemberService/docs/deployment.md
+- [X] T030 [P] 建立 scripts 資料夾於 MemberService/scripts/
+- [X] T031 [P] 建立 build.sh 於 MemberService/scripts/build.sh
+- [X] T032 [P] 建立 build.ps1 於 MemberService/scripts/build.ps1
+- [X] T033 [P] 建立 init-db.sql 於 MemberService/scripts/init-db.sql
+- [X] T034 [P] 建立 run-tests.sh 於 MemberService/scripts/run-tests.sh
+- [X] T035 [P] 建立 .github 資料夾於 MemberService/.github/
+- [X] T036 [P] 建立 workflows 資料夾於 MemberService/.github/workflows/
+- [X] T037 [P] 建立 build.yml 於 MemberService/.github/workflows/build.yml
+- [X] T038 [P] 建立 test.yml 於 MemberService/.github/workflows/test.yml
 
 ---
 
@@ -167,9 +167,9 @@
 
 ### 驗證
 
-- [ ] T096 [US1] 執行所有 US1 測試並確保通過 (覆蓋率 >80%)
-- [ ] T097 [US1] 手動測試註冊與登入流程（Postman/curl）
-- [ ] T098 [US1] 驗證錯誤處理：重複電子郵件、密碼太短、無效電子郵件格式、錯誤憑證
+- [X] T096 [US1] 執行所有 US1 測試並確保通過 (覆蓋率 >80%)
+- [X] T097 [US1] 手動測試註冊與登入流程（Postman/curl）
+- [X] T098 [US1] 驗證錯誤處理：重複電子郵件、密碼太短、無效電子郵件格式、錯誤憑證
 
 **檢查點**: 此時 User Story 1 功能可運行並可進行測試
 
