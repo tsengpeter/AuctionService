@@ -133,8 +133,8 @@
 
 - [X] T078 [P] [US1] 先寫 RegisterRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
 - [X] T079 [P] [US1] 先寫 LoginRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
-- [ ] T080 [P] [US1] 先寫 AuthService.Register 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
-- [ ] T081 [P] [US1] 先寫 AuthService.Login 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [X] T080 [P] [US1] 先寫 AuthService.Register 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [X] T081 [P] [US1] 先寫 AuthService.Login 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
 - [ ] T082 [P] [US1] 先寫 AuthController.Register 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
 - [ ] T083 [P] [US1] 先寫 AuthController.Login 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
 
@@ -146,7 +146,7 @@
 
 ### Validators (FluentValidation)
 
-- [ ] T087 [US1] 實作 RegisterRequestValidator 於 MemberService/src/MemberService.Application/Validators/RegisterRequestValidator.cs (依賴 T084)
+- [X] T087 [US1] 實作 RegisterRequestValidator 於 MemberService/src/MemberService.Application/Validators/RegisterRequestValidator.cs (依賴 T084)
 - [X] T088 [US1] 實作 LoginRequestValidator 於 MemberService/src/MemberService.Application/Validators/LoginRequestValidator.cs (依賴 T085)
 
 ### 異常例外
@@ -156,14 +156,14 @@
 
 ### Services
 
-- [ ] T091 [US1] 定義 IAuthService 介面於 MemberService/src/MemberService.Application/Services/IAuthService.cs
-- [ ] T092 [US1] 實作 AuthService.Register 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T087, T089)
-- [ ] T093 [US1] 實作 AuthService.Login 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T088, T090)
+- [X] T091 [US1] 定義 IAuthService 介面於 MemberService/src/MemberService.Application/Services/IAuthService.cs
+- [X] T092 [US1] 實作 AuthService.Register 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T087, T089)
+- [X] T093 [US1] 實作 AuthService.Login 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T088, T090)
 
 ### Controllers
 
-- [ ] T094 [US1] 實作 AuthController.Register 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T092)
-- [ ] T095 [US1] 實作 AuthController.Login 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T093)
+- [X] T094 [US1] 實作 AuthController.Register 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T092)
+- [X] T095 [US1] 實作 AuthController.Login 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T093)
 
 ### 驗證
 

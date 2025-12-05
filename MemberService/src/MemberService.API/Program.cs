@@ -1,4 +1,6 @@
+using MemberService.API.Controllers;
 using MemberService.API.Middlewares;
+using MemberService.Application.Services;
 using MemberService.Domain.Interfaces;
 using MemberService.Infrastructure.IdGeneration;
 using MemberService.Infrastructure.Persistence;
@@ -42,6 +44,9 @@ builder.Services.AddScoped<ITokenGenerator>(sp =>
 builder.Services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+// Register application services
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Register middlewares
 builder.Services.AddScoped<GlobalExceptionHandler>();
