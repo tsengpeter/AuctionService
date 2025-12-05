@@ -1,0 +1,104 @@
+name: MemberService CI/CD
+
+on:
+  push:
+    branches: [ main, develop, 001-member-service ]
+  pull_request:
+    branches: [ main, develop, 001-member-service ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: memberservice
+          POSTGRES_PASSWORD: Dev@Password123
+          POSTGRES_DB: memberservice_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: MemberService
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+      working-directory: MemberService
+
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal
+      working-directory: MemberService
+      env:
+        DB_CONNECTION_STRING: Host=localhost;Port=5432;Database=memberservice_test;Username=memberservice;Password=Dev@Password123
+        JWT_SECRET_KEY: test-jwt-secret-key-for-ci-cd-pipeline-testing-only-32-chars-minimum
+        SNOWFLAKE_WORKER_ID: 1
+        SNOWFLAKE_DATACENTER_ID: 1
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          MemberService/**/TestResults/
+          MemberService/**/coverage/
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: actions/docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: actions/docker/build-push-action@v5
+      with:
+        context: ./MemberService
+        file: ./MemberService/Dockerfile
+        push: false
+        tags: memberservice:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: './MemberService'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

@@ -338,23 +338,23 @@
 
 **目的**: 影響多個使用者故事的功能
 
-- [ ] T150 [P] 建立 HealthController 於 MemberService/src/MemberService.API/Controllers/HealthController.cs
-- [ ] T151 [P] 撰寫完整的 README.md 文件於 MemberService/README.md
-- [ ] T152 [P] 撰寫 Docker 部署說明於 MemberService/README.md
-- [ ] T153 [P] 撰寫環境變數設定指南於 MemberService/README.md
-- [ ] T154 執行完整測試套件並確認總覆蓋率 >80%
-- [ ] T155 驗證 quickstart.md 驗證（確保文件與實作一致）
-- [ ] T156 [P] 性能測試：設定性能測試工具（BenchmarkDotNet 或 k6）
-- [ ] T157 [P] 性能測試：定義負載環境（1000 並發使用者、正常操作混合）
-- [ ] T158 [P] 性能測試：建立基準指標（JWT 驗證 <50ms p95，API 端點 <200ms p95）
-- [ ] T159 性能測試：執行並驗證 JWT 驗證延遲 <50ms p95
-- [ ] T160 性能測試：執行並驗證 API 端點響應時間 <200ms p95
-- [ ] T161 [P] 程式碼審查準備
-- [ ] T162 [P] 安全性檢查（JWT 密鑰管理、SQL 注入保護、CORS 設定）
-- [ ] T163 [P] 完整性檢查（所有操作都記錄結構化日誌，含 UserId、執行時間、錯誤訊息）
-- [ ] T164 建立 CI/CD Pipeline 設定
-- [ ] T165 建立 Kubernetes 部署檔案（如需要）
-- [ ] T166 最終整合測試（所有使用者故事端到端測試）
+- [X] T150 [P] 建立 HealthController 於 MemberService/src/MemberService.API/Controllers/HealthController.cs
+- [X] T151 [P] 撰寫完整的 README.md 文件於 MemberService/README.md
+- [X] T152 [P] 撰寫 Docker 部署說明於 MemberService/README.md
+- [X] T153 [P] 撰寫環境變數設定指南於 MemberService/README.md
+- [X] T154 執行完整測試套件並確認總覆蓋率 >80%
+- [X] T155 驗證 quickstart.md 驗證（確保文件與實作一致）
+- [X] T156 [P] 性能測試：設定性能測試工具（BenchmarkDotNet 或 k6）
+- [X] T157 [P] 性能測試：定義負載環境（1000 並發使用者、正常操作混合）
+- [X] T158 [P] 性能測試：建立基準指標（JWT 驗證 <50ms p95，API 端點 <200ms p95）
+- [X] T159 性能測試：執行並驗證 JWT 驗證延遲 <50ms p95
+- [X] T160 性能測試：執行並驗證 API 端點響應時間 <200ms p95
+- [X] T161 [P] 程式碼審查準備
+- [X] T162 [P] 安全性檢查（JWT 密鑰管理、SQL 注入保護、CORS 設定）
+- [X] T163 [P] 完整性檢查（所有操作都記錄結構化日誌，含 UserId、執行時間、錯誤訊息）
+- [X] T164 建立 CI/CD Pipeline 設定
+- [X] T165 建立 Kubernetes 部署檔案（如需要）
+- [X] T166 最終整合測試（所有使用者故事端到端測試）
 
 ---
 
