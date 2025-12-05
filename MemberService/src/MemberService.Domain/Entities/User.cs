@@ -40,4 +40,10 @@ public class User
         Username = newUsername;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdateEmail(Email newEmail)
+    {
+        Email = newEmail;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

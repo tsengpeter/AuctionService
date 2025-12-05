@@ -127,4 +127,186 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task UpdateMyProfile_WhenAuthenticated_UpdatesUsername_ReturnsUpdatedProfile()
+    {
+        // Arrange
+        await TestDatabaseHelper.EnsureDatabaseStartedAsync();
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+
+        var registerRequest = new RegisterRequest
+        {
+            Email = "update@example.com",
+            Username = "updateuser",
+            Password = "TestPassword123!"
+        };
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        authResponse.Should().NotBeNull();
+
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse!.AccessToken);
+
+        var updateRequest = new UpdateProfileRequest { Username = "updateduser" };
+
+        // Act
+        var response = await _client.PutAsJsonAsync("/api/users/me", updateRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var profile = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
+        profile.Should().NotBeNull();
+        profile!.Id.Should().Be(authResponse.User.Id);
+        profile.Email.Should().Be(authResponse.User.Email);
+        profile.Username.Should().Be("updateduser");
+    }
+
+    [Fact]
+    public async Task UpdateMyProfile_WhenAuthenticated_UpdatesEmail_ReturnsUpdatedProfile()
+    {
+        // Arrange
+        await TestDatabaseHelper.EnsureDatabaseStartedAsync();
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+
+        var registerRequest = new RegisterRequest
+        {
+            Email = "update2@example.com",
+            Username = "updateuser2",
+            Password = "TestPassword123!"
+        };
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        authResponse.Should().NotBeNull();
+
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse!.AccessToken);
+
+        var updateRequest = new UpdateProfileRequest { Email = "updated@example.com" };
+
+        // Act
+        var response = await _client.PutAsJsonAsync("/api/users/me", updateRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var profile = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
+        profile.Should().NotBeNull();
+        profile!.Id.Should().Be(authResponse.User.Id);
+        profile.Email.Should().Be("updated@example.com");
+        profile.Username.Should().Be(authResponse.User.Username);
+    }
+
+    [Fact]
+    public async Task UpdateMyProfile_WhenNotAuthenticated_ReturnsUnauthorized()
+    {
+        // Arrange
+        await TestDatabaseHelper.EnsureDatabaseStartedAsync();
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+
+        var updateRequest = new UpdateProfileRequest { Username = "updateduser" };
+
+        // Act
+        var response = await _client.PutAsJsonAsync("/api/users/me", updateRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenAuthenticated_ValidOldPassword_ReturnsNoContent()
+    {
+        // Arrange
+        await TestDatabaseHelper.EnsureDatabaseStartedAsync();
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+
+        var registerRequest = new RegisterRequest
+        {
+            Email = "password@example.com",
+            Username = "passworduser",
+            Password = "OldPassword123!"
+        };
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        authResponse.Should().NotBeNull();
+
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse!.AccessToken);
+
+        var changeRequest = new ChangePasswordRequest
+        {
+            OldPassword = "OldPassword123!",
+            NewPassword = "NewPassword456!"
+        };
+
+        // Act
+        var response = await _client.PutAsJsonAsync("/api/users/me/password", changeRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenAuthenticated_InvalidOldPassword_ReturnsBadRequest()
+    {
+        // Arrange
+        await TestDatabaseHelper.EnsureDatabaseStartedAsync();
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+
+        var registerRequest = new RegisterRequest
+        {
+            Email = "password2@example.com",
+            Username = "passworduser2",
+            Password = "OldPassword123!"
+        };
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        authResponse.Should().NotBeNull();
+
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse!.AccessToken);
+
+        var changeRequest = new ChangePasswordRequest
+        {
+            OldPassword = "WrongPassword123!",
+            NewPassword = "NewPassword456!"
+        };
+
+        // Act
+        var response = await _client.PutAsJsonAsync("/api/users/me/password", changeRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenNotAuthenticated_ReturnsUnauthorized()
+    {
+        // Arrange
+        await TestDatabaseHelper.EnsureDatabaseStartedAsync();
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+
+        var changeRequest = new ChangePasswordRequest
+        {
+            OldPassword = "OldPassword123!",
+            NewPassword = "NewPassword456!"
+        };
+
+        // Act
+        var response = await _client.PutAsJsonAsync("/api/users/me/password", changeRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

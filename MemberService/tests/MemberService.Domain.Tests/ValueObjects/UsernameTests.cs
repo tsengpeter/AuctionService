@@ -86,20 +86,6 @@ public class UsernameTests
     public void Create_WithInvalidCharacters_ReturnsFailure()
     {
         // Arrange
-        var invalidUsername = "John123";
-
-        // Act
-        var result = Username.Create(invalidUsername);
-
-        // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Be("使用者名稱僅允許字母與空格");
-    }
-
-    [Fact]
-    public void Create_WithSpecialCharacters_ReturnsFailure()
-    {
-        // Arrange
         var invalidUsername = "John@Doe";
 
         // Act
@@ -107,7 +93,22 @@ public class UsernameTests
 
         // Assert
         result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Be("使用者名稱僅允許字母與空格");
+        result.Error.Should().Be("Username can only contain letters, numbers, underscores, and spaces");
+    }
+
+    [Fact]
+    public void Create_WithNumbersAndUnderscores_ReturnsSuccess()
+    {
+        // Arrange
+        var validUsername = "John123_Doe";
+
+        // Act
+        var result = Username.Create(validUsername);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+        result.Value!.Value.Should().Be(validUsername);
     }
 
     [Fact]

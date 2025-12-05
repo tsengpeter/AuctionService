@@ -40,6 +40,32 @@ public class UsersController : ControllerBase
         return Ok(profile);
     }
 
+    [Authorize]
+    [HttpPut("me")]
+    [ProducesResponseType(typeof(UserProfileResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateProfileRequest request)
+    {
+        var userId = GetCurrentUserId();
+        var updatedProfile = await _userService.UpdateProfileAsync(userId, request);
+        return Ok(updatedProfile);
+    }
+
+    [Authorize]
+    [HttpPut("me/password")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var userId = GetCurrentUserId();
+        await _userService.ChangePasswordAsync(userId, request);
+        return NoContent();
+    }
+
     private long GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
