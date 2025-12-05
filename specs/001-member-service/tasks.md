@@ -131,8 +131,8 @@
 
 ### 測試 (TDD - 先寫測試)
 
-- [ ] T078 [P] [US1] 先寫 RegisterRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
-- [ ] T079 [P] [US1] 先寫 LoginRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
+- [X] T078 [P] [US1] 先寫 RegisterRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
+- [X] T079 [P] [US1] 先寫 LoginRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
 - [ ] T080 [P] [US1] 先寫 AuthService.Register 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
 - [ ] T081 [P] [US1] 先寫 AuthService.Login 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
 - [ ] T082 [P] [US1] 先寫 AuthController.Register 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
@@ -140,19 +140,19 @@
 
 ### DTOs
 
-- [ ] T084 [P] [US1] 建立 RegisterRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/RegisterRequest.cs
-- [ ] T085 [P] [US1] 建立 LoginRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/LoginRequest.cs
-- [ ] T086 [P] [US1] 建立 AuthResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/AuthResponse.cs
+- [X] T084 [P] [US1] 建立 RegisterRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/RegisterRequest.cs
+- [X] T085 [P] [US1] 建立 LoginRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/LoginRequest.cs
+- [X] T086 [P] [US1] 建立 AuthResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/AuthResponse.cs
 
 ### Validators (FluentValidation)
 
 - [ ] T087 [US1] 實作 RegisterRequestValidator 於 MemberService/src/MemberService.Application/Validators/RegisterRequestValidator.cs (依賴 T084)
-- [ ] T088 [US1] 實作 LoginRequestValidator 於 MemberService/src/MemberService.Application/Validators/LoginRequestValidator.cs (依賴 T085)
+- [X] T088 [US1] 實作 LoginRequestValidator 於 MemberService/src/MemberService.Application/Validators/LoginRequestValidator.cs (依賴 T085)
 
 ### 異常例外
 
-- [ ] T089 [P] [US1] 實作 EmailAlreadyExistsException 於 MemberService/src/MemberService.Domain/Exceptions/EmailAlreadyExistsException.cs
-- [ ] T090 [P] [US1] 實作 InvalidCredentialsException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidCredentialsException.cs
+- [X] T089 [P] [US1] 實作 EmailAlreadyExistsException 於 MemberService/src/MemberService.Domain/Exceptions/EmailAlreadyExistsException.cs
+- [X] T090 [P] [US1] 實作 InvalidCredentialsException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidCredentialsException.cs
 
 ### Services
 
