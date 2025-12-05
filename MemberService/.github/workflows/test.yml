@@ -1,0 +1,46 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: memberservice
+          POSTGRES_PASSWORD: Dev@Password123
+          POSTGRES_DB: memberservice_dev
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run Unit Tests
+      run: dotnet test tests/MemberService.Domain.Tests --configuration Release --no-build
+
+    - name: Run Integration Tests
+      run: dotnet test tests/MemberService.IntegrationTests --configuration Release --no-build
+      env:
+        DB_CONNECTION_STRING: Host=localhost;Port=5432;Database=memberservice_dev;Username=memberservice;Password=Dev@Password123

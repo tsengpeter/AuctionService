@@ -26,28 +26,28 @@
 
 **目的**: 專案結構與基本檔案結構建立
 
-- [ ] T001 建立 MemberService/ 專案根目錄與基本檔案結構
-- [ ] T002 建立 MemberService.sln 解決方案檔案
-- [ ] T003 [P] 建立 Domain 專案: MemberService/src/MemberService.Domain/MemberService.Domain.csproj (.NET 10)
-- [ ] T004 [P] 建立 Application 專案: MemberService/src/MemberService.Application/MemberService.Application.csproj (.NET 10)
-- [ ] T005 [P] 建立 Infrastructure 專案: MemberService/src/MemberService.Infrastructure/MemberService.Infrastructure.csproj (.NET 10)
-- [ ] T006 [P] 建立 API 專案: MemberService/src/MemberService.API/MemberService.API.csproj (ASP.NET Core 10 Web API)
-- [ ] T007 [P] 建立 Domain.Tests 專案: MemberService/tests/MemberService.Domain.Tests/MemberService.Domain.Tests.csproj
-- [ ] T008 [P] 建立 Application.Tests 專案: MemberService/tests/MemberService.Application.Tests/MemberService.Application.Tests.csproj
-- [ ] T009 [P] 建立 Infrastructure.Tests 專案: MemberService/tests/MemberService.Infrastructure.Tests/MemberService.Infrastructure.Tests.csproj
-- [ ] T010 [P] 建立 IntegrationTests 專案: MemberService/tests/MemberService.IntegrationTests/MemberService.IntegrationTests.csproj
-- [ ] T011 設定專案參考（Domain → Application → Infrastructure → API）
-- [ ] T012 [P] 安裝 IdGen 3.x 至 Infrastructure 專案
-- [ ] T013 [P] 安裝 BCrypt.Net-Next 4.0.3 至 Infrastructure 專案
-- [ ] T014 [P] 安裝 System.IdentityModel.Tokens.Jwt 8.0.0 至 Infrastructure 專案
-- [ ] T015 [P] 安裝 Npgsql.EntityFrameworkCore.PostgreSQL 10.0 至 Infrastructure 專案
-- [ ] T016 [P] 安裝 FluentValidation.AspNetCore 11.3.0 至 Application 專案
-- [ ] T017 [P] 安裝 Serilog.AspNetCore 8.0 至 API 專案
-- [ ] T018 [P] 安裝 xUnit 2.6+、Moq 4.20+、FluentAssertions 6.12+ 到所有測試專案
-- [ ] T019 [P] 安裝 Testcontainers.PostgreSql 3.7+ 至 IntegrationTests 專案
-- [ ] T020 [P] 建立 Dockerfile 於 MemberService/Dockerfile
-- [ ] T021 [P] 建立 docker-compose.yml 於 MemberService/docker-compose.yml
-- [ ] T022 [P] 建立 README.md 於 MemberService/README.md
+- [X] T001 建立 MemberService/ 專案根目錄與基本檔案結構
+- [X] T002 建立 MemberService.sln 解決方案檔案
+- [X] T003 [P] 建立 Domain 專案: MemberService/src/MemberService.Domain/MemberService.Domain.csproj (.NET 10)
+- [X] T004 [P] 建立 Application 專案: MemberService/src/MemberService.Application/MemberService.Application.csproj (.NET 10)
+- [X] T005 [P] 建立 Infrastructure 專案: MemberService/src/MemberService.Infrastructure/MemberService.Infrastructure.csproj (.NET 10)
+- [X] T006 [P] 建立 API 專案: MemberService/src/MemberService.API/MemberService.API.csproj (ASP.NET Core 10 Web API)
+- [X] T007 [P] 建立 Domain.Tests 專案: MemberService/tests/MemberService.Domain.Tests/MemberService.Domain.Tests.csproj
+- [X] T008 [P] 建立 Application.Tests 專案: MemberService/tests/MemberService.Application.Tests/MemberService.Application.Tests.csproj
+- [X] T009 [P] 建立 Infrastructure.Tests 專案: MemberService/tests/MemberService.Infrastructure.Tests/MemberService.Infrastructure.Tests.csproj
+- [X] T010 [P] 建立 IntegrationTests 專案: MemberService/tests/MemberService.IntegrationTests/MemberService.IntegrationTests.csproj
+- [X] T011 設定專案參考（Domain → Application → Infrastructure → API）
+- [X] T012 [P] 安裝 IdGen 3.x 至 Infrastructure 專案
+- [X] T013 [P] 安裝 BCrypt.Net-Next 4.0.3 至 Infrastructure 專案
+- [X] T014 [P] 安裝 System.IdentityModel.Tokens.Jwt 8.0.0 至 Infrastructure 專案
+- [X] T015 [P] 安裝 Npgsql.EntityFrameworkCore.PostgreSQL 10.0 至 Infrastructure 專案
+- [X] T016 [P] 安裝 FluentValidation.AspNetCore 11.3.0 至 Application 專案
+- [X] T017 [P] 安裝 Serilog.AspNetCore 8.0 至 API 專案
+- [X] T018 [P] 安裝 xUnit 2.6+、Moq 4.20+、FluentAssertions 6.12+ 到所有測試專案
+- [X] T019 [P] 安裝 Testcontainers.PostgreSql 3.7+ 至 IntegrationTests 專案
+- [X] T020 [P] 建立 Dockerfile 於 MemberService/Dockerfile
+- [X] T021 [P] 建立 docker-compose.yml 於 MemberService/docker-compose.yml
+- [X] T022 [P] 建立 README.md 於 MemberService/README.md
 - [ ] T023 [P] 建立 .gitignore 於 MemberService/.gitignore
 - [ ] T024 [P] 建立 .editorconfig 於 MemberService/.editorconfig
 - [ ] T025 [P] 建立 global.json 於 MemberService/global.json (指定 .NET 10 SDK)
@@ -73,44 +73,44 @@
 
 **並行關鍵**: 所有使用者故事工作都在此階段後才能開始
 
-- [ ] T039 [P] 實作 DomainException 基底類別於 MemberService/src/MemberService.Domain/Exceptions/DomainException.cs
-- [ ] T040 [P] 測試 DomainException 於 MemberService/tests/MemberService.Domain.Tests/Exceptions/DomainExceptionTests.cs
-- [ ] T041 [P] 實作 Email Value Object 於 MemberService/src/MemberService.Domain/ValueObjects/Email.cs
-- [ ] T042 [P] 測試 Email Value Object 於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/EmailTests.cs
-- [ ] T043 [P] 實作 Password Value Object 於 MemberService/src/MemberService.Domain/ValueObjects/Password.cs
-- [ ] T044 [P] 測試 Password Value Object 於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/PasswordTests.cs
-- [ ] T045 [P] 實作 Username Value Object 於 MemberService/src/MemberService.Domain/ValueObjects/Username.cs
-- [ ] T046 [P] 測試 Username Value Object 於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/UsernameTests.cs
-- [ ] T047 [P] 實作 User 實體於 MemberService/src/MemberService.Domain/Entities/User.cs
-- [ ] T048 [P] 測試 User 實體於 MemberService/tests/MemberService.Domain.Tests/Entities/UserTests.cs
-- [ ] T049 [P] 實作 RefreshToken 實體於 MemberService/src/MemberService.Domain/Entities/RefreshToken.cs
-- [ ] T050 [P] 測試 RefreshToken 實體於 MemberService/tests/MemberService.Domain.Tests/Entities/RefreshTokenTests.cs
-- [ ] T051 [P] 定義 IUserRepository 介面於 MemberService/src/MemberService.Domain/Interfaces/IUserRepository.cs
-- [ ] T052 [P] 定義 IRefreshTokenRepository 介面於 MemberService/src/MemberService.Domain/Interfaces/IRefreshTokenRepository.cs
-- [ ] T053 [P] 定義 IPasswordHasher 介面於 MemberService/src/MemberService.Domain/Interfaces/IPasswordHasher.cs
-- [ ] T054 [P] 定義 ITokenGenerator 介面於 MemberService/src/MemberService.Domain/Interfaces/ITokenGenerator.cs
-- [ ] T055 [P] 定義 IIdGenerator 介面於 MemberService/src/MemberService.Domain/Interfaces/IIdGenerator.cs
-- [ ] T056 實作 SnowflakeIdGenerator 於 MemberService/src/MemberService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs
-- [ ] T057 測試 SnowflakeIdGenerator 於 MemberService/tests/MemberService.Infrastructure.Tests/IdGeneration/SnowflakeIdGeneratorTests.cs
-- [ ] T058 實作 BCryptPasswordHasher 於 MemberService/src/MemberService.Infrastructure/Security/BCryptPasswordHasher.cs
-- [ ] T059 測試 BCryptPasswordHasher 於 MemberService/tests/MemberService.Infrastructure.Tests/Security/BCryptPasswordHasherTests.cs
-- [ ] T060 實作 JwtTokenGenerator 於 MemberService/src/MemberService.Infrastructure/Security/JwtTokenGenerator.cs
-- [ ] T061 測試 JwtTokenGenerator 於 MemberService/tests/MemberService.Infrastructure.Tests/Security/JwtTokenGeneratorTests.cs
-- [ ] T062 實作 RefreshTokenGenerator 於 MemberService/src/MemberService.Infrastructure/Security/RefreshTokenGenerator.cs
-- [ ] T063 測試 RefreshTokenGenerator 於 MemberService/tests/MemberService.Infrastructure.Tests/Security/RefreshTokenGeneratorTests.cs
-- [ ] T064 建立 MemberDbContext 於 MemberService/src/MemberService.Infrastructure/Persistence/MemberDbContext.cs
-- [ ] T065 [P] 建立 UserConfiguration (EF Core) 於 MemberService/src/MemberService.Infrastructure/Persistence/Configurations/UserConfiguration.cs
-- [ ] T066 [P] 建立 RefreshTokenConfiguration (EF Core) 於 MemberService/src/MemberService.Infrastructure/Persistence/Configurations/RefreshTokenConfiguration.cs
-- [ ] T067 實作 UserRepository 於 MemberService/src/MemberService.Infrastructure/Persistence/Repositories/UserRepository.cs
-- [ ] T068 測試 UserRepository 於 MemberService/tests/MemberService.Infrastructure.Tests/Persistence/UserRepositoryTests.cs
-- [ ] T069 實作 RefreshTokenRepository 於 MemberService/src/MemberService.Infrastructure/Persistence/Repositories/RefreshTokenRepository.cs
-- [ ] T070 測試 RefreshTokenRepository 於 MemberService/tests/MemberService.Infrastructure.Tests/Persistence/RefreshTokenRepositoryTests.cs
-- [ ] T071 建立 EF Core Migration: InitialCreate
-- [ ] T072 實作 ExceptionHandlingMiddleware 於 MemberService/src/MemberService.API/Middlewares/ExceptionHandlingMiddleware.cs
-- [ ] T073 實作 RequestLoggingMiddleware 於 MemberService/src/MemberService.API/Middlewares/RequestLoggingMiddleware.cs
-- [ ] T074 設定 Program.cs 依賴注入與中介軟體管線於 MemberService/src/MemberService.API/Program.cs
-- [ ] T075 設定 appsettings.json 於 MemberService/src/MemberService.API/appsettings.json
-- [ ] T076 設定 appsettings.Development.json 於 MemberService/src/MemberService.API/appsettings.Development.json
+- [X] T039 [P] 實作 DomainException 基底類別於 MemberService/src/MemberService.Domain/Exceptions/DomainException.cs
+- [X] T040 [P] 測試 DomainException 於 MemberService/tests/MemberService.Domain.Tests/Exceptions/DomainExceptionTests.cs
+- [X] T041 [P] 實作 Email Value Object 於 MemberService/src/MemberService.Domain/ValueObjects/Email.cs
+- [X] T042 [P] 測試 Email Value Object 於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/EmailTests.cs
+- [X] T043 [P] 實作 Password Value Object 於 MemberService/src/MemberService.Domain/ValueObjects/Password.cs
+- [X] T044 [P] 測試 Password Value Object 於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/PasswordTests.cs
+- [X] T045 [P] 實作 Username Value Object 於 MemberService/src/MemberService.Domain/ValueObjects/Username.cs
+- [X] T046 [P] 測試 Username Value Object 於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/UsernameTests.cs
+- [X] T047 [P] 實作 User 實體於 MemberService/src/MemberService.Domain/Entities/User.cs
+- [X] T048 [P] 測試 User 實體於 MemberService/tests/MemberService.Domain.Tests/Entities/UserTests.cs
+- [X] T049 [P] 實作 RefreshToken 實體於 MemberService/src/MemberService.Domain/Entities/RefreshToken.cs
+- [X] T050 [P] 測試 RefreshToken 實體於 MemberService/tests/MemberService.Domain.Tests/Entities/RefreshTokenTests.cs
+- [X] T051 [P] 定義 IUserRepository 介面於 MemberService/src/MemberService.Domain/Interfaces/IUserRepository.cs
+- [X] T052 [P] 定義 IRefreshTokenRepository 介面於 MemberService/src/MemberService.Domain/Interfaces/IRefreshTokenRepository.cs
+- [X] T053 [P] 定義 IPasswordHasher 介面於 MemberService/src/MemberService.Domain/Interfaces/IPasswordHasher.cs
+- [X] T054 [P] 定義 ITokenGenerator 介面於 MemberService/src/MemberService.Domain/Interfaces/ITokenGenerator.cs
+- [X] T055 [P] 定義 IIdGenerator 介面於 MemberService/src/MemberService.Domain/Interfaces/IIdGenerator.cs
+- [X] T056 實作 SnowflakeIdGenerator 於 MemberService/src/MemberService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs
+- [X] T057 測試 SnowflakeIdGenerator 於 MemberService/tests/MemberService.Infrastructure.Tests/IdGeneration/SnowflakeIdGeneratorTests.cs
+- [X] T058 實作 BCryptPasswordHasher 於 MemberService/src/MemberService.Infrastructure/Security/BCryptPasswordHasher.cs
+- [X] T059 測試 BCryptPasswordHasher 於 MemberService/tests/MemberService.Infrastructure.Tests/Security/BCryptPasswordHasherTests.cs
+- [X] T060 實作 JwtTokenGenerator 於 MemberService/src/MemberService.Infrastructure/Security/JwtTokenGenerator.cs
+- [X] T061 測試 JwtTokenGenerator 於 MemberService/tests/MemberService.Infrastructure.Tests/Security/JwtTokenGeneratorTests.cs
+- [X] T062 實作 RefreshTokenGenerator 於 MemberService/src/MemberService.Infrastructure/Security/RefreshTokenGenerator.cs
+- [X] T063 測試 RefreshTokenGenerator 於 MemberService/tests/MemberService.Infrastructure.Tests/Security/RefreshTokenGeneratorTests.cs
+- [X] T064 建立 MemberDbContext 於 MemberService/src/MemberService.Infrastructure/Persistence/MemberDbContext.cs
+- [X] T065 [P] 建立 UserConfiguration (EF Core) 於 MemberService/src/MemberService.Infrastructure/Persistence/Configurations/UserConfiguration.cs
+- [X] T066 [P] 建立 RefreshTokenConfiguration (EF Core) 於 MemberService/src/MemberService.Infrastructure/Persistence/Configurations/RefreshTokenConfiguration.cs
+- [X] T067 實作 UserRepository 於 MemberService/src/MemberService.Infrastructure/Persistence/Repositories/UserRepository.cs
+- [X] T068 測試 UserRepository 於 MemberService/tests/MemberService.Infrastructure.Tests/Persistence/UserRepositoryTests.cs
+- [X] T069 實作 RefreshTokenRepository 於 MemberService/src/MemberService.Infrastructure/Persistence/Repositories/RefreshTokenRepository.cs
+- [X] T070 測試 RefreshTokenRepository 於 MemberService/tests/MemberService.Infrastructure.Tests/Persistence/RefreshTokenRepositoryTests.cs
+- [X] T071 建立 EF Core Migration: InitialCreate
+- [X] T072 實作 GlobalExceptionHandler 於 MemberService/src/MemberService.API/Middlewares/GlobalExceptionHandler.cs
+- [X] T073 實作 RequestLoggingMiddleware 於 MemberService/src/MemberService.API/Middlewares/RequestLoggingMiddleware.cs
+- [X] T074 設定 Program.cs 依賴注入與中介軟體管線於 MemberService/src/MemberService.API/Program.cs
+- [X] T075 設定 appsettings.json 於 MemberService/src/MemberService.API/appsettings.json
+- [X] T076 設定 appsettings.Development.json 於 MemberService/src/MemberService.API/appsettings.Development.json
 - [ ] T077 建立 PostgreSqlContainerFixture 於 MemberService/tests/MemberService.IntegrationTests/TestFixtures/PostgreSqlContainerFixture.cs
 
 **檢查點**: 基礎設施就緒 - 使用者故事實作現在可以平行開始

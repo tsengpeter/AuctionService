@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  memberservice-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: memberservice
+      POSTGRES_PASSWORD: Dev@Password123
+      POSTGRES_DB: memberservice_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  memberservice-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DB_CONNECTION_STRING: Host=memberservice-db;Port=5432;Database=memberservice_dev;Username=memberservice;Password=Dev@Password123
+      JWT_SECRET_KEY: your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm
+    ports:
+      - "5001:80"
+    depends_on:
+      - memberservice-db
+
+volumes:
+  postgres_data:
