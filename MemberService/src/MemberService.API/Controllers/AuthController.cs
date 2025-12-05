@@ -25,12 +25,20 @@ public class AuthController : ControllerBase
         return Created(string.Empty, response);
     }
 
-    [HttpPost("login")]
+    [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(AuthResponse), 200)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        var response = await _authService.LoginAsync(request);
+        var response = await _authService.RefreshTokenAsync(request);
         return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(204)]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+    {
+        await _authService.LogoutAsync(request.RefreshToken);
+        return NoContent();
     }
 }

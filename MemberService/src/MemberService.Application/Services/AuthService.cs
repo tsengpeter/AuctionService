@@ -10,17 +10,20 @@ namespace MemberService.Application.Services;
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenGenerator _tokenGenerator;
     private readonly IIdGenerator _idGenerator;
 
     public AuthService(
         IUserRepository userRepository,
+        IRefreshTokenRepository refreshTokenRepository,
         IPasswordHasher passwordHasher,
         ITokenGenerator tokenGenerator,
         IIdGenerator idGenerator)
     {
         _userRepository = userRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _passwordHasher = passwordHasher;
         _tokenGenerator = tokenGenerator;
         _idGenerator = idGenerator;
@@ -94,5 +97,56 @@ public class AuthService : IAuthService
             ExpiresAt: DateTime.UtcNow.AddHours(1), // JWT typically expires in 1 hour
             TokenType: "Bearer"
         );
+    }
+
+    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    {
+        // Find refresh token
+        var refreshToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
+        if (refreshToken == null || refreshToken.IsRevoked || refreshToken.ExpiresAt < DateTime.UtcNow)
+        {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // Get user
+        var user = await _userRepository.GetByIdAsync(refreshToken.UserId);
+        if (user == null)
+        {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // Revoke current refresh token
+        refreshToken.Revoke();
+        await _refreshTokenRepository.UpdateAsync(refreshToken);
+
+        // Generate new tokens
+        var accessToken = _tokenGenerator.GenerateAccessToken(user.Id, user.Email.Value);
+        var newRefreshToken = _tokenGenerator.GenerateRefreshToken();
+
+        // Create new refresh token entity
+        var newRefreshTokenEntity = new RefreshToken(
+            Guid.NewGuid(), // Generate new Guid for refresh token
+            newRefreshToken,
+            user.Id,
+            DateTime.UtcNow.AddDays(7) // Refresh tokens typically last 7 days
+        );
+        await _refreshTokenRepository.AddAsync(newRefreshTokenEntity);
+
+        return new AuthResponse(
+            AccessToken: accessToken,
+            RefreshToken: newRefreshToken,
+            ExpiresAt: DateTime.UtcNow.AddHours(1),
+            TokenType: "Bearer"
+        );
+    }
+
+    public async Task LogoutAsync(string refreshToken)
+    {
+        var token = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
+        if (token != null && !token.IsRevoked)
+        {
+            token.Revoke();
+            await _refreshTokenRepository.UpdateAsync(token);
+        }
     }
 }

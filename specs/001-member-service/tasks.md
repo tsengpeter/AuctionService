@@ -189,7 +189,7 @@
 
 ### 測試 (TDD - 先寫測試)
 
-- [ ] T099 [P] [US2] 先寫 RefreshTokenRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RefreshTokenRequestValidatorTests.cs
+- [X] T099 [P] [US2] 先寫 RefreshTokenRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RefreshTokenRequestValidatorTests.cs
 - [ ] T100 [P] [US2] 先寫 AuthService.RefreshToken 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
 - [ ] T101 [P] [US2] 先寫 AuthService.Logout 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
 - [ ] T102 [P] [US2] 先寫 AuthController.RefreshToken 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
@@ -197,26 +197,26 @@
 
 ### DTOs
 
-- [ ] T104 [P] [US2] 建立 RefreshTokenRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/RefreshTokenRequest.cs
+- [X] T104 [P] [US2] 建立 RefreshTokenRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/RefreshTokenRequest.cs
 
 ### Validators
 
-- [ ] T105 [US2] 實作 RefreshTokenRequestValidator 於 MemberService/src/MemberService.Application/Validators/RefreshTokenRequestValidator.cs (依賴 T104)
+- [X] T105 [US2] 實作 RefreshTokenRequestValidator 於 MemberService/src/MemberService.Application/Validators/RefreshTokenRequestValidator.cs (依賴 T104)
 
 ### 異常例外
 
-- [ ] T106 [P] [US2] 實作 InvalidRefreshTokenException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidRefreshTokenException.cs
-- [ ] T107 [P] [US2] 實作 RefreshTokenExpiredException 於 MemberService/src/MemberService.Domain/Exceptions/RefreshTokenExpiredException.cs
+- [X] T106 [P] [US2] 實作 InvalidRefreshTokenException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidRefreshTokenException.cs
+- [X] T107 [P] [US2] 實作 RefreshTokenExpiredException 於 MemberService/src/MemberService.Domain/Exceptions/RefreshTokenExpiredException.cs
 
 ### Services
 
-- [ ] T108 [US2] 實作 AuthService.RefreshToken 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T105, T106, T107)
-- [ ] T109 [US2] 實作 AuthService.Logout 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs
+- [X] T108 [US2] 實作 AuthService.RefreshToken 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T105, T106, T107)
+- [X] T109 [US2] 實作 AuthService.Logout 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs
 
 ### Controllers
 
-- [ ] T110 [US2] 實作 AuthController.RefreshToken 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T108)
-- [ ] T111 [US2] 實作 AuthController.Logout 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T109)
+- [X] T110 [US2] 實作 AuthController.RefreshToken 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T108)
+- [X] T111 [US2] 實作 AuthController.Logout 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T109)
 
 ### 驗證
 
