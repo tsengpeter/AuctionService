@@ -8,8 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\MemberService.Domain\MemberService.Domain.csproj" />
-    <ProjectReference Include="..\src\MemberService.Infrastructure\MemberService.Infrastructure.csproj" />
+    <ProjectReference Include="..\MemberService.Domain\MemberService.Domain.csproj" />
+    <ProjectReference Include="..\MemberService.Application\MemberService.Application.csproj" />
+    <ProjectReference Include="..\MemberService.Infrastructure\MemberService.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

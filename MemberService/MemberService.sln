@@ -23,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemberService.Infrastructur
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemberService.IntegrationTests", "tests\MemberService.IntegrationTests\MemberService.IntegrationTests.csproj", "{CDA0BFB3-2746-4D58-96FB-E9D0626E1A2C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemberService.Benchmarks", "MemberService.Benchmarks\MemberService.Benchmarks.csproj", "{E64B3838-9EEC-44BD-9A08-589C85D8E7C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemberService.Benchmarks", "src\MemberService.Benchmarks\MemberService.Benchmarks.csproj", "{E64B3838-9EEC-44BD-9A08-589C85D8E7C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
