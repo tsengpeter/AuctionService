@@ -22,7 +22,8 @@ builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Add authentication
 builder.Services.AddAuthentication(options =>
@@ -101,10 +102,15 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "MemberService API V1");
+        c.RoutePrefix = string.Empty; // 設定 Swagger UI 在根路徑
+    });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Temporarily disabled for debugging
 
 // Add custom middlewares
 app.UseMiddleware<RequestLoggingMiddleware>();
@@ -113,6 +119,10 @@ app.UseMiddleware<GlobalExceptionHandler>();
 app.UseAuthorization();
 
 app.MapControllers();
+
+Console.WriteLine("Starting web server...");
+Console.WriteLine($"Listening on http://localhost:5191");
+Console.WriteLine("Navigate to http://localhost:5191 to view Swagger UI");
 
 app.Run();
 
