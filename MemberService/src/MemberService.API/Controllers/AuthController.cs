@@ -25,6 +25,15 @@ public class AuthController : ControllerBase
         return Created(string.Empty, response);
     }
 
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthResponse), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    {
+        var response = await _authService.LoginAsync(request);
+        return Ok(response);
+    }
+
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(AuthResponse), 200)]
     [ProducesResponseType(401)]

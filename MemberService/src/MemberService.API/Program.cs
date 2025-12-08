@@ -81,6 +81,23 @@ builder.Services.AddScoped<GlobalExceptionHandler>();
 
 var app = builder.Build();
 
+// Run database migrations
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<MemberDbContext>();
+    try
+    {
+        Console.WriteLine("Starting database migration...");
+        dbContext.Database.Migrate();
+        Console.WriteLine("Database migration completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database migration failed: {ex.Message}");
+        throw;
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

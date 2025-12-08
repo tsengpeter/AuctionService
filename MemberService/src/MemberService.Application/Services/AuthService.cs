@@ -62,6 +62,15 @@ public class AuthService : IAuthService
         var accessToken = _tokenGenerator.GenerateAccessToken(user.Id, user.Email.Value);
         var refreshToken = _tokenGenerator.GenerateRefreshToken();
 
+        // Store refresh token
+        var refreshTokenEntity = new RefreshToken(
+            Guid.NewGuid(),
+            refreshToken,
+            user.Id,
+            DateTime.UtcNow.AddDays(7) // Refresh tokens typically last 7 days
+        );
+        await _refreshTokenRepository.AddAsync(refreshTokenEntity);
+
         return new AuthResponse(
             AccessToken: accessToken,
             RefreshToken: refreshToken,
@@ -96,6 +105,15 @@ public class AuthService : IAuthService
         // Generate tokens
         var accessToken = _tokenGenerator.GenerateAccessToken(user.Id, user.Email.Value);
         var refreshToken = _tokenGenerator.GenerateRefreshToken();
+
+        // Store refresh token
+        var refreshTokenEntity = new RefreshToken(
+            Guid.NewGuid(),
+            refreshToken,
+            user.Id,
+            DateTime.UtcNow.AddDays(7) // Refresh tokens typically last 7 days
+        );
+        await _refreshTokenRepository.AddAsync(refreshTokenEntity);
 
         return new AuthResponse(
             AccessToken: accessToken,

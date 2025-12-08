@@ -174,7 +174,6 @@ public class AuthServiceTests
         var refreshTokenEntity = new RefreshToken(Guid.NewGuid(), "valid_refresh_token", userId, DateTime.UtcNow.AddDays(1));
         var newAccessToken = "new_access_token";
         var newRefreshToken = "new_refresh_token";
-        var newRefreshTokenId = 2L;
 
         _refreshTokenRepositoryMock.Setup(x => x.GetByTokenAsync(request.RefreshToken))
             .ReturnsAsync(refreshTokenEntity);
@@ -182,7 +181,6 @@ public class AuthServiceTests
         _tokenGeneratorMock.Setup(x => x.GenerateAccessToken(userId, user.Email.Value))
             .Returns(newAccessToken);
         _tokenGeneratorMock.Setup(x => x.GenerateRefreshToken()).Returns(newRefreshToken);
-        _idGeneratorMock.Setup(x => x.GenerateId()).Returns(newRefreshTokenId);
 
         // Act
         var result = await _authService.RefreshTokenAsync(request);

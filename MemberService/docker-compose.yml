@@ -18,7 +18,7 @@ services:
       dockerfile: Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      DB_CONNECTION_STRING: Host=memberservice-db;Port=5432;Database=memberservice_dev;Username=memberservice;Password=Dev@Password123
+      ConnectionStrings__MemberDb: Host=memberservice-db;Port=5432;Database=memberservice_dev;Username=memberservice;Password=Dev@Password123
       JWT_SECRET_KEY: your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm
     ports:
       - "5001:80"

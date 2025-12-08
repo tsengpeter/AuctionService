@@ -190,10 +190,10 @@
 ### 測試 (TDD - 先寫測試)
 
 - [X] T099 [P] [US2] 先寫 RefreshTokenRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RefreshTokenRequestValidatorTests.cs
-- [ ] T100 [P] [US2] 先寫 AuthService.RefreshToken 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
-- [ ] T101 [P] [US2] 先寫 AuthService.Logout 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
-- [ ] T102 [P] [US2] 先寫 AuthController.RefreshToken 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
-- [ ] T103 [P] [US2] 先寫 AuthController.Logout 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+- [X] T100 [P] [US2] 先寫 AuthService.RefreshToken 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [X] T101 [P] [US2] 先寫 AuthService.Logout 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [X] T102 [P] [US2] 先寫 AuthController.RefreshToken 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+- [X] T103 [P] [US2] 先寫 AuthController.Logout 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
 
 ### DTOs
 
@@ -220,9 +220,9 @@
 
 ### 驗證
 
-- [ ] T112 [US2] 執行所有 US2 測試並確保通過 (覆蓋率 >80%)
-- [ ] T113 [US2] 手動測試權杖更新流程
-- [ ] T114 [US2] 驗證錯誤處理：過期 Token、被撤銷 Token、無效 Token
+- [X] T112 [US2] 執行所有 US2 測試並確保通過 (覆蓋率 >80%)
+- [X] T113 [US2] 手動測試權杖更新流程
+- [X] T114 [US2] 驗證錯誤處理：過期 Token、被撤銷 Token、無效 Token
 
 **檢查點**: 此時 User Stories 1 和 2 均已獨立完成
 
@@ -242,8 +242,8 @@
 
 ### 測試 (TDD - 先寫測試)
 
-- [ ] T115 [P] [US3] 先寫 UserService.GetCurrentUser 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
-- [ ] T116 [P] [US3] 先寫 UserService.GetUserById 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
+- [X] T115 [P] [US3] 先寫 UserService.GetCurrentUser 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
+- [X] T116 [P] [US3] 先寫 UserService.GetUserById 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
 - [X] T117 [P] [US3] 先寫 UsersController.GetMe 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
 - [X] T118 [P] [US3] 先寫 UsersController.GetUserById 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
 
@@ -269,9 +269,9 @@
 
 ### 驗證
 
-- [ ] T127 [US3] 執行所有 US3 測試並確保通過 (覆蓋率 >80%)
-- [ ] T128 [US3] 手動測試資訊查詢流程
-- [ ] T129 [US3] 驗證錯誤處理：未登入查詢、查詢不存在的使用者
+- [X] T127 [US3] 執行所有 US3 測試並確保通過 (覆蓋率 >80%)
+- [X] T128 [US3] 手動測試資訊查詢流程
+- [X] T129 [US3] 驗證錯誤處理：未登入查詢、查詢不存在的使用者
 
 **檢查點**: 所有使用者故事現在均應都獨立完成
 
@@ -291,44 +291,44 @@
 
 ### 測試 (TDD - 先寫測試)
 
-- [ ] T130 [P] [US4] 先寫 UpdateProfileRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/UpdateProfileRequestValidatorTests.cs
-- [ ] T131 [P] [US4] 先寫 ChangePasswordRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/ChangePasswordRequestValidatorTests.cs
-- [ ] T132 [P] [US4] 先寫 UserService.UpdateProfile 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
-- [ ] T133 [P] [US4] 先寫 UserService.ChangePassword 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
-- [ ] T134 [P] [US4] 先寫 UsersController.UpdateProfile 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
-- [ ] T135 [P] [US4] 先寫 UsersController.ChangePassword 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
+- [X] T130 [P] [US4] 先寫 UpdateProfileRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/UpdateProfileRequestValidatorTests.cs
+- [X] T131 [P] [US4] 先寫 ChangePasswordRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/ChangePasswordRequestValidatorTests.cs
+- [X] T132 [P] [US4] 先寫 UserService.UpdateProfile 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
+- [X] T133 [P] [US4] 先寫 UserService.ChangePassword 測試於 MemberService/tests/MemberService.Application.Tests/Services/UserServiceTests.cs
+- [X] T134 [P] [US4] 先寫 UsersController.UpdateProfile 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
+- [X] T135 [P] [US4] 先寫 UsersController.ChangePassword 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/UsersControllerTests.cs
 
 ### DTOs
 
-- [ ] T136 [P] [US4] 建立 UpdateProfileRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Users/UpdateProfileRequest.cs
-- [ ] T137 [P] [US4] 建立 ChangePasswordRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Users/ChangePasswordRequest.cs
+- [X] T136 [P] [US4] 建立 UpdateProfileRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Users/UpdateProfileRequest.cs
+- [X] T137 [P] [US4] 建立 ChangePasswordRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Users/ChangePasswordRequest.cs
 
 ### Validators
 
-- [ ] T138 [US4] 實作 UpdateProfileRequestValidator 於 MemberService/src/MemberService.Application/Validators/UpdateProfileRequestValidator.cs (依賴 T136)
-- [ ] T139 [US4] 實作 ChangePasswordRequestValidator 於 MemberService/src/MemberService.Application/Validators/ChangePasswordRequestValidator.cs (依賴 T137)
+- [X] T138 [US4] 實作 UpdateProfileRequestValidator 於 MemberService/src/MemberService.Application/Validators/UpdateProfileRequestValidator.cs (依賴 T136)
+- [X] T139 [US4] 實作 ChangePasswordRequestValidator 於 MemberService/src/MemberService.Application/Validators/ChangePasswordRequestValidator.cs (依賴 T137)
 
 ### 異常例外
 
-- [ ] T140 [P] [US4] 實作 InvalidPasswordException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidPasswordException.cs
+- [X] T140 [P] [US4] 實作 InvalidPasswordException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidPasswordException.cs
 
 ### Services
 
-- [ ] T141 [US4] 實作 UserService.UpdateProfile 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T138)
-- [ ] T142 [US4] 實作 UserService.ChangePassword 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T139, T140)
+- [X] T141 [US4] 實作 UserService.UpdateProfile 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T138)
+- [X] T142 [US4] 實作 UserService.ChangePassword 方法於 MemberService/src/MemberService.Application/Services/UserService.cs (依賴 T139, T140)
 
 ### Controllers
 
-- [ ] T143 [US4] 實作 UsersController.UpdateProfile 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T141)
-- [ ] T144 [US4] 實作 UsersController.ChangePassword 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T142)
+- [X] T143 [US4] 實作 UsersController.UpdateProfile 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T141)
+- [X] T144 [US4] 實作 UsersController.ChangePassword 端點於 MemberService/src/MemberService.API/Controllers/UsersController.cs (依賴 T142)
 
 ### 驗證
 
-- [ ] T145 [US4] 執行所有 US4 測試並確保通過 (覆蓋率 >80%)
-- [ ] T146 [US4] 手動測試資訊更新流程
-- [ ] T147 [US4] 手動測試密碼變更流程
-- [ ] T148 [US4] 驗證錯誤處理：更新為已存在電子郵件、錯誤舊密碼、新密碼太短
-- [ ] T149 [US4] 驗證密碼變更後所有 Refresh Token 被撤銷
+- [X] T145 [US4] 執行所有 US4 測試並確保通過 (覆蓋率 >80%)
+- [X] T146 [US4] 手動測試資訊更新流程
+- [X] T147 [US4] 手動測試密碼變更流程
+- [X] T148 [US4] 驗證錯誤處理：更新為已存在電子郵件、錯誤舊密碼、新密碼太短
+- [X] T149 [US4] 驗證密碼變更後所有 Refresh Token 被撤銷
 
 **檢查點**: 所有核心功能現已完整且可進行測試
 
