@@ -111,7 +111,7 @@
 - [X] T074 設定 Program.cs 依賴注入與中介軟體管線於 MemberService/src/MemberService.API/Program.cs
 - [X] T075 設定 appsettings.json 於 MemberService/src/MemberService.API/appsettings.json
 - [X] T076 設定 appsettings.Development.json 於 MemberService/src/MemberService.API/appsettings.Development.json
-- [ ] T077 建立 PostgreSqlContainerFixture 於 MemberService/tests/MemberService.IntegrationTests/TestFixtures/PostgreSqlContainerFixture.cs
+- [X] T077 建立 PostgreSqlContainerFixture 於 MemberService/tests/MemberService.IntegrationTests/TestFixtures/PostgreSqlContainerFixture.cs
 
 **檢查點**: 基礎設施就緒 - 使用者故事實作現在可以平行開始
 
@@ -135,8 +135,8 @@
 - [X] T079 [P] [US1] 先寫 LoginRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
 - [X] T080 [P] [US1] 先寫 AuthService.Register 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
 - [X] T081 [P] [US1] 先寫 AuthService.Login 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
-- [ ] T082 [P] [US1] 先寫 AuthController.Register 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
-- [ ] T083 [P] [US1] 先寫 AuthController.Login 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+- [X] T082 [P] [US1] 先寫 AuthController.Register 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+- [X] T083 [P] [US1] 先寫 AuthController.Login 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
 
 ### DTOs
 

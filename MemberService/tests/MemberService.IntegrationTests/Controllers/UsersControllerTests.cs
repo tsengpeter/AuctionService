@@ -3,6 +3,9 @@ using MemberService.Application.DTOs.Auth;
 using MemberService.Application.DTOs.Users;
 using MemberService.IntegrationTests.TestHelpers;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
 using Xunit;
@@ -10,18 +13,34 @@ using MemberService.API;
 
 namespace MemberService.IntegrationTests.Controllers;
 
-public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
+public class UsersControllerTests : IDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
+    private readonly string _testDatabaseName;
 
-    public UsersControllerTests(WebApplicationFactory<Program> factory)
+    public UsersControllerTests()
     {
-        _factory = factory.WithWebHostBuilder(builder =>
+        _testDatabaseName = $"usertest_{Guid.NewGuid():N}";
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+        TestDatabaseHelper.EnsureDatabaseStartedAsync().Wait();
+        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                // Add test configuration
+                config.AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    ["Jwt:Issuer"] = "MemberService",
+                    ["Jwt:Audience"] = "MemberService",
+                    ["Jwt:SecretKey"] = "your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm",
+                    ["Jwt:ExpiryInMinutes"] = "15",
+                    ["RefreshToken:ExpiryInDays"] = "7"
+                });
+            });
             builder.ConfigureServices(services =>
             {
-                TestDatabaseHelper.ConfigureTestDatabase(services);
+                TestDatabaseHelper.ConfigureTestDatabase(services, _testDatabaseName);
             });
         });
         _client = _factory.CreateClient();
@@ -37,7 +56,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var registerRequest = new RegisterRequest
         {
@@ -69,7 +88,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         // Act
         var response = await _client.GetAsync("/api/users/999999");
@@ -83,7 +102,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var registerRequest = new RegisterRequest
         {
@@ -119,7 +138,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         // Act
         var response = await _client.GetAsync("/api/users/me");
@@ -133,7 +152,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var registerRequest = new RegisterRequest
         {
@@ -170,7 +189,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var registerRequest = new RegisterRequest
         {
@@ -207,7 +226,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var updateRequest = new UpdateProfileRequest { Username = "updateduser" };
 
@@ -223,7 +242,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var registerRequest = new RegisterRequest
         {
@@ -259,7 +278,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var registerRequest = new RegisterRequest
         {
@@ -295,7 +314,7 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         await TestDatabaseHelper.EnsureDatabaseStartedAsync();
-        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services);
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
         var changeRequest = new ChangePasswordRequest
         {

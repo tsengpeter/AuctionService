@@ -57,6 +57,7 @@ public class GlobalExceptionHandler : IMiddleware
     {
         return exception switch
         {
+            InvalidCredentialsException => (HttpStatusCode.Unauthorized, "Invalid Credentials", exception.Message),
             UserNotFoundException => (HttpStatusCode.NotFound, "User Not Found", exception.Message),
             DomainException domainEx => (HttpStatusCode.BadRequest, "Domain Error", domainEx.Message),
             ArgumentException argEx => (HttpStatusCode.BadRequest, "Invalid Argument", argEx.Message),

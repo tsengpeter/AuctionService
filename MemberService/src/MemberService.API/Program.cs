@@ -77,25 +77,30 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<GlobalExceptionHandler>();
 
 // Add FluentValidation
-// builder.Services.AddFluentValidationAutoValidation();
 // builder.Services.AddValidatorsFromAssembly(typeof(MemberService.Application.Class1).Assembly);
+// builder.Services.AddFluentValidationAutoValidation();
 
 var app = builder.Build();
 
-// Run database migrations
+// Run database migrations (skip in test environment)
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<MemberDbContext>();
-    try
+    var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+
+    if (!env.IsEnvironment("Testing"))
     {
-        Console.WriteLine("Starting database migration...");
-        dbContext.Database.Migrate();
-        Console.WriteLine("Database migration completed successfully.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Database migration failed: {ex.Message}");
-        throw;
+        try
+        {
+            Console.WriteLine("Starting database migration...");
+            dbContext.Database.Migrate();
+            Console.WriteLine("Database migration completed successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database migration failed: {ex.Message}");
+            throw;
+        }
     }
 }
 
@@ -113,8 +118,8 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection(); // Temporarily disabled for debugging
 
 // Add custom middlewares
-app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<GlobalExceptionHandler>();
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseAuthorization();
 
