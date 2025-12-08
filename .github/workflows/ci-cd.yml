@@ -1,10 +1,16 @@
-name: MemberService CI/CD
+name: AuctionService CI/CD
 
 on:
   push:
-    branches: [ main, develop, 001-member-service ]
+    branches: [ master, develop ]
+    paths:
+      - 'MemberService/**'
+      - '.github/workflows/ci-cd.yml'
   pull_request:
-    branches: [ main, develop, 001-member-service ]
+    branches: [ master, develop ]
+    paths:
+      - 'MemberService/**'
+      - '.github/workflows/ci-cd.yml'
 
 jobs:
   build-and-test:
@@ -60,9 +66,10 @@ jobs:
           MemberService/**/TestResults/
           MemberService/**/coverage/
 
-  docker-build:
+  docker-build-and-deploy-memberservice:
     runs-on: ubuntu-latest
     needs: build-and-test
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
 
     steps:
     - name: Checkout code
@@ -71,15 +78,93 @@ jobs:
     - name: Set up Docker Buildx
       uses: actions/docker/setup-buildx-action@v3
 
-    - name: Build Docker image
+    - name: Set environment tag
+      id: env-tag
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+          echo "env=production" >> $GITHUB_OUTPUT
+          echo "tag=prod" >> $GITHUB_OUTPUT
+        else
+          echo "env=development" >> $GITHUB_OUTPUT
+          echo "tag=dev" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build and export Docker image
       uses: actions/docker/build-push-action@v5
       with:
         context: ./MemberService
         file: ./MemberService/Dockerfile
-        push: false
-        tags: memberservice:latest
+        tags: |
+          memberservice:${{ github.sha }}
+          memberservice:${{ steps.env-tag.outputs.tag }}-latest
+          memberservice:${{ steps.env-tag.outputs.tag }}-${{ github.sha }}
+        outputs: type=docker,dest=/tmp/memberservice.tar
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Upload Docker image as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: memberservice-docker-image-${{ steps.env-tag.outputs.tag }}
+        path: /tmp/memberservice.tar
+        retention-days: 7
+
+    - name: Create deployment instructions
+      run: |
+        cat > /tmp/deploy-instructions.md << EOF
+        # MemberService 部署指南
+
+        ## 環境: ${{ steps.env-tag.outputs.env }}
+        **分支**: ${{ github.ref_name }}  
+        **標籤**: ${{ steps.env-tag.outputs.tag }}
+
+        ## 下載並部署 MemberService Docker 映像
+
+        ### 步驟 1: 下載 Docker 映像
+        從 GitHub Actions Artifacts 下載 \`memberservice-docker-image-${{ steps.env-tag.outputs.tag }}\` 文件
+
+        ### 步驟 2: 載入映像到本機 Docker
+        ```bash
+        docker load -i memberservice.tar
+        ```
+
+        ### 步驟 3: 驗證映像已載入
+        ```bash
+        docker images | grep memberservice
+        ```
+
+        ### 步驟 4: 啟動服務
+        在 MemberService 目錄執行：
+        ```bash
+        docker-compose up -d
+        ```
+
+        ### 步驟 5: 檢查服務狀態
+        ```bash
+        docker-compose ps
+        docker logs memberservice-memberservice-api-1
+        ```
+
+        ### 步驟 6: 訪問 Swagger UI
+        開啟瀏覽器：http://localhost:5001
+
+        ## 映像資訊
+        - **Environment**: ${{ steps.env-tag.outputs.env }}
+        - **Commit SHA**: ${{ github.sha }}
+        - **Branch**: ${{ github.ref_name }}
+        - **Tag**: ${{ steps.env-tag.outputs.tag }}-latest
+        - **Build Time**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        ## 環境說明
+        - **Production (master)**: 正式環境部署
+        - **Development (develop)**: 開發測試環境
+        EOF
+
+    - name: Upload deployment instructions
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-instructions-${{ steps.env-tag.outputs.tag }}
+        path: /tmp/deploy-instructions.md
 
   security-scan:
     runs-on: ubuntu-latest
