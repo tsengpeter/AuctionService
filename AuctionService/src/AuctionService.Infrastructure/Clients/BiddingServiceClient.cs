@@ -10,14 +10,17 @@ namespace AuctionService.Infrastructure.Clients;
 public class BiddingServiceClient : IBiddingServiceClient
 {
     private readonly HttpClient _httpClient;
+    private readonly IResponseCodeService _responseCodeService;
 
     /// <summary>
     /// 建構子
     /// </summary>
     /// <param name="httpClient">HTTP 客戶端</param>
-    public BiddingServiceClient(HttpClient httpClient)
+    /// <param name="responseCodeService">響應代碼服務</param>
+    public BiddingServiceClient(HttpClient httpClient, IResponseCodeService responseCodeService)
     {
         _httpClient = httpClient;
+        _responseCodeService = responseCodeService;
     }
 
     /// <summary>
@@ -32,7 +35,7 @@ public class BiddingServiceClient : IBiddingServiceClient
             var response = await _httpClient.GetAsync($"api/auctions/{auctionId}/current-bid");
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<ApiResponse<CurrentBidDto>>();
+                var result = await HandleApiResponseAsync<CurrentBidDto>(response);
                 return result?.Data;
             }
             return null;
@@ -57,7 +60,7 @@ public class BiddingServiceClient : IBiddingServiceClient
             var response = await _httpClient.GetAsync($"api/auctions/{auctionId}/has-bids");
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<ApiResponse<bool>>();
+                var result = await HandleApiResponseAsync<bool>(response);
                 return result?.Data ?? false;
             }
             return false;
@@ -68,6 +71,16 @@ public class BiddingServiceClient : IBiddingServiceClient
             // 這樣可以讓業務邏輯繼續運作
             return false;
         }
+    }
+
+    private async Task<ApiResponse<T>> HandleApiResponseAsync<T>(HttpResponseMessage response)
+    {
+        var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<T>>();
+        if (apiResponse != null && !string.IsNullOrEmpty(apiResponse.Message))
+        {
+            apiResponse.LocalizedMessage = await _responseCodeService.GetLocalizedMessageAsync(apiResponse.Message);
+        }
+        return apiResponse;
     }
 }
 
@@ -85,6 +98,11 @@ public class ApiResponse<T>
     /// 訊息
     /// </summary>
     public string? Message { get; set; }
+
+    /// <summary>
+    /// 本地化的訊息
+    /// </summary>
+    public string? LocalizedMessage { get; set; }
 
     /// <summary>
     /// 資料

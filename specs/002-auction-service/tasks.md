@@ -300,8 +300,8 @@ Based on plan.md, this project uses single-folder structure:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T162 [P] Create ResponseCodeService in src/AuctionService.Core/Services/ResponseCodeService.cs (retrieve localized messages from ResponseCodes table based on language header)
-- [ ] T163 [P] Update all ApiResponse wrappers to use ResponseCodeService for consistent metadata (statusCode, statusName, message) across all controllers
+- [X] T162 [P] Create ResponseCodeService in src/AuctionService.Core/Services/ResponseCodeService.cs (retrieve localized messages from ResponseCodes table based on language header)
+- [X] T163 [P] Update all ApiResponse wrappers to use ResponseCodeService for consistent metadata (statusCode, statusName, message) across all controllers
 - [ ] T164 [P] Create health check endpoint in src/AuctionService.Api/Controllers/HealthController.cs (verify DB connection, BiddingService availability)
 - [ ] T165 [P] Add YARP configuration in appsettings.json for API Gateway routing (if deploying with gateway)
 - [ ] T166 [P] Create architecture.md in docs/ documenting Clean Architecture layers and data flow
@@ -313,14 +313,14 @@ Based on plan.md, this project uses single-folder structure:
 - [ ] T172 [P] Create run-tests.sh script in scripts/ for running all test projects with coverage report
 - [ ] T173 [P] Create .github/workflows/build.yml for CI/CD: build on every PR
 - [ ] T174 [P] Create .github/workflows/test.yml for CI/CD: run tests with Testcontainers on every PR
-- [ ] T175 [P] Add XML documentation comments to all public APIs in Controllers
+- [X] T175 [P] Add XML documentation comments to all public APIs in Controllers
 - [ ] T176 [P] Configure Swagger UI with examples from contracts/openapi.yaml
 - [ ] T177 [P] Add correlation ID to all log entries via RequestLoggingMiddleware
 - [ ] T178 [P] Add performance logging: log query execution times >1000ms as warnings
-- [ ] T179 [P] Add circuit breaker pattern to BiddingServiceClient (already implemented in T117, verify configuration: fail fast after 5 consecutive failures, half-open after 30 seconds)
+- [X] T179 [P] Add circuit breaker pattern to BiddingServiceClient (already implemented in T117, verify configuration: fail fast after 5 consecutive failures, half-open after 30 seconds)
 - [ ] T180 [P] Review and optimize all database queries: ensure proper use of AsNoTracking() for read-only queries
-- [ ] T181 [P] Add unit tests for all validators in tests/AuctionService.UnitTests/Validators/
-- [ ] T182 [P] Add unit tests for all mapping extensions in tests/AuctionService.UnitTests/Extensions/
+- [X] T181 [P] Add unit tests for all validators in tests/AuctionService.UnitTests/Validators/
+- [X] T182 [P] Add unit tests for all mapping extensions in tests/AuctionService.UnitTests/Extensions/
 - [ ] T183 [P] Add unit tests for all custom exceptions and middleware in tests/AuctionService.UnitTests/Middlewares/
 - [ ] T184 Validate quickstart.md: follow installation steps, verify all commands work, update any outdated instructions
 - [ ] T185 Run full integration test suite against real PostgreSQL via Testcontainers

@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuctionService, Core.Services.AuctionService>();
         services.AddScoped<ICategoryService, Core.Services.CategoryService>();
         services.AddScoped<IFollowService, Core.Services.FollowService>();
+        services.AddScoped<IResponseCodeService, ResponseCodeService>();
 
         // 註冊驗證器
         services.AddScoped<IValidator<AuctionQueryParameters>, AuctionQueryParametersValidator>();
@@ -62,6 +63,15 @@ public static class ServiceCollectionExtensions
         })
         .AddPolicyHandler(GetRetryPolicy())
         .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        // 自訂工廠來注入 BiddingServiceClient 與其依賴
+        services.AddScoped<IBiddingServiceClient>(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(nameof(IBiddingServiceClient));
+            var responseCodeService = sp.GetRequiredService<IResponseCodeService>();
+            return new BiddingServiceClient(httpClient, responseCodeService);
+        });
 
         return services;
     }
