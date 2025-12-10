@@ -1,3 +1,4 @@
+using AuctionService.Core.DTOs.Common;
 using AuctionService.Core.Entities;
 
 namespace AuctionService.Core.Interfaces;
@@ -7,6 +8,16 @@ namespace AuctionService.Core.Interfaces;
 /// </summary>
 public interface IAuctionRepository : IRepository<Auction>
 {
+    /// <summary>
+    /// 根據查詢參數取得商品清單 (分頁)
+    /// </summary>
+    Task<(IEnumerable<Auction> Auctions, int TotalCount)> GetAuctionsAsync(AuctionQueryParameters parameters);
+
+    /// <summary>
+    /// 根據 ID 取得商品詳細資訊 (包含關聯資料)
+    /// </summary>
+    Task<Auction?> GetAuctionByIdAsync(Guid id);
+
     /// <summary>
     /// 根據使用者 ID 取得商品清單
     /// </summary>

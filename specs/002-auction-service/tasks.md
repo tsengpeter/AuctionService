@@ -108,7 +108,7 @@ Based on plan.md, this project uses single-folder structure:
 
 ### Tests for User Story 1 (Write FIRST - ensure they FAIL before implementation)
 
-- [ ] T049 [P] [US1] Unit test for AuctionExtensions.CalculateStatus() in tests/AuctionService.UnitTests/Extensions/AuctionExtensionsTests.cs (test Pending/Active/Ended status calculation)
+- [X] T049 [P] [US1] Unit test for AuctionExtensions.CalculateStatus() in tests/AuctionService.UnitTests/Extensions/AuctionExtensionsTests.cs (test Pending/Active/Ended status calculation)
 - [ ] T050 [P] [US1] Unit test for AuctionService.GetAuctionsAsync() pagination in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [ ] T051 [P] [US1] Unit test for AuctionService.GetAuctionsAsync() filtering by categoryId in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [ ] T052 [P] [US1] Unit test for AuctionService.GetAuctionsAsync() keyword search in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
@@ -137,22 +137,22 @@ Based on plan.md, this project uses single-folder structure:
   - Optional logging: RequestPayload (truncated 1000 chars), ResponsePayload (truncated 1000 chars), ErrorMessage, RetryCount
   - Log levels: Information (2xx), Warning (4xx/retry), Error (5xx/timeout)
   - Example: _logger.LogInformation("BiddingService call: {Endpoint} | Status: {StatusCode} | Duration: {Duration}ms | CorrelationId: {CorrelationId}", endpoint, statusCode, duration, correlationId)
-- [ ] T069 [P] [US1] Create IAuctionService interface in src/AuctionService.Core/Interfaces/IAuctionService.cs (GetAuctionsAsync, GetAuctionByIdAsync, GetCurrentBidAsync)
-- [ ] T070 [US1] Implement AuctionService in src/AuctionService.Core/Services/AuctionService.cs with business logic (call repository, map to DTOs using AuctionExtensions.ToListItemDto/ToDetailDto, integrate BiddingServiceClient)
-- [ ] T071 [P] [US1] Create mapping extensions in src/AuctionService.Shared/Extensions/AuctionExtensions.cs (ToListItemDto, ToDetailDto methods using POCO manual mapping)
-- [ ] T072 [P] [US1] Create ICategoryService interface in src/AuctionService.Core/Interfaces/ICategoryService.cs (GetAllCategoriesAsync)
-- [ ] T073 [US1] Implement CategoryService in src/AuctionService.Core/Services/CategoryService.cs (retrieve from repository, cache in memory)
-- [ ] T074 [US1] Implement AuctionsController.GetAuctions() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions (handle query parameters, return PagedResult with ApiResponse wrapper)
-- [ ] T075 [US1] Implement AuctionsController.GetAuctionById() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions/{id} (return AuctionDetailDto with metadata)
-- [ ] T076 [US1] Implement AuctionsController.GetCurrentBid() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions/{id}/current-bid (lightweight endpoint for polling)
-- [ ] T077 [US1] Implement CategoriesController.GetCategories() in src/AuctionService.Api/Controllers/CategoriesController.cs for GET /api/categories
-- [ ] T078 [US1] Add request validation using FluentValidation for AuctionQueryParameters in src/AuctionService.Core/Validators/AuctionQueryParametersValidator.cs
-- [ ] T079 [US1] Configure HttpClient for BiddingService in Program.cs with base address from appsettings, add Polly policies:
+- [X] T069 [P] [US1] Create IAuctionService interface in src/AuctionService.Core/Interfaces/IAuctionService.cs (GetAuctionsAsync, GetAuctionByIdAsync, GetCurrentBidAsync)
+- [X] T070 [US1] Implement AuctionService in src/AuctionService.Core/Services/AuctionService.cs with business logic (call repository, map to DTOs using AuctionExtensions.ToListItemDto/ToDetailDto, integrate BiddingServiceClient)
+- [X] T071 [P] [US1] Create mapping extensions in src/AuctionService.Shared/Extensions/AuctionExtensions.cs (ToListItemDto, ToDetailDto methods using POCO manual mapping)
+- [X] T072 [P] [US1] Create ICategoryService interface in src/AuctionService.Core/Interfaces/ICategoryService.cs (GetAllCategoriesAsync)
+- [X] T073 [US1] Implement CategoryService in src/AuctionService.Core/Services/CategoryService.cs (retrieve from repository, cache in memory)
+- [X] T074 [US1] Implement AuctionsController.GetAuctions() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions (handle query parameters, return PagedResult with ApiResponse wrapper)
+- [X] T075 [US1] Implement AuctionsController.GetAuctionById() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions/{id} (return AuctionDetailDto with metadata)
+- [X] T076 [US1] Implement AuctionsController.GetCurrentBid() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions/{id}/current-bid (lightweight endpoint for polling)
+- [X] T077 [US1] Implement CategoriesController.GetCategories() in src/AuctionService.Api/Controllers/CategoriesController.cs for GET /api/categories
+- [X] T078 [US1] Add request validation using FluentValidation for AuctionQueryParameters in src/AuctionService.Core/Validators/AuctionQueryParametersValidator.cs
+- [X] T079 [US1] Configure HttpClient for BiddingService in Program.cs with base address from appsettings, add Polly policies:
   - Retry policy: 3 attempts, exponential backoff (1s, 2s, 4s)
   - Circuit Breaker: Open after 5 failures, half-open after 30 seconds
   - Timeout: 5 seconds per request
   - Register IBiddingServiceClient in DI container
-- [ ] T080 [US1] Run all US1 tests and verify they pass with green status
+- [X] T080 [US1] Run all US1 tests and verify they pass with green status
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can browse, search, filter auctions and view details with current bid
 

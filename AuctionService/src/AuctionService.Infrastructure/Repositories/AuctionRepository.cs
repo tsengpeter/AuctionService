@@ -1,3 +1,4 @@
+using AuctionService.Core.DTOs.Common;
 using AuctionService.Core.Entities;
 using AuctionService.Core.Interfaces;
 using AuctionService.Infrastructure.Data;
@@ -73,5 +74,81 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
     {
         return await _dbSet
             .AnyAsync(a => a.Id == auctionId && a.UserId == userId);
+    }
+
+    public async Task<(IEnumerable<Auction> Auctions, int TotalCount)> GetAuctionsAsync(AuctionQueryParameters parameters)
+    {
+        var query = _dbSet
+            .Include(a => a.Category)
+            .AsQueryable();
+
+        // 搜尋關鍵字
+        if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
+        {
+            query = query.Where(a => a.Name.Contains(parameters.SearchTerm) || a.Description.Contains(parameters.SearchTerm));
+        }
+
+        // 分類篩選
+        if (parameters.CategoryId.HasValue)
+        {
+            query = query.Where(a => a.CategoryId == parameters.CategoryId.Value);
+        }
+
+        // 狀態篩選
+        if (parameters.Status.HasValue)
+        {
+            var now = DateTime.UtcNow;
+            query = parameters.Status.Value switch
+            {
+                AuctionStatus.Pending => query.Where(a => a.StartTime > now),
+                AuctionStatus.Active => query.Where(a => a.StartTime <= now && a.EndTime > now),
+                AuctionStatus.Ended => query.Where(a => a.EndTime <= now),
+                _ => query
+            };
+        }
+
+        // 價格範圍篩選
+        if (parameters.MinPrice.HasValue)
+        {
+            query = query.Where(a => a.StartingPrice >= parameters.MinPrice.Value);
+        }
+        if (parameters.MaxPrice.HasValue)
+        {
+            query = query.Where(a => a.StartingPrice <= parameters.MaxPrice.Value);
+        }
+
+        // 排序
+        query = (parameters.SortBy, parameters.SortDirection) switch
+        {
+            (AuctionSortBy.EndTime, SortDirection.Ascending) => query.OrderBy(a => a.EndTime),
+            (AuctionSortBy.EndTime, SortDirection.Descending) => query.OrderByDescending(a => a.EndTime),
+            (AuctionSortBy.StartTime, SortDirection.Ascending) => query.OrderBy(a => a.StartTime),
+            (AuctionSortBy.StartTime, SortDirection.Descending) => query.OrderByDescending(a => a.StartTime),
+            (AuctionSortBy.CurrentPrice, SortDirection.Ascending) => query.OrderBy(a => a.StartingPrice),
+            (AuctionSortBy.CurrentPrice, SortDirection.Descending) => query.OrderByDescending(a => a.StartingPrice),
+            (AuctionSortBy.Title, SortDirection.Ascending) => query.OrderBy(a => a.Name),
+            (AuctionSortBy.Title, SortDirection.Descending) => query.OrderByDescending(a => a.Name),
+            (AuctionSortBy.CreatedAt, SortDirection.Ascending) => query.OrderBy(a => a.CreatedAt),
+            (AuctionSortBy.CreatedAt, SortDirection.Descending) => query.OrderByDescending(a => a.CreatedAt),
+            _ => query.OrderBy(a => a.EndTime)
+        };
+
+        // 取得總筆數
+        var totalCount = await query.CountAsync();
+
+        // 分頁
+        var auctions = await query
+            .Skip((parameters.PageNumber - 1) * parameters.PageSize)
+            .Take(parameters.PageSize)
+            .ToListAsync();
+
+        return (auctions, totalCount);
+    }
+
+    public async Task<Auction?> GetAuctionByIdAsync(Guid id)
+    {
+        return await _dbSet
+            .Include(a => a.Category)
+            .FirstOrDefaultAsync(a => a.Id == id);
     }
 }

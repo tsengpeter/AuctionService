@@ -10,7 +10,7 @@ builder.Services.AddOpenApi();
 
 // 註冊應用程式服務
 builder.Services.AddDatabaseServices(builder.Configuration);
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 
 // 設定 Swagger
 builder.Services.AddSwaggerGen();
