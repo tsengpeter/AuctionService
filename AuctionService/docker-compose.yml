@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  auction-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    depends_on:
+      - postgres
+    networks:
+      - auction-network
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: auctiondb
+      POSTGRES_USER: auctionuser
+      POSTGRES_PASSWORD: auctionpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - auction-network
+
+volumes:
+  postgres_data:
+
+networks:
+  auction-network:
+    driver: bridge

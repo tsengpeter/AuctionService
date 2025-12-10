@@ -5,17 +5,20 @@
 
 **Branch**: `002-auction-service`  
 **Generated**: 2025-12-10  
-**Version**: 2.0 (Regenerated with Bidding Service integration strategy)
+**Version**: 2.1 (Updated with current implementation progress)
 
 **Tests**: TDD approach - Tests are included and MUST be written first (Red-Green-Refactor cycle)
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-**Changes from v1.0**:
-- Updated T068 with detailed Bidding Service logging specification (FR-029)
-- Added explicit logging requirements per plan.md "Bidding Service 整合策略"
-- Enhanced T117 with resilience patterns (Polly retry, Circuit Breaker, Timeout)
-- All other tasks remain consistent with original v1.0 structure
+**Current Status**: ✅ Phase 1 Setup (T001-T021) + ✅ Phase 2 Foundational (T022-T048) = **Foundation Ready for User Story Implementation**
+
+**Next Steps**: Begin User Story 1 (T049-T080) - 瀏覽與搜尋拍賣商品 (Priority: P1 MVP)
+
+**Changes from v2.0**:
+- Updated task completion status for Phase 1 and Phase 2
+- Added current status summary and next steps guidance
+- All other tasks remain consistent with original v2.0 structure
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -35,27 +38,27 @@ Based on plan.md, this project uses single-folder structure:
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create solution structure: `dotnet new sln -n AuctionService` in root directory
-- [ ] T002 Create API project: `dotnet new webapi -n AuctionService.Api -o src/AuctionService.Api --framework net10.0`
-- [ ] T003 [P] Create Core project: `dotnet new classlib -n AuctionService.Core -o src/AuctionService.Core --framework net10.0`
-- [ ] T004 [P] Create Infrastructure project: `dotnet new classlib -n AuctionService.Infrastructure -o src/AuctionService.Infrastructure --framework net10.0`
-- [ ] T005 [P] Create Shared project: `dotnet new classlib -n AuctionService.Shared -o src/AuctionService.Shared --framework net10.0`
-- [ ] T006 Add projects to solution: `dotnet sln add src/**/*.csproj`
-- [ ] T007 [P] Create unit tests project: `dotnet new xunit -n AuctionService.UnitTests -o tests/AuctionService.UnitTests --framework net10.0`
-- [ ] T008 [P] Create integration tests project: `dotnet new xunit -n AuctionService.IntegrationTests -o tests/AuctionService.IntegrationTests --framework net10.0`
-- [ ] T009 [P] Create contract tests project: `dotnet new xunit -n AuctionService.ContractTests -o tests/AuctionService.ContractTests --framework net10.0`
-- [ ] T010 Add test projects to solution: `dotnet sln add tests/**/*.csproj`
-- [ ] T011 Add project references: Api → Core/Infrastructure/Shared, Infrastructure → Core, Tests → corresponding projects
-- [ ] T012 [P] Install NuGet packages for Api: Npgsql.EntityFrameworkCore.PostgreSQL 10.0, FluentValidation.AspNetCore 11.3.0, Serilog.AspNetCore 8.0, Swashbuckle.AspNetCore 6.5.0
-- [ ] T013 [P] Install NuGet packages for Infrastructure: Npgsql.EntityFrameworkCore.PostgreSQL 10.0, Microsoft.EntityFrameworkCore.Design 10.0
-- [ ] T014 [P] Install NuGet packages for Tests: Moq 4.20+, FluentAssertions 6.12+, Testcontainers.PostgreSql 3.7+, WireMock.Net (for contract tests)
-- [ ] T015 [P] Create .editorconfig with C# 13 coding standards in root
-- [ ] T016 [P] Create .gitignore for .NET projects in root
-- [ ] T017 [P] Create global.json to lock .NET SDK version 10.0 in root
-- [ ] T018 [P] Create README.md with project overview in root
-- [ ] T019 [P] Create Dockerfile for multi-stage build in root
-- [ ] T020 [P] Create docker-compose.yml with PostgreSQL service in root
-- [ ] T021 [P] Create docker-compose.override.yml for local development in root
+- [X] T001 Create solution structure: `dotnet new sln -n AuctionService` in root directory
+- [X] T002 Create API project: `dotnet new webapi -n AuctionService.Api -o src/AuctionService.Api --framework net10.0`
+- [X] T003 [P] Create Core project: `dotnet new classlib -n AuctionService.Core -o src/AuctionService.Core --framework net10.0`
+- [X] T004 [P] Create Infrastructure project: `dotnet new classlib -n AuctionService.Infrastructure -o src/AuctionService.Infrastructure --framework net10.0`
+- [X] T005 [P] Create Shared project: `dotnet new classlib -n AuctionService.Shared -o src/AuctionService.Shared --framework net10.0`
+- [X] T006 Add projects to solution: `dotnet sln add src/**/*.csproj`
+- [X] T007 [P] Create unit tests project: `dotnet new xunit -n AuctionService.UnitTests -o tests/AuctionService.UnitTests --framework net10.0`
+- [X] T008 [P] Create integration tests project: `dotnet new xunit -n AuctionService.IntegrationTests -o tests/AuctionService.IntegrationTests --framework net10.0`
+- [X] T009 [P] Create contract tests project: `dotnet new xunit -n AuctionService.ContractTests -o tests/AuctionService.ContractTests --framework net10.0`
+- [X] T010 Add test projects to solution: `dotnet sln add tests/**/*.csproj`
+- [X] T011 Add project references: Api → Core/Infrastructure/Shared, Infrastructure → Core, Tests → corresponding projects
+- [X] T012 [P] Install NuGet packages for Api: Npgsql.EntityFrameworkCore.PostgreSQL 10.0, FluentValidation.AspNetCore 11.3.0, Serilog.AspNetCore 8.0, Swashbuckle.AspNetCore 6.5.0
+- [X] T013 [P] Install NuGet packages for Infrastructure: Npgsql.EntityFrameworkCore.PostgreSQL 10.0, Microsoft.EntityFrameworkCore.Design 10.0
+- [X] T014 [P] Install NuGet packages for Tests: Moq 4.20+, FluentAssertions 6.12+, Testcontainers.PostgreSql 3.7+, WireMock.Net (for contract tests)
+- [X] T015 [P] Create .editorconfig with C# 13 coding standards in root
+- [X] T016 [P] Create .gitignore for .NET projects in root
+- [X] T017 [P] Create global.json to lock .NET SDK version 10.0 in root
+- [X] T018 [P] Create README.md with project overview in root
+- [X] T019 [P] Create Dockerfile for multi-stage build in root
+- [X] T020 [P] Create docker-compose.yml with PostgreSQL service in root
+- [X] T021 [P] Create docker-compose.override.yml for local development in root
 
 ---
 
@@ -65,33 +68,33 @@ Based on plan.md, this project uses single-folder structure:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T022 Create AuctionDbContext in src/AuctionService.Infrastructure/Data/AuctionDbContext.cs with DbSet properties
-- [ ] T023 [P] Create base entity classes: Entity (Id, CreatedAt, UpdatedAt) in src/AuctionService.Core/Entities/BaseEntity.cs
-- [ ] T024 [P] Create Auction entity in src/AuctionService.Core/Entities/Auction.cs (Guid Id, string Name, string Description, decimal StartingPrice, int CategoryId, DateTime StartTime, DateTime EndTime, Guid UserId, DateTime CreatedAt, DateTime UpdatedAt)
-- [ ] T025 [P] Create Category entity in src/AuctionService.Core/Entities/Category.cs (int Id, string Name, int DisplayOrder, bool IsActive, DateTime CreatedAt)
-- [ ] T026 [P] Create Follow entity in src/AuctionService.Core/Entities/Follow.cs (Guid Id, Guid UserId, Guid AuctionId, DateTime CreatedAt)
-- [ ] T027 [P] Create ResponseCode entity in src/AuctionService.Core/Entities/ResponseCode.cs (string Code PK, string Name, string MessageZhTw, string MessageEn, string Category, string Severity)
-- [ ] T028 [P] Create AuctionConfiguration in src/AuctionService.Infrastructure/Data/Configurations/AuctionConfiguration.cs implementing IEntityTypeConfiguration<Auction> with Fluent API (indexes on EndTime, CategoryId, UserId+CreatedAt)
-- [ ] T029 [P] Create CategoryConfiguration in src/AuctionService.Infrastructure/Data/Configurations/CategoryConfiguration.cs with seed data (8 categories: 電子產品, 家具, 收藏品, 藝術品, 服飾配件, 書籍, 運動用品, 其他)
-- [ ] T030 [P] Create FollowConfiguration in src/AuctionService.Infrastructure/Data/Configurations/FollowConfiguration.cs with unique index on UserId+AuctionId
-- [ ] T031 [P] Create ResponseCodeConfiguration in src/AuctionService.Infrastructure/Data/Configurations/ResponseCodeConfiguration.cs with seed data (SUCCESS, AUCTION_NOT_FOUND, UNAUTHORIZED, etc.)
-- [ ] T032 Apply entity configurations to AuctionDbContext via OnModelCreating
-- [ ] T033 Create initial migration: `dotnet ef migrations add InitialCreate --project src/AuctionService.Infrastructure --startup-project src/AuctionService.Api`
-- [ ] T034 [P] Create standard DTO response wrappers in src/AuctionService.Core/DTOs/Common/ApiResponse.cs and ResponseMetadata.cs
-- [ ] T035 [P] Create pagination DTOs in src/AuctionService.Core/DTOs/Common/PagedResult.cs and AuctionQueryParameters.cs
-- [ ] T036 [P] Create IRepository<T> generic interface in src/AuctionService.Core/Interfaces/IRepository.cs with standard CRUD methods
-- [ ] T037 [P] Create GenericRepository<T> implementation in src/AuctionService.Infrastructure/Repositories/GenericRepository.cs
-- [ ] T038 [P] Create ExceptionHandlingMiddleware in src/AuctionService.Api/Middlewares/ExceptionHandlingMiddleware.cs for global error handling
-- [ ] T039 [P] Create CorrelationIdMiddleware in src/AuctionService.Api/Middlewares/CorrelationIdMiddleware.cs for request tracing
-- [ ] T040 [P] Create RequestLoggingMiddleware in src/AuctionService.Api/Middlewares/RequestLoggingMiddleware.cs with Serilog
-- [ ] T041 [P] Create AuctionExtensions.cs in src/AuctionService.Shared/Extensions/AuctionExtensions.cs with CalculateStatus() method (passive status calculation)
-- [ ] T042 [P] Configure Serilog in src/AuctionService.Api/Program.cs with structured logging (JSON format, correlation ID)
-- [ ] T043 [P] Configure Swagger/OpenAPI in src/AuctionService.Api/Program.cs with metadata from contracts/openapi.yaml
-- [ ] T044 Configure dependency injection in src/AuctionService.Api/Program.cs: DbContext, repositories, services, HttpClient for BiddingService
-- [ ] T045 Configure CORS policy in src/AuctionService.Api/Program.cs
-- [ ] T046 Add middleware pipeline in src/AuctionService.Api/Program.cs (CorrelationId → Logging → ExceptionHandling → CORS → Auth)
-- [ ] T047 Create appsettings.Development.json in src/AuctionService.Api with local PostgreSQL connection string
-- [ ] T048 [P] Create PostgreSqlTestContainer fixture in tests/AuctionService.IntegrationTests/Infrastructure/PostgreSqlTestContainer.cs using Testcontainers
+- [X] T022 Create AuctionDbContext in src/AuctionService.Infrastructure/Data/AuctionDbContext.cs with DbSet properties
+- [X] T023 [P] Create base entity classes: Entity (Id, CreatedAt, UpdatedAt) in src/AuctionService.Core/Entities/BaseEntity.cs
+- [X] T024 [P] Create Auction entity in src/AuctionService.Core/Entities/Auction.cs (Guid Id, string Name, string Description, decimal StartingPrice, int CategoryId, DateTime StartTime, DateTime EndTime, Guid UserId, DateTime CreatedAt, DateTime UpdatedAt)
+- [X] T025 [P] Create Category entity in src/AuctionService.Core/Entities/Category.cs (int Id, string Name, int DisplayOrder, bool IsActive, DateTime CreatedAt)
+- [X] T026 [P] Create Follow entity in src/AuctionService.Core/Entities/Follow.cs (Guid Id, Guid UserId, Guid AuctionId, DateTime CreatedAt)
+- [X] T027 [P] Create ResponseCode entity in src/AuctionService.Core/Entities/ResponseCode.cs (string Code PK, string Name, string MessageZhTw, string MessageEn, string Category, string Severity)
+- [X] T028 [P] Create AuctionConfiguration in src/AuctionService.Infrastructure/Data/Configurations/AuctionConfiguration.cs implementing IEntityTypeConfiguration<Auction> with Fluent API (indexes on EndTime, CategoryId, UserId+CreatedAt)
+- [X] T029 [P] Create CategoryConfiguration in src/AuctionService.Infrastructure/Data/Configurations/CategoryConfiguration.cs with seed data (8 categories: 電子產品, 家具, 收藏品, 藝術品, 服飾配件, 書籍, 運動用品, 其他)
+- [X] T030 [P] Create FollowConfiguration in src/AuctionService.Infrastructure/Data/Configurations/FollowConfiguration.cs with unique index on UserId+AuctionId
+- [X] T031 [P] Create ResponseCodeConfiguration in src/AuctionService.Infrastructure/Data/Configurations/ResponseCodeConfiguration.cs with seed data (SUCCESS, AUCTION_NOT_FOUND, UNAUTHORIZED, etc.)
+- [X] T032 Apply entity configurations to AuctionDbContext via OnModelCreating
+- [X] T033 Create initial migration: `dotnet ef migrations add InitialCreate --project src/AuctionService.Infrastructure --startup-project src/AuctionService.Api`
+- [X] T034 [P] Create standard DTO response wrappers in src/AuctionService.Core/DTOs/Common/ApiResponse.cs and ResponseMetadata.cs
+- [X] T035 [P] Create pagination DTOs in src/AuctionService.Core/DTOs/Common/PagedResult.cs and AuctionQueryParameters.cs
+- [X] T036 [P] Create IRepository<T> generic interface in src/AuctionService.Core/Interfaces/IRepository.cs with standard CRUD methods
+- [X] T037 [P] Create GenericRepository<T> implementation in src/AuctionService.Infrastructure/Repositories/GenericRepository.cs
+- [X] T038 [P] Create ExceptionHandlingMiddleware in src/AuctionService.Api/Middlewares/ExceptionHandlingMiddleware.cs for global error handling
+- [X] T039 [P] Create CorrelationIdMiddleware in src/AuctionService.Api/Middlewares/CorrelationIdMiddleware.cs for request tracing
+- [X] T040 [P] Create RequestLoggingMiddleware in src/AuctionService.Api/Middlewares/RequestLoggingMiddleware.cs with Serilog
+- [X] T041 [P] Create AuctionExtensions.cs in src/AuctionService.Shared/Extensions/AuctionExtensions.cs with CalculateStatus() method (passive status calculation)
+- [X] T042 [P] Configure Serilog in src/AuctionService.Api/Program.cs with structured logging (JSON format, correlation ID)
+- [X] T043 [P] Configure Swagger/OpenAPI in src/AuctionService.Api/Program.cs with metadata from contracts/openapi.yaml
+- [X] T044 Configure dependency injection in src/AuctionService.Api/Program.cs: DbContext, repositories, services, HttpClient for BiddingService
+- [X] T045 Configure CORS policy in src/AuctionService.Api/Program.cs
+- [X] T046 Add middleware pipeline in src/AuctionService.Api/Program.cs (CorrelationId → Logging → ExceptionHandling → CORS → Auth)
+- [X] T047 Create appsettings.Development.json in src/AuctionService.Api with local PostgreSQL connection string
+- [X] T048 [P] Create PostgreSqlTestContainer fixture in tests/AuctionService.IntegrationTests/Infrastructure/PostgreSqlTestContainer.cs using Testcontainers
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -415,7 +418,7 @@ Task T074-T077: Implement all controller endpoints
 
 ### Incremental Delivery
 
-1. Setup + Foundational → Foundation ready (T001-T048)
+1. ✅ Setup + Foundational → Foundation ready (T001-T048) - **COMPLETED**
 2. Add User Story 1 → Test independently → Deploy/Demo (T049-T080) - Users can browse auctions
 3. Add User Story 2 → Test independently → Deploy/Demo (T081-T128) - MVP complete: browse + manage
 4. Add User Story 3 → Test independently → Deploy/Demo (T129-T151) - Enhanced UX with tracking
@@ -423,6 +426,8 @@ Task T074-T077: Implement all controller endpoints
 6. Polish phase → Production-ready (T162-T191)
 
 ### Parallel Team Strategy
+
+✅ **Foundational phase completed** - Ready for parallel User Story development
 
 With 3 developers after Foundational phase completes:
 
@@ -437,8 +442,8 @@ Once US1 completes, Developer A can help with US3 (depends on US1 repositories).
 ## Task Summary
 
 - **Total Tasks**: 191
-- **Setup Phase**: 21 tasks
-- **Foundational Phase**: 27 tasks (CRITICAL - blocks all stories)
+- **Setup Phase**: 21 tasks ✅ **COMPLETED**
+- **Foundational Phase**: 27 tasks ✅ **COMPLETED** (CRITICAL - blocks all stories)
 - **User Story 1** (P1 - MVP): 32 tasks (12 tests + 20 implementation)
 - **User Story 2** (P1 - MVP): 48 tasks (15 tests + 33 implementation)
 - **User Story 3** (P2): 23 tasks (11 tests + 12 implementation)
@@ -450,6 +455,8 @@ Once US1 completes, Developer A can help with US3 (depends on US1 repositories).
 **MVP Scope**: Phases 1-4 (T001-T128) = 128 tasks for complete browse + manage functionality
 
 **Test Coverage**: 42 test tasks ensuring >80% code coverage target via TDD approach
+
+**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational = Foundation ready for User Story implementation
 
 ---
 
