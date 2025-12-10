@@ -1,6 +1,7 @@
 using AuctionService.Core.DTOs.Common;
 using AuctionService.Core.DTOs.Responses;
 using AuctionService.Core.Entities;
+using AuctionService.Core.Exceptions;
 using AuctionService.Core.Interfaces;
 using AuctionService.Core.Services;
 using FluentAssertions;
@@ -231,7 +232,7 @@ public class AuctionServiceTests
         var userId = "test-user-id";
 
         // Act & Assert
-        await Assert.ThrowsAsync<FluentValidation.ValidationException>(() =>
+        await Assert.ThrowsAsync<AuctionService.Core.Exceptions.ValidationException>(() =>
             _auctionService.CreateAuctionAsync(request, userId));
     }
 
@@ -257,7 +258,7 @@ public class AuctionServiceTests
             .ReturnsAsync(existingAuction);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
             _auctionService.UpdateAuctionAsync(auctionId, request, userId));
     }
 
@@ -306,7 +307,7 @@ public class AuctionServiceTests
             .ReturnsAsync(existingAuction);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
             _auctionService.DeleteAuctionAsync(auctionId, userId));
     }
 

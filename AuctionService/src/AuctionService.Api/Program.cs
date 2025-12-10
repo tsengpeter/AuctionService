@@ -1,11 +1,31 @@
 using AuctionService.Shared.Extensions;
+using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// 設定 JWT 認證
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false, // 開發環境簡化設定
+            ValidateAudience = false, // 開發環境簡化設定
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = false, // 開發環境簡化設定
+            // 在生產環境中應該設定適當的 Issuer, Audience 和 SigningKey
+        };
+    });
+
+builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
 
 // 註冊應用程式服務
@@ -19,8 +39,8 @@ builder.Services.AddSwaggerGen();
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
 
-// 設定 FluentValidation (暫時註解，因為還沒有驗證器)
-// builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+// 設定 FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();
 
@@ -37,6 +57,7 @@ app.UseGlobalExceptionHandler();
 app.UseRequestLogging();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

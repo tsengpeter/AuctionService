@@ -1,4 +1,5 @@
 using AuctionService.Core.DTOs.Common;
+using AuctionService.Core.DTOs.Requests;
 using AuctionService.Core.Interfaces;
 using AuctionService.Core.Services;
 using AuctionService.Core.Validators;
@@ -48,6 +49,8 @@ public static class ServiceCollectionExtensions
 
         // 註冊驗證器
         services.AddScoped<IValidator<AuctionQueryParameters>, AuctionQueryParametersValidator>();
+        services.AddScoped<IValidator<CreateAuctionRequest>, CreateAuctionRequestValidator>();
+        services.AddScoped<IValidator<UpdateAuctionRequest>, UpdateAuctionRequestValidator>();
 
         // 配置 BiddingService HttpClient
         services.AddHttpClient<IBiddingServiceClient, BiddingServiceClient>(client =>

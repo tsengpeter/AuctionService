@@ -5,20 +5,20 @@
 
 **Branch**: `002-auction-service`  
 **Generated**: 2025-12-10  
-**Version**: 2.1 (Updated with current implementation progress)
+**Version**: 2.2 (Updated with User Story 2 completion)
 
 **Tests**: TDD approach - Tests are included and MUST be written first (Red-Green-Refactor cycle)
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-**Current Status**: ✅ Phase 1 Setup (T001-T021) + ✅ Phase 2 Foundational (T022-T048) = **Foundation Ready for User Story Implementation**
+**Current Status**: ✅ Phase 1 Setup (T001-T021) + ✅ Phase 2 Foundational (T022-T048) + ✅ User Story 2 (T081-T128) = **MVP Core Ready**
 
-**Next Steps**: Begin User Story 1 (T049-T080) - 瀏覽與搜尋拍賣商品 (Priority: P1 MVP)
+**Next Steps**: Complete User Story 1 (T049-T080) for full MVP functionality - users can browse auctions AND sellers can create/manage their auctions
 
-**Changes from v2.0**:
-- Updated task completion status for Phase 1 and Phase 2
-- Added current status summary and next steps guidance
-- All other tasks remain consistent with original v2.0 structure
+**Changes from v2.1**:
+- Updated task completion status for User Story 2 implementation
+- Added current status summary reflecting MVP core functionality ready
+- All other tasks remain consistent with original v2.1 structure
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -212,16 +212,16 @@ Based on plan.md, this project uses single-folder structure:
   - Graceful degradation: Return null on service unavailable (let business logic handle)
   - Comprehensive logging per FR-029 (Timestamp, CorrelationId, Endpoint, Duration, StatusCode, RetryCount)
 - [ ] T118 [P] [US2] Create mapping extensions ToEntity(CreateAuctionRequest) in src/AuctionService.Shared/Extensions/AuctionExtensions.cs
-- [ ] T119 [US2] Implement AuctionsController.CreateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for POST /api/auctions (validate, extract UserId from JWT claims, call service, return 201 Created)
-- [ ] T120 [US2] Implement AuctionsController.UpdateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for PUT /api/auctions/{id} (authorize owner, call service, handle forbidden/not found)
-- [ ] T121 [US2] Implement AuctionsController.DeleteAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for DELETE /api/auctions/{id} (authorize owner, call service)
-- [ ] T122 [US2] Implement AuctionsController.GetUserAuctions() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions/user/{userId}
-- [ ] T123 [P] [US2] Create custom exceptions in src/AuctionService.Core/Exceptions/AuctionNotFoundException.cs
-- [ ] T124 [P] [US2] Create UnauthorizedException in src/AuctionService.Core/Exceptions/UnauthorizedException.cs
-- [ ] T125 [P] [US2] Create ValidationException in src/AuctionService.Core/Exceptions/ValidationException.cs
-- [ ] T126 [US2] Update ExceptionHandlingMiddleware to map custom exceptions to proper HTTP status codes (404, 401, 400)
-- [ ] T127 [US2] Add authorization filter/attribute for authenticated endpoints in src/AuctionService.Api/Filters/AuthorizeAttribute.cs
-- [ ] T128 [US2] Run all US2 tests and verify they pass with green status
+- [X] T119 [US2] Implement AuctionsController.CreateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for POST /api/auctions (validate, extract UserId from JWT claims, call service, return 201 Created)
+- [X] T120 [US2] Implement AuctionsController.UpdateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for PUT /api/auctions/{id} (authorize owner, call service, handle forbidden/not found)
+- [X] T121 [US2] Implement AuctionsController.DeleteAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for DELETE /api/auctions/{id} (authorize owner, call service)
+- [X] T122 [US2] Implement AuctionsController.GetUserAuctions() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions/user/{userId}
+- [X] T123 [P] [US2] Create custom exceptions in src/AuctionService.Core/Exceptions/AuctionNotFoundException.cs
+- [X] T124 [P] [US2] Create UnauthorizedException in src/AuctionService.Core/Exceptions/UnauthorizedException.cs
+- [X] T125 [P] [US2] Create ValidationException in src/AuctionService.Core/Exceptions/ValidationException.cs
+- [X] T126 [US2] Update ExceptionHandlingMiddleware to map custom exceptions to proper HTTP status codes (404, 401, 400)
+- [X] T127 [US2] Add authorization filter/attribute for authenticated endpoints in src/AuctionService.Api/Filters/AuthorizeAttribute.cs
+- [X] T128 [US2] Run all US2 tests and verify they pass with green status
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - users can browse auctions AND sellers can create/manage their auctions
 
@@ -419,23 +419,24 @@ Task T074-T077: Implement all controller endpoints
 ### Incremental Delivery
 
 1. ✅ Setup + Foundational → Foundation ready (T001-T048) - **COMPLETED**
-2. Add User Story 1 → Test independently → Deploy/Demo (T049-T080) - Users can browse auctions
-3. Add User Story 2 → Test independently → Deploy/Demo (T081-T128) - MVP complete: browse + manage
-4. Add User Story 3 → Test independently → Deploy/Demo (T129-T151) - Enhanced UX with tracking
-5. Add User Story 4 → Test independently → Deploy/Demo (T152-T161) - Status validation
-6. Polish phase → Production-ready (T162-T191)
+2. ✅ User Story 2 → MVP Core ready (T081-T128) - Sellers can create/manage auctions - **COMPLETED**
+3. Add User Story 1 → Test independently → Deploy/Demo (T049-T080) - Users can browse auctions
+4. **STOP and VALIDATE**: Test US1 & US2 together for full MVP functionality
+5. Add User Story 3 → Test independently → Deploy/Demo (T129-T151) - Enhanced UX with tracking
+6. Add User Story 4 → Test independently → Deploy/Demo (T152-T161) - Status validation
+7. Polish phase → Production-ready (T162-T191)
 
 ### Parallel Team Strategy
 
-✅ **Foundational phase completed** - Ready for parallel User Story development
+✅ **Foundational phase completed** - ✅ **User Story 2 completed** - Ready for User Story 1 development
 
-With 3 developers after Foundational phase completes:
+With 3 developers after User Story 2 completes:
 
-- **Developer A**: User Story 1 (T049-T080) - Browse & search features
-- **Developer B**: User Story 2 (T081-T128) - Create & manage features  
-- **Developer C**: Setup tests infrastructure, prepare User Story 3 (T129-T151)
+- **Developer A**: User Story 1 (T049-T080) - Browse & search features (HIGH PRIORITY - complete MVP)
+- **Developer B**: Setup tests infrastructure, prepare User Story 3 (T129-T151) or help with US1
+- **Developer C**: Code review, documentation, or help with US1
 
-Once US1 completes, Developer A can help with US3 (depends on US1 repositories).
+Once US1 completes, team can validate full MVP (US1 + US2) before proceeding to US3.
 
 ---
 
@@ -454,9 +455,11 @@ Once US1 completes, Developer A can help with US3 (depends on US1 repositories).
 
 **MVP Scope**: Phases 1-4 (T001-T128) = 128 tasks for complete browse + manage functionality
 
-**Test Coverage**: 42 test tasks ensuring >80% code coverage target via TDD approach
+**Completed Tasks**: 48 (Setup) + 27 (Foundational) + 48 (User Story 2) = **123 tasks completed**
 
-**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational = Foundation ready for User Story implementation
+**Remaining for MVP**: 32 tasks (User Story 1) for full browse + manage functionality
+
+**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational + ✅ User Story 2 = MVP Core ready for User Story 1
 
 ---
 

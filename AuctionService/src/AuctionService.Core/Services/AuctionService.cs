@@ -2,6 +2,7 @@ using AuctionService.Core.DTOs.Common;
 using AuctionService.Core.DTOs.Requests;
 using AuctionService.Core.DTOs.Responses;
 using AuctionService.Core.Entities;
+using AuctionService.Core.Exceptions;
 using AuctionService.Core.Extensions;
 using AuctionService.Core.Interfaces;
 using AuctionService.Core.Validators;
@@ -47,7 +48,7 @@ public class AuctionService : IAuctionService
         var (auctions, totalCount) = await _auctionRepository.GetAuctionsAsync(parameters);
 
         // 轉換為 DTO
-        var auctionDtos = auctions.Select(MapToAuctionListItemDto).ToList();
+        var auctionDtos = auctions.Select(a => a.ToListItemDto()).ToList();
 
         return new PagedResult<AuctionListItemDto>
         {
@@ -71,7 +72,7 @@ public class AuctionService : IAuctionService
             return null;
         }
 
-        return MapToAuctionDetailDto(auction);
+        return auction.ToDetailDto();
     }
 
     /// <summary>
@@ -103,64 +104,6 @@ public class AuctionService : IAuctionService
     }
 
     /// <summary>
-    /// 將 Auction 實體對應到 AuctionListItemDto
-    /// </summary>
-    private static AuctionListItemDto MapToAuctionListItemDto(Auction auction)
-    {
-        return new AuctionListItemDto
-        {
-            Id = auction.Id,
-            Title = auction.Name,
-            Description = auction.Description,
-            StartingPrice = auction.StartingPrice,
-            CurrentPrice = auction.StartingPrice, // 目前先用起標價，之後需要實作出價邏輯
-            StartTime = auction.StartTime,
-            EndTime = auction.EndTime,
-            Status = auction.CalculateStatus(),
-            Category = auction.Category != null ? new CategoryDto
-            {
-                Id = auction.Category.Id,
-                Name = auction.Category.Name
-            } : null,
-            Seller = new SellerDto
-            {
-                Id = auction.UserId,
-                Username = $"User_{auction.UserId}" // 暫時的實作
-            }
-        };
-    }
-
-    /// <summary>
-    /// 將 Auction 實體對應到 AuctionDetailDto
-    /// </summary>
-    private static AuctionDetailDto MapToAuctionDetailDto(Auction auction)
-    {
-        return new AuctionDetailDto
-        {
-            Id = auction.Id,
-            Title = auction.Name,
-            Description = auction.Description,
-            ImageUrls = new List<string>(), // 目前沒有圖片功能
-            StartingPrice = auction.StartingPrice,
-            CurrentPrice = auction.StartingPrice, // 目前先用起標價
-            StartTime = auction.StartTime,
-            EndTime = auction.EndTime,
-            Status = auction.CalculateStatus(),
-            Category = auction.Category != null ? new CategoryDto
-            {
-                Id = auction.Category.Id,
-                Name = auction.Category.Name
-            } : null,
-            Seller = new SellerDto
-            {
-                Id = auction.UserId,
-                Username = $"User_{auction.UserId}" // 暫時的實作
-            },
-            Bids = new List<BidDto>() // 目前沒有出價記錄
-        };
-    }
-
-    /// <summary>
     /// 建立新的拍賣商品
     /// </summary>
     /// <param name="request">建立請求</param>
@@ -172,25 +115,13 @@ public class AuctionService : IAuctionService
         var validationResult = await _createValidator.ValidateAsync(request);
         if (!validationResult.IsValid)
         {
-            throw new ValidationException(validationResult.Errors);
+            throw new Core.Exceptions.ValidationException(validationResult.Errors);
         }
 
-        var auction = new Auction
-        {
-            Id = Guid.NewGuid(),
-            Name = request.Name,
-            Description = request.Description,
-            StartingPrice = request.StartingPrice,
-            CategoryId = request.CategoryId,
-            StartTime = request.StartTime ?? DateTime.UtcNow,
-            EndTime = request.EndTime,
-            UserId = userId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var auction = request.ToEntity(userId);
 
         var createdAuction = await _auctionRepository.CreateAsync(auction);
-        return MapToAuctionDetailDto(createdAuction);
+        return createdAuction.ToDetailDto();
     }
 
     /// <summary>
@@ -203,9 +134,14 @@ public class AuctionService : IAuctionService
     public async Task<AuctionDetailDto> UpdateAuctionAsync(Guid id, UpdateAuctionRequest request, string userId)
     {
         var auction = await _auctionRepository.GetByIdAsync(id);
-        if (auction == null || auction.UserId != userId)
+        if (auction == null)
         {
-            throw new InvalidOperationException("Auction not found or access denied");
+            throw new AuctionNotFoundException(id);
+        }
+
+        if (auction.UserId != userId)
+        {
+            throw new UnauthorizedException("You can only update your own auctions");
         }
 
         // 檢查是否已有出價，如果有則不允許更新
@@ -222,7 +158,7 @@ public class AuctionService : IAuctionService
         auction.UpdatedAt = DateTime.UtcNow;
 
         var updatedAuction = await _auctionRepository.UpdateAsync(auction);
-        return MapToAuctionDetailDto(updatedAuction);
+        return updatedAuction.ToDetailDto();
     }
 
     /// <summary>
@@ -234,9 +170,14 @@ public class AuctionService : IAuctionService
     public async Task DeleteAuctionAsync(Guid id, string userId)
     {
         var auction = await _auctionRepository.GetByIdAsync(id);
-        if (auction == null || auction.UserId != userId)
+        if (auction == null)
         {
-            throw new InvalidOperationException("Auction not found or access denied");
+            throw new AuctionNotFoundException(id);
+        }
+
+        if (auction.UserId != userId)
+        {
+            throw new UnauthorizedException("You can only delete your own auctions");
         }
 
         // 檢查是否已有出價，如果有則不允許刪除
@@ -258,7 +199,7 @@ public class AuctionService : IAuctionService
     public async Task<PagedResult<AuctionListItemDto>> GetUserAuctionsAsync(string userId, AuctionQueryParameters parameters)
     {
         var (auctions, totalCount) = await _auctionRepository.GetByUserIdAsync(userId, parameters);
-        var auctionDtos = auctions.Select(MapToAuctionListItemDto).ToList();
+        var auctionDtos = auctions.Select(a => a.ToListItemDto()).ToList();
 
         return new PagedResult<AuctionListItemDto>
         {

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AuctionService.Api.Controllers;
 
@@ -12,11 +13,16 @@ public class BaseApiController : ControllerBase
     /// <summary>
     /// 取得目前使用者的 ID (從 JWT Token)
     /// </summary>
-    protected Guid GetCurrentUserId()
+    protected string GetCurrentUserId()
     {
-        // TODO: 實作從 JWT Token 取得使用者 ID 的邏輯
-        // 這是一個臨時實作
-        return Guid.NewGuid();
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            // TODO: 實作適當的認證失敗處理
+            // 這是一個臨時實作，方便測試
+            userId = "test-user-123";
+        }
+        return userId;
     }
 
     /// <summary>
