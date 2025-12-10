@@ -4,11 +4,18 @@
 **Prerequisites**: plan.md, spec.md, data-model.md, contracts/openapi.yaml, research.md, quickstart.md
 
 **Branch**: `002-auction-service`  
-**Generated**: 2025-12-03
+**Generated**: 2025-12-10  
+**Version**: 2.0 (Regenerated with Bidding Service integration strategy)
 
 **Tests**: TDD approach - Tests are included and MUST be written first (Red-Green-Refactor cycle)
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+**Changes from v1.0**:
+- Updated T068 with detailed Bidding Service logging specification (FR-029)
+- Added explicit logging requirements per plan.md "Bidding Service 整合策略"
+- Enhanced T117 with resilience patterns (Polly retry, Circuit Breaker, Timeout)
+- All other tasks remain consistent with original v1.0 structure
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -120,7 +127,13 @@ Based on plan.md, this project uses single-folder structure:
 - [ ] T065 [P] [US1] Create IAuctionRepository interface in src/AuctionService.Core/Interfaces/IAuctionRepository.cs (GetPagedAsync with filters, GetByIdAsync, GetByCategoryIdAsync, SearchAsync)
 - [ ] T066 [US1] Implement AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs with EF Core queries (use AsNoTracking for read-only, Include Category navigation, apply EndTime index for status filtering)
 - [ ] T067 [P] [US1] Create IBiddingServiceClient interface in src/AuctionService.Core/Interfaces/IBiddingServiceClient.cs (GetCurrentBidAsync method)
-- [ ] T068 [US1] Implement BiddingServiceClient in src/AuctionService.Infrastructure/HttpClients/BiddingServiceClient.cs with HttpClient + Polly retry policy (3 retries with exponential backoff, log all requests/responses)
+- [ ] T068 [US1] Implement BiddingServiceClient in src/AuctionService.Infrastructure/HttpClients/BiddingServiceClient.cs with HttpClient + Polly retry policy AND comprehensive logging per FR-029:
+  - Retry: 3 attempts with exponential backoff (1s, 2s, 4s)
+  - Timeout: 5 seconds per request
+  - Logging: ALL requests must log Timestamp (UTC), CorrelationId, Endpoint, RequestDuration (ms), ResponseStatusCode
+  - Optional logging: RequestPayload (truncated 1000 chars), ResponsePayload (truncated 1000 chars), ErrorMessage, RetryCount
+  - Log levels: Information (2xx), Warning (4xx/retry), Error (5xx/timeout)
+  - Example: _logger.LogInformation("BiddingService call: {Endpoint} | Status: {StatusCode} | Duration: {Duration}ms | CorrelationId: {CorrelationId}", endpoint, statusCode, duration, correlationId)
 - [ ] T069 [P] [US1] Create IAuctionService interface in src/AuctionService.Core/Interfaces/IAuctionService.cs (GetAuctionsAsync, GetAuctionByIdAsync, GetCurrentBidAsync)
 - [ ] T070 [US1] Implement AuctionService in src/AuctionService.Core/Services/AuctionService.cs with business logic (call repository, map to DTOs using AuctionExtensions.ToListItemDto/ToDetailDto, integrate BiddingServiceClient)
 - [ ] T071 [P] [US1] Create mapping extensions in src/AuctionService.Shared/Extensions/AuctionExtensions.cs (ToListItemDto, ToDetailDto methods using POCO manual mapping)
@@ -131,7 +144,11 @@ Based on plan.md, this project uses single-folder structure:
 - [ ] T076 [US1] Implement AuctionsController.GetCurrentBid() in src/AuctionService.Api/Controllers/AuctionsController.cs for GET /api/auctions/{id}/current-bid (lightweight endpoint for polling)
 - [ ] T077 [US1] Implement CategoriesController.GetCategories() in src/AuctionService.Api/Controllers/CategoriesController.cs for GET /api/categories
 - [ ] T078 [US1] Add request validation using FluentValidation for AuctionQueryParameters in src/AuctionService.Core/Validators/AuctionQueryParametersValidator.cs
-- [ ] T079 [US1] Configure HttpClient for BiddingService in Program.cs with base address from appsettings, add Polly policies (retry + circuit breaker)
+- [ ] T079 [US1] Configure HttpClient for BiddingService in Program.cs with base address from appsettings, add Polly policies:
+  - Retry policy: 3 attempts, exponential backoff (1s, 2s, 4s)
+  - Circuit Breaker: Open after 5 failures, half-open after 30 seconds
+  - Timeout: 5 seconds per request
+  - Register IBiddingServiceClient in DI container
 - [ ] T080 [US1] Run all US1 tests and verify they pass with green status
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can browse, search, filter auctions and view details with current bid
@@ -185,7 +202,12 @@ Based on plan.md, this project uses single-folder structure:
 - [ ] T114 [US2] Implement DeleteAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (check ownership, check no bids, soft/hard delete)
 - [ ] T115 [US2] Implement GetUserAuctionsAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs
 - [ ] T116 [P] [US2] Add CheckAuctionHasBidsAsync method to IBiddingServiceClient in src/AuctionService.Core/Interfaces/IBiddingServiceClient.cs
-- [ ] T117 [US2] Implement CheckAuctionHasBidsAsync in BiddingServiceClient in src/AuctionService.Infrastructure/HttpClients/BiddingServiceClient.cs
+- [ ] T117 [US2] Implement CheckAuctionHasBidsAsync in BiddingServiceClient in src/AuctionService.Infrastructure/HttpClients/BiddingServiceClient.cs with resilience patterns:
+  - Polly Retry: 3 attempts with exponential backoff (1s, 2s, 4s)
+  - Circuit Breaker: Open after 5 consecutive failures, half-open after 30 seconds
+  - Timeout: 5 seconds per request
+  - Graceful degradation: Return null on service unavailable (let business logic handle)
+  - Comprehensive logging per FR-029 (Timestamp, CorrelationId, Endpoint, Duration, StatusCode, RetryCount)
 - [ ] T118 [P] [US2] Create mapping extensions ToEntity(CreateAuctionRequest) in src/AuctionService.Shared/Extensions/AuctionExtensions.cs
 - [ ] T119 [US2] Implement AuctionsController.CreateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for POST /api/auctions (validate, extract UserId from JWT claims, call service, return 201 Created)
 - [ ] T120 [US2] Implement AuctionsController.UpdateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for PUT /api/auctions/{id} (authorize owner, call service, handle forbidden/not found)
@@ -292,7 +314,7 @@ Based on plan.md, this project uses single-folder structure:
 - [ ] T176 [P] Configure Swagger UI with examples from contracts/openapi.yaml
 - [ ] T177 [P] Add correlation ID to all log entries via RequestLoggingMiddleware
 - [ ] T178 [P] Add performance logging: log query execution times >1000ms as warnings
-- [ ] T179 [P] Add circuit breaker pattern to BiddingServiceClient (fail fast after 5 consecutive failures)
+- [ ] T179 [P] Add circuit breaker pattern to BiddingServiceClient (already implemented in T117, verify configuration: fail fast after 5 consecutive failures, half-open after 30 seconds)
 - [ ] T180 [P] Review and optimize all database queries: ensure proper use of AsNoTracking() for read-only queries
 - [ ] T181 [P] Add unit tests for all validators in tests/AuctionService.UnitTests/Validators/
 - [ ] T182 [P] Add unit tests for all mapping extensions in tests/AuctionService.UnitTests/Extensions/
