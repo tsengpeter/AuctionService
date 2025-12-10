@@ -22,16 +22,45 @@ public class RequestLoggingMiddleware
     {
         var stopwatch = Stopwatch.StartNew();
 
-        _logger.LogInformation("Request: {Method} {Path}",
-            context.Request.Method,
-            context.Request.Path);
+        // 獲取或生成 correlation ID
+        var correlationId = GetOrCreateCorrelationId(context);
 
-        await _next(context);
+        // 將 correlation ID 添加到日誌範圍
+        using (_logger.BeginScope(new Dictionary<string, object>
+        {
+            ["CorrelationId"] = correlationId
+        }))
+        {
+            _logger.LogInformation("Request: {Method} {Path}",
+                context.Request.Method,
+                context.Request.Path);
 
-        stopwatch.Stop();
+            await _next(context);
 
-        _logger.LogInformation("Response: {StatusCode} - {Elapsed}ms",
-            context.Response.StatusCode,
-            stopwatch.ElapsedMilliseconds);
+            stopwatch.Stop();
+
+            _logger.LogInformation("Response: {StatusCode} - {Elapsed}ms",
+                context.Response.StatusCode,
+                stopwatch.ElapsedMilliseconds);
+        }
+    }
+
+    private static string GetOrCreateCorrelationId(HttpContext context)
+    {
+        const string correlationIdHeader = "X-Correlation-ID";
+
+        // 嘗試從請求標頭獲取 correlation ID
+        if (context.Request.Headers.TryGetValue(correlationIdHeader, out var correlationId))
+        {
+            return correlationId.ToString();
+        }
+
+        // 如果不存在，生成新的 correlation ID
+        var newCorrelationId = Guid.NewGuid().ToString();
+
+        // 將 correlation ID 添加到回應標頭
+        context.Response.Headers[correlationIdHeader] = newCorrelationId;
+
+        return newCorrelationId;
     }
 }

@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
+using System.IO;
 using System.Text;
+using Yarp.ReverseProxy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +42,10 @@ builder.Host.UseSerilog((context, configuration) =>
 // 設定 FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+// 設定 YARP Reverse Proxy
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -50,6 +56,8 @@ if (app.Environment.IsDevelopment())
     {
         options.WithTitle("AuctionService API");
         options.WithTheme(ScalarTheme.Purple);
+        options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+        options.WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch);
     });
 }
 
@@ -61,6 +69,21 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// 提供 OpenAPI 規格檔案
+app.MapGet("/openapi/v1/openapi.yaml", async () =>
+{
+    var openApiPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "specs", "002-auction-service", "contracts", "openapi.yaml");
+    if (File.Exists(openApiPath))
+    {
+        var yamlContent = await File.ReadAllTextAsync(openApiPath);
+        return Results.Text(yamlContent, "application/yaml");
+    }
+    return Results.NotFound();
+});
+
 app.MapControllers();
+
+// 設定 YARP Reverse Proxy 路由
+app.MapReverseProxy();
 
 app.Run();

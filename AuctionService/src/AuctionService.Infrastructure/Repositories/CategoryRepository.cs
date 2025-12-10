@@ -2,6 +2,7 @@ using AuctionService.Core.Entities;
 using AuctionService.Core.Interfaces;
 using AuctionService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace AuctionService.Infrastructure.Repositories;
 
@@ -10,7 +11,7 @@ namespace AuctionService.Infrastructure.Repositories;
 /// </summary>
 public class CategoryRepository : Repository<Category>, ICategoryRepository
 {
-    public CategoryRepository(AuctionDbContext context) : base(context)
+    public CategoryRepository(AuctionDbContext context, ILogger<CategoryRepository> logger) : base(context, logger)
     {
     }
 

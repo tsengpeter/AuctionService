@@ -1,0 +1,332 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOCKER_COMPOSE_VERSION: '2.24.0'
+
+jobs:
+  test:
+    name: Run Tests with Testcontainers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Docker Compose
+      run: |
+        sudo curl -L "https://github.com/docker/compose/releases/download/${{ env.DOCKER_COMPOSE_VERSION }}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        docker-compose --version
+
+    - name: Enable Docker experimental features
+      run: |
+        echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json
+        sudo systemctl restart docker
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Cache Docker layers
+      uses: actions/cache@v4
+      with:
+        path: ~/.docker
+        key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile', '**/docker-compose.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+
+    - name: Install .NET tools
+      run: |
+        dotnet tool install --global dotnet-ef
+        dotnet tool install --global dotnet-reportgenerator-globaltool
+
+    - name: Restore dependencies
+      run: dotnet restore AuctionService.sln
+
+    - name: Build solution
+      run: dotnet build AuctionService.sln --configuration Release --no-restore
+
+    - name: Create test results directory
+      run: mkdir -p test-results/coverage
+
+    - name: Run unit tests with coverage
+      run: |
+        dotnet test tests/AuctionService.UnitTests/AuctionService.UnitTests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --logger "trx;LogFileName=test-results-unit.trx" \
+          --logger "html;LogFileName=test-results-unit.html" \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./test-results/unit \
+          --settings tests/AuctionService.UnitTests/coverlet.runsettings
+
+    - name: Run contract tests
+      run: |
+        dotnet test tests/AuctionService.ContractTests/AuctionService.ContractTests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --logger "trx;LogFileName=test-results-contract.trx" \
+          --logger "html;LogFileName=test-results-contract.html" \
+          --results-directory ./test-results/contract
+
+    - name: Start Testcontainers infrastructure
+      run: |
+        # Start PostgreSQL container for integration tests
+        docker run -d \
+          --name postgres-test \
+          -e POSTGRES_PASSWORD=testpassword \
+          -e POSTGRES_DB=auction_test \
+          -e POSTGRES_USER=testuser \
+          -p 5433:5432 \
+          postgres:15
+
+        # Wait for PostgreSQL to be ready
+        for i in {1..30}; do
+          if docker exec postgres-test pg_isready -U testuser -d auction_test; then
+            echo "PostgreSQL is ready"
+            break
+          fi
+          echo "Waiting for PostgreSQL... ($i/30)"
+          sleep 2
+        done
+
+        # Initialize test database
+        docker exec -i postgres-test psql -U testuser -d auction_test < scripts/init-db.sql
+
+    - name: Run integration tests with Testcontainers
+      run: |
+        dotnet test tests/AuctionService.IntegrationTests/AuctionService.IntegrationTests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --logger "trx;LogFileName=test-results-integration.trx" \
+          --logger "html;LogFileName=test-results-integration.html" \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./test-results/integration \
+          --settings tests/AuctionService.IntegrationTests/coverlet.runsettings
+      env:
+        ConnectionStrings__AuctionDb: "Host=localhost;Port=5433;Database=auction_test;Username=testuser;Password=testpassword;Include Error Detail=true"
+        ASPNETCORE_ENVIRONMENT: Testing
+        DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_HTTP2SUPPORT: true
+        DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_HTTP3SUPPORT: false
+
+    - name: Stop Testcontainers infrastructure
+      if: always()
+      run: |
+        docker stop postgres-test || true
+        docker rm postgres-test || true
+
+    - name: Generate coverage reports
+      run: |
+        # Find all coverage files
+        coverage_files=$(find test-results -name "coverage.cobertura.xml" | tr '\n' ';')
+
+        if [ -n "$coverage_files" ]; then
+          # Generate HTML and badge reports
+          reportgenerator \
+            -reports:$coverage_files \
+            -targetdir:test-results/coverage-report \
+            -reporttypes:Html;Badges;Cobertura;TextSummary \
+            -verbosity:Info
+
+          echo "Coverage report generated at: test-results/coverage-report/index.html"
+        else
+          echo "No coverage files found"
+        fi
+
+    - name: Generate test summary
+      run: |
+        echo "## 🧪 Test Results Summary" > test-summary.md
+        echo "" >> test-summary.md
+        echo "| Test Type | Total | Passed | Failed | Skipped |" >> test-summary.md
+        echo "|-----------|-------|--------|--------|---------|" >> test-summary.md
+
+        # Parse TRX files for summary
+        for trx_file in test-results/**/*.trx; do
+          if [ -f "$trx_file" ]; then
+            test_type=$(basename "$(dirname "$trx_file")" | sed 's/test-results\///')
+            total=$(grep -c "<UnitTestResult" "$trx_file" || echo "0")
+            passed=$(grep -c "<UnitTestResult.*outcome=\"Passed\"" "$trx_file" || echo "0")
+            failed=$(grep -c "<UnitTestResult.*outcome=\"Failed\"" "$trx_file" || echo "0")
+            skipped=$(grep -c "<UnitTestResult.*outcome=\"NotExecuted\"" "$trx_file" || echo "0")
+
+            echo "| $test_type | $total | $passed | $failed | $skipped |" >> test-summary.md
+          fi
+        done
+
+        echo "" >> test-summary.md
+
+        # Add coverage summary if available
+        if [ -f "test-results/coverage-report/Summary.txt" ]; then
+          echo "### 📊 Code Coverage" >> test-summary.md
+          echo "" >> test-summary.md
+          echo "\`\`\`" >> test-summary.md
+          cat test-results/coverage-report/Summary.txt >> test-summary.md
+          echo "\`\`\`" >> test-summary.md
+        fi
+
+        cat test-summary.md
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ github.run_number }}
+        path: |
+          test-results/
+          test-summary.md
+        retention-days: 30
+
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-reports-${{ github.run_number }}
+        path: test-results/coverage-report/
+        retention-days: 30
+
+    - name: Check test results
+      run: |
+        # Check if any tests failed
+        failed_tests=$(find test-results -name "*.trx" -exec grep -l "<ResultSummary outcome=\"Failed\">" {} \; | wc -l)
+
+        if [ "$failed_tests" -gt 0 ]; then
+          echo "❌ $failed_tests test suite(s) failed"
+          exit 1
+        fi
+
+        # Check minimum coverage threshold (optional)
+        if [ -f "test-results/coverage-report/Summary.txt" ]; then
+          line_coverage=$(grep "Line coverage:" test-results/coverage-report/Summary.txt | grep -o "[0-9.]*%" | sed 's/%//')
+
+          if [ -n "$line_coverage" ] && [ "$(echo "$line_coverage < 80" | bc -l)" -eq 1 ]; then
+            echo "❌ Code coverage too low: ${line_coverage}% (minimum: 80%)"
+            exit 1
+          fi
+        fi
+
+        echo "✅ All tests passed and coverage requirements met"
+
+    - name: Comment PR with test results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          let comment = '## 🧪 Test Results\n\n';
+
+          // Read test summary
+          if (fs.existsSync('test-summary.md')) {
+            const summary = fs.readFileSync('test-summary.md', 'utf8');
+            comment += summary.replace('## 🧪 Test Results Summary', '');
+          } else {
+            comment += 'No test summary available\n';
+          }
+
+          // Add artifacts links
+          comment += '\n### 📁 Artifacts\n';
+          comment += `- [Test Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)\n`;
+          comment += `- [Coverage Reports](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)\n\n`;
+
+          comment += `_Tests completed at ${new Date().toISOString()}_`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  performance-test:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'performance')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Run performance benchmarks
+      run: |
+        dotnet run --project tests/AuctionService.PerformanceTests/AuctionService.PerformanceTests.csproj \
+          --configuration Release \
+          -- \
+          --filter "*" \
+          --artifacts ./benchmark-results
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-results-${{ github.run_number }}
+        path: benchmark-results/
+        retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run .NET security analysis
+      run: |
+        dotnet tool install --global security-scan
+        security-scan --target . --output security-results.json --format json
+
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-scan-${{ github.run_number }}
+        path: |
+          trivy-results.sarif
+          security-results.json
+        retention-days: 30

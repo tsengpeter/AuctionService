@@ -3,6 +3,7 @@ using AuctionService.Core.Entities;
 using AuctionService.Core.Interfaces;
 using AuctionService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace AuctionService.Infrastructure.Repositories;
 
@@ -11,7 +12,7 @@ namespace AuctionService.Infrastructure.Repositories;
 /// </summary>
 public class AuctionRepository : Repository<Auction>, IAuctionRepository
 {
-    public AuctionRepository(AuctionDbContext context) : base(context)
+    public AuctionRepository(AuctionDbContext context, ILogger<AuctionRepository> logger) : base(context, logger)
     {
     }
 

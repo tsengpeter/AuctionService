@@ -302,21 +302,21 @@ Based on plan.md, this project uses single-folder structure:
 
 - [X] T162 [P] Create ResponseCodeService in src/AuctionService.Core/Services/ResponseCodeService.cs (retrieve localized messages from ResponseCodes table based on language header)
 - [X] T163 [P] Update all ApiResponse wrappers to use ResponseCodeService for consistent metadata (statusCode, statusName, message) across all controllers
-- [ ] T164 [P] Create health check endpoint in src/AuctionService.Api/Controllers/HealthController.cs (verify DB connection, BiddingService availability)
-- [ ] T165 [P] Add YARP configuration in appsettings.json for API Gateway routing (if deploying with gateway)
-- [ ] T166 [P] Create architecture.md in docs/ documenting Clean Architecture layers and data flow
-- [ ] T167 [P] Create api-guide.md in docs/ with API usage examples and authentication guide
-- [ ] T168 [P] Create deployment.md in docs/ with Docker deployment instructions and environment variables
-- [ ] T169 [P] Create build.ps1 script in scripts/ for Windows builds (dotnet restore, build, test)
-- [ ] T170 [P] Create build.sh script in scripts/ for Linux/macOS builds
-- [ ] T171 [P] Create init-db.sql script in scripts/ for manual PostgreSQL database initialization
-- [ ] T172 [P] Create run-tests.sh script in scripts/ for running all test projects with coverage report
-- [ ] T173 [P] Create .github/workflows/build.yml for CI/CD: build on every PR
-- [ ] T174 [P] Create .github/workflows/test.yml for CI/CD: run tests with Testcontainers on every PR
+- [X] T164 [P] Create health check endpoint in src/AuctionService.Api/Controllers/HealthController.cs (verify DB connection, BiddingService availability)
+- [X] T165 [P] Add YARP configuration in appsettings.json for API Gateway routing (if deploying with gateway)
+- [X] T166 [P] Create architecture.md in docs/ documenting Clean Architecture layers and data flow
+- [X] T167 [P] Create api-guide.md in docs/ with API usage examples and authentication guide
+- [X] T168 [P] Create deployment.md in docs/ with Docker deployment instructions and environment variables
+- [X] T169 [P] Create build.ps1 script in scripts/ for Windows builds (dotnet restore, build, test)
+- [X] T170 [P] Create build.sh script in scripts/ for Linux/macOS builds
+- [X] T171 [P] Create init-db.sql script in scripts/ for manual PostgreSQL database initialization
+- [X] T172 [P] Create run-tests.sh script in scripts/ for running all test projects with coverage report
+- [X] T173 [P] Create .github/workflows/build.yml for CI/CD: build on every PR
+- [X] T174 [P] Create .github/workflows/test.yml for CI/CD: run tests with Testcontainers on every PR
 - [X] T175 [P] Add XML documentation comments to all public APIs in Controllers
-- [ ] T176 [P] Configure Swagger UI with examples from contracts/openapi.yaml
-- [ ] T177 [P] Add correlation ID to all log entries via RequestLoggingMiddleware
-- [ ] T178 [P] Add performance logging: log query execution times >1000ms as warnings
+- [X] T176 [P] Configure Swagger UI with examples from contracts/openapi.yaml
+- [X] T177 [P] Add correlation ID to all log entries via RequestLoggingMiddleware
+- [X] T178 [P] Add performance logging: log query execution times >1000ms as warnings
 - [X] T179 [P] Add circuit breaker pattern to BiddingServiceClient (already implemented in T117, verify configuration: fail fast after 5 consecutive failures, half-open after 30 seconds)
 - [ ] T180 [P] Review and optimize all database queries: ensure proper use of AsNoTracking() for read-only queries
 - [X] T181 [P] Add unit tests for all validators in tests/AuctionService.UnitTests/Validators/

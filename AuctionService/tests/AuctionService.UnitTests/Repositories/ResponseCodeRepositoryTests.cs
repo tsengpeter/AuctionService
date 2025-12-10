@@ -3,6 +3,8 @@ using AuctionService.Infrastructure.Data;
 using AuctionService.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace AuctionService.UnitTests.Repositories;
 
@@ -13,15 +15,18 @@ public class ResponseCodeRepositoryTests : IDisposable
 {
     private readonly AuctionDbContext _context;
     private readonly ResponseCodeRepository _repository;
+    private readonly Mock<ILogger<ResponseCodeRepository>> _loggerMock;
 
     public ResponseCodeRepositoryTests()
     {
+        _loggerMock = new Mock<ILogger<ResponseCodeRepository>>();
+
         var options = new DbContextOptionsBuilder<AuctionDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new AuctionDbContext(options);
-        _repository = new ResponseCodeRepository(_context);
+        _repository = new ResponseCodeRepository(_context, _loggerMock.Object);
 
         // 準備測試資料
         SeedTestDataAsync().Wait();
