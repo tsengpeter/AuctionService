@@ -76,7 +76,12 @@ public class BiddingServiceClient : IBiddingServiceClient
     private async Task<ApiResponse<T>> HandleApiResponseAsync<T>(HttpResponseMessage response)
     {
         var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<T>>();
-        if (apiResponse != null && !string.IsNullOrEmpty(apiResponse.Message))
+        if (apiResponse == null)
+        {
+            throw new InvalidOperationException($"Failed to deserialize API response for type {typeof(T).Name}");
+        }
+
+        if (!string.IsNullOrEmpty(apiResponse.Message))
         {
             apiResponse.LocalizedMessage = await _responseCodeService.GetLocalizedMessageAsync(apiResponse.Message);
         }

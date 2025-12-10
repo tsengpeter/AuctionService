@@ -36,8 +36,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
             .HasMaxLength(50);
 
         builder.Property(rc => rc.CreatedAt)
-            .IsRequired()
-            .HasDefaultValueSql("NOW()");
+            .IsRequired();
 
         // 種子資料
         builder.HasData(
@@ -50,7 +49,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Auction created successfully",
                 Category = "Success",
                 Severity = "Info",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -60,7 +59,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Auction updated successfully",
                 Category = "Success",
                 Severity = "Info",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -70,7 +69,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Auction deleted successfully",
                 Category = "Success",
                 Severity = "Info",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
 
             // 客戶端錯誤
@@ -82,7 +81,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Auction not found",
                 Category = "ClientError",
                 Severity = "Warning",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -92,7 +91,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "End time must be at least 1 hour from now",
                 Category = "ClientError",
                 Severity = "Warning",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -102,7 +101,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Cannot edit or delete auction with existing bids",
                 Category = "ClientError",
                 Severity = "Warning",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -112,7 +111,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Unauthorized to access this auction",
                 Category = "ClientError",
                 Severity = "Error",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -122,7 +121,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Already following this auction",
                 Category = "ClientError",
                 Severity = "Info",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -132,7 +131,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Cannot follow your own auction",
                 Category = "ClientError",
                 Severity = "Warning",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -142,7 +141,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Follow limit exceeded (500)",
                 Category = "ClientError",
                 Severity = "Warning",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
 
             // 伺服器錯誤
@@ -154,7 +153,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Internal server error, please try again later",
                 Category = "ServerError",
                 Severity = "Error",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new ResponseCode
             {
@@ -164,7 +163,7 @@ public class ResponseCodeConfiguration : IEntityTypeConfiguration<ResponseCode>
                 MessageEn = "Bidding service is unavailable",
                 Category = "ServerError",
                 Severity = "Error",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
     }

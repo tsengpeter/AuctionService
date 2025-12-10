@@ -29,11 +29,6 @@ public interface IAuctionRepository : IRepository<Auction>
     Task<(IEnumerable<Auction> Auctions, int TotalCount)> GetByUserIdAsync(string userId, AuctionQueryParameters parameters);
 
     /// <summary>
-    /// 建立新商品
-    /// </summary>
-    Task<Auction> CreateAsync(Auction auction);
-
-    /// <summary>
     /// 更新商品
     /// </summary>
     Task<Auction> UpdateAsync(Auction auction);

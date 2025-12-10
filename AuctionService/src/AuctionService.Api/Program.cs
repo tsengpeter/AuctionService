@@ -14,21 +14,24 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// 設定 JWT 認證
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
+// 設定 JWT 認證 (非測試環境)
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
         {
-            ValidateIssuer = false, // 開發環境簡化設定
-            ValidateAudience = false, // 開發環境簡化設定
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = false, // 開發環境簡化設定
-            // 在生產環境中應該設定適當的 Issuer, Audience 和 SigningKey
-        };
-    });
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = false, // 開發環境簡化設定
+                ValidateAudience = false, // 開發環境簡化設定
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = false, // 開發環境簡化設定
+                // 在生產環境中應該設定適當的 Issuer, Audience 和 SigningKey
+            };
+        });
 
-builder.Services.AddAuthorization();
+    builder.Services.AddAuthorization();
+}
 builder.Services.AddOpenApi();
 
 // 註冊應用程式服務

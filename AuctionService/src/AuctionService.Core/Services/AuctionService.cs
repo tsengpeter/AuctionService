@@ -120,7 +120,7 @@ public class AuctionService : IAuctionService
 
         var auction = request.ToEntity(userId);
 
-        var createdAuction = await _auctionRepository.CreateAsync(auction);
+        var createdAuction = await _auctionRepository.AddAsync(auction);
         return createdAuction.ToDetailDto();
     }
 

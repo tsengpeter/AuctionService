@@ -28,8 +28,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasDefaultValue(true);
 
         builder.Property(c => c.CreatedAt)
-            .IsRequired()
-            .HasDefaultValueSql("NOW()");
+            .IsRequired();
 
         // 唯一約束
         builder.HasIndex(c => c.Name)
@@ -38,14 +37,14 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         // 種子資料
         builder.HasData(
-            new Category { Id = 1, Name = "電子產品", DisplayOrder = 1, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Category { Id = 2, Name = "家具", DisplayOrder = 2, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Category { Id = 3, Name = "收藏品", DisplayOrder = 3, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Category { Id = 4, Name = "藝術品", DisplayOrder = 4, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Category { Id = 5, Name = "服飾配件", DisplayOrder = 5, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Category { Id = 6, Name = "書籍", DisplayOrder = 6, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Category { Id = 7, Name = "運動用品", DisplayOrder = 7, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Category { Id = 8, Name = "其他", DisplayOrder = 99, IsActive = true, CreatedAt = DateTime.UtcNow }
+            new Category { Id = 1, Name = "電子產品", DisplayOrder = 1, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 2, Name = "家具", DisplayOrder = 2, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 3, Name = "收藏品", DisplayOrder = 3, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 4, Name = "藝術品", DisplayOrder = 4, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 5, Name = "服飾配件", DisplayOrder = 5, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 6, Name = "書籍", DisplayOrder = 6, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 7, Name = "運動用品", DisplayOrder = 7, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new Category { Id = 8, Name = "其他", DisplayOrder = 99, IsActive = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
         );
     }
 }

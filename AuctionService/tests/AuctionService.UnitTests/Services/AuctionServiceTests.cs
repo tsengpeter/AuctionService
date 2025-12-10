@@ -202,7 +202,7 @@ public class AuctionServiceTests
         expectedAuction.UserId = userId;
 
         _auctionRepositoryMock
-            .Setup(x => x.CreateAsync(It.IsAny<Auction>()))
+            .Setup(x => x.AddAsync(It.IsAny<Auction>()))
             .ReturnsAsync(expectedAuction);
 
         // Act
@@ -214,8 +214,9 @@ public class AuctionServiceTests
         result.Title.Should().Be(request.Name);
         result.Description.Should().Be(request.Description);
         result.StartingPrice.Should().Be(request.StartingPrice);
+        result.Category.Should().NotBeNull();
         result.Category.Id.Should().Be(request.CategoryId);
-        _auctionRepositoryMock.Verify(x => x.CreateAsync(It.IsAny<Auction>()), Times.Once);
+        _auctionRepositoryMock.Verify(x => x.AddAsync(It.IsAny<Auction>()), Times.Once);
     }
 
     [Fact]
