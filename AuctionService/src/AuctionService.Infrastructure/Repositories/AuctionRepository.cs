@@ -15,7 +15,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
     {
     }
 
-    public async Task<IEnumerable<Auction>> GetByUserIdAsync(Guid userId)
+    public async Task<IEnumerable<Auction>> GetByUserIdAsync(string userId)
     {
         return await _dbSet
             .Where(a => a.UserId == userId)
@@ -68,12 +68,6 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
         return await query
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
-    }
-
-    public async Task<bool> IsOwnerAsync(Guid auctionId, Guid userId)
-    {
-        return await _dbSet
-            .AnyAsync(a => a.Id == auctionId && a.UserId == userId);
     }
 
     public async Task<(IEnumerable<Auction> Auctions, int TotalCount)> GetAuctionsAsync(AuctionQueryParameters parameters)
@@ -150,5 +144,56 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
         return await _dbSet
             .Include(a => a.Category)
             .FirstOrDefaultAsync(a => a.Id == id);
+    }
+
+    public async Task<(IEnumerable<Auction> Auctions, int TotalCount)> GetByUserIdAsync(string userId, AuctionQueryParameters parameters)
+    {
+        var query = _dbSet
+            .Where(a => a.UserId == userId)
+            .Include(a => a.Category);
+
+        var totalCount = await query.CountAsync();
+
+        var auctions = await query
+            .OrderByDescending(a => a.CreatedAt)
+            .Skip((parameters.PageNumber - 1) * parameters.PageSize)
+            .Take(parameters.PageSize)
+            .ToListAsync();
+
+        return (auctions, totalCount);
+    }
+
+    public async Task<Auction> CreateAsync(Auction auction)
+    {
+        _dbSet.Add(auction);
+        await _context.SaveChangesAsync();
+
+        // 重新載入包含 Category 的實體
+        return await _dbSet
+            .Include(a => a.Category)
+            .FirstAsync(a => a.Id == auction.Id);
+    }
+
+    public async Task<Auction> UpdateAsync(Auction auction)
+    {
+        _dbSet.Update(auction);
+        await _context.SaveChangesAsync();
+        return auction;
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var auction = await _dbSet.FindAsync(id);
+        if (auction != null)
+        {
+            _dbSet.Remove(auction);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<bool> IsOwnerAsync(Guid auctionId, string userId)
+    {
+        var auction = await _dbSet.FindAsync(auctionId);
+        return auction?.UserId == userId;
     }
 }

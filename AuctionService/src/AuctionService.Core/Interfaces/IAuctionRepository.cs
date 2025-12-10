@@ -21,7 +21,27 @@ public interface IAuctionRepository : IRepository<Auction>
     /// <summary>
     /// 根據使用者 ID 取得商品清單
     /// </summary>
-    Task<IEnumerable<Auction>> GetByUserIdAsync(Guid userId);
+    Task<IEnumerable<Auction>> GetByUserIdAsync(string userId);
+
+    /// <summary>
+    /// 根據使用者 ID 取得商品清單 (分頁)
+    /// </summary>
+    Task<(IEnumerable<Auction> Auctions, int TotalCount)> GetByUserIdAsync(string userId, AuctionQueryParameters parameters);
+
+    /// <summary>
+    /// 建立新商品
+    /// </summary>
+    Task<Auction> CreateAsync(Auction auction);
+
+    /// <summary>
+    /// 更新商品
+    /// </summary>
+    Task<Auction> UpdateAsync(Auction auction);
+
+    /// <summary>
+    /// 刪除商品
+    /// </summary>
+    Task DeleteAsync(Guid id);
 
     /// <summary>
     /// 根據分類 ID 取得商品清單
@@ -46,5 +66,5 @@ public interface IAuctionRepository : IRepository<Auction>
     /// <summary>
     /// 檢查使用者是否有權限操作商品
     /// </summary>
-    Task<bool> IsOwnerAsync(Guid auctionId, Guid userId);
+    Task<bool> IsOwnerAsync(Guid auctionId, string userId);
 }

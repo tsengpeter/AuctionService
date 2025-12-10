@@ -44,6 +44,31 @@ public class BiddingServiceClient : IBiddingServiceClient
             return null;
         }
     }
+
+    /// <summary>
+    /// 檢查商品是否已有出價
+    /// </summary>
+    /// <param name="auctionId">商品 ID</param>
+    /// <returns>是否已有出價</returns>
+    public async Task<bool> CheckAuctionHasBidsAsync(Guid auctionId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/auctions/{auctionId}/has-bids");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<bool>>();
+                return result?.Data ?? false;
+            }
+            return false;
+        }
+        catch
+        {
+            // 如果 BiddingService 不可用，假設沒有出價
+            // 這樣可以讓業務邏輯繼續運作
+            return false;
+        }
+    }
 }
 
 /// <summary>

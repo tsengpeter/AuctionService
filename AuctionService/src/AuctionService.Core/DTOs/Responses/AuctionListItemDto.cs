@@ -88,7 +88,7 @@ public class SellerDto
     /// <summary>
     /// 賣家 ID
     /// </summary>
-    public Guid Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
     /// 賣家名稱

@@ -43,7 +43,7 @@ public class Auction
     /// <summary>
     /// 建立者使用者 ID
     /// </summary>
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
 
     /// <summary>
     /// 建立時間

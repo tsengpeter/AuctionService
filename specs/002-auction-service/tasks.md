@@ -168,12 +168,12 @@ Based on plan.md, this project uses single-folder structure:
 
 - [ ] T081 [P] [US2] Unit test for CreateAuctionRequest validation in tests/AuctionService.UnitTests/Validators/CreateAuctionRequestValidatorTests.cs (test EndTime >= CurrentTime + 1 hour, StartingPrice > 0, Name length 3-200)
 - [ ] T082 [P] [US2] Unit test for UpdateAuctionRequest validation in tests/AuctionService.UnitTests/Validators/UpdateAuctionRequestValidatorTests.cs
-- [ ] T083 [P] [US2] Unit test for AuctionService.CreateAuctionAsync() success case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
-- [ ] T084 [P] [US2] Unit test for AuctionService.CreateAuctionAsync() invalid EndTime case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
-- [ ] T085 [P] [US2] Unit test for AuctionService.UpdateAuctionAsync() permission denied case (not owner) in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
-- [ ] T086 [P] [US2] Unit test for AuctionService.UpdateAuctionAsync() has bids case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
-- [ ] T087 [P] [US2] Unit test for AuctionService.DeleteAuctionAsync() permission denied case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
-- [ ] T088 [P] [US2] Unit test for AuctionService.DeleteAuctionAsync() has bids case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
+- [X] T083 [P] [US2] Unit test for AuctionService.CreateAuctionAsync() success case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
+- [X] T084 [P] [US2] Unit test for AuctionService.CreateAuctionAsync() invalid EndTime case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
+- [X] T085 [P] [US2] Unit test for AuctionService.UpdateAuctionAsync() permission denied case (not owner) in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
+- [X] T086 [P] [US2] Unit test for AuctionService.UpdateAuctionAsync() has bids case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
+- [X] T087 [P] [US2] Unit test for AuctionService.DeleteAuctionAsync() permission denied case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
+- [X] T088 [P] [US2] Unit test for AuctionService.DeleteAuctionAsync() has bids case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [ ] T089 [P] [US2] Integration test for POST /api/auctions with valid data in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
 - [ ] T090 [P] [US2] Integration test for POST /api/auctions with invalid EndTime in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
 - [ ] T091 [P] [US2] Integration test for PUT /api/auctions/{id} success case (no bids) in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
@@ -200,12 +200,12 @@ Based on plan.md, this project uses single-folder structure:
 - [ ] T109 [P] [US2] Add UpdateAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
 - [ ] T110 [P] [US2] Add DeleteAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
 - [ ] T111 [P] [US2] Add GetUserAuctionsAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
-- [ ] T112 [US2] Implement CreateAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (validate request, set UserId from auth context, set StartTime to Now, call repository)
-- [ ] T113 [US2] Implement UpdateAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (check ownership, check no bids via BiddingService, update fields)
-- [ ] T114 [US2] Implement DeleteAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (check ownership, check no bids, soft/hard delete)
-- [ ] T115 [US2] Implement GetUserAuctionsAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs
+- [X] T112 [US2] Implement CreateAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (validate request, set UserId from auth context, set StartTime to Now, call repository)
+- [X] T113 [US2] Implement UpdateAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (check ownership, check no bids via BiddingService, update fields)
+- [X] T114 [US2] Implement DeleteAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (check ownership, check no bids, soft/hard delete)
+- [X] T115 [US2] Implement GetUserAuctionsAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs
 - [ ] T116 [P] [US2] Add CheckAuctionHasBidsAsync method to IBiddingServiceClient in src/AuctionService.Core/Interfaces/IBiddingServiceClient.cs
-- [ ] T117 [US2] Implement CheckAuctionHasBidsAsync in BiddingServiceClient in src/AuctionService.Infrastructure/HttpClients/BiddingServiceClient.cs with resilience patterns:
+- [X] T117 [US2] Implement CheckAuctionHasBidsAsync in BiddingServiceClient in src/AuctionService.Infrastructure/HttpClients/BiddingServiceClient.cs with resilience patterns:
   - Polly Retry: 3 attempts with exponential backoff (1s, 2s, 4s)
   - Circuit Breaker: Open after 5 consecutive failures, half-open after 30 seconds
   - Timeout: 5 seconds per request

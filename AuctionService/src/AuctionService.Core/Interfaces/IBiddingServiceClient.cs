@@ -13,4 +13,11 @@ public interface IBiddingServiceClient
     /// <param name="auctionId">商品 ID</param>
     /// <returns>目前出價資訊</returns>
     Task<CurrentBidDto?> GetCurrentBidAsync(Guid auctionId);
+
+    /// <summary>
+    /// 檢查商品是否已有出價
+    /// </summary>
+    /// <param name="auctionId">商品 ID</param>
+    /// <returns>是否已有出價</returns>
+    Task<bool> CheckAuctionHasBidsAsync(Guid auctionId);
 }

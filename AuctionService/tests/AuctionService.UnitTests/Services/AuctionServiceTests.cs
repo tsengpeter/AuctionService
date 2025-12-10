@@ -4,6 +4,7 @@ using AuctionService.Core.Entities;
 using AuctionService.Core.Interfaces;
 using AuctionService.Core.Services;
 using FluentAssertions;
+using FluentValidation;
 using Moq;
 
 namespace AuctionService.UnitTests.Services;
@@ -179,6 +180,159 @@ public class AuctionServiceTests
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async Task CreateAuctionAsync_WithValidRequest_ReturnsAuctionDetailDto()
+    {
+        // Arrange
+        var request = new AuctionService.Core.DTOs.Requests.CreateAuctionRequest
+        {
+            Name = "Test Auction",
+            Description = "Test Description",
+            StartingPrice = 100,
+            CategoryId = 1,
+            StartTime = DateTime.UtcNow.AddMinutes(1),
+            EndTime = DateTime.UtcNow.AddHours(2)
+        };
+        var userId = "test-user-id";
+        var expectedAuction = CreateTestAuction("Test Auction");
+        expectedAuction.Id = Guid.NewGuid();
+        expectedAuction.UserId = userId;
+
+        _auctionRepositoryMock
+            .Setup(x => x.CreateAsync(It.IsAny<Auction>()))
+            .ReturnsAsync(expectedAuction);
+
+        // Act
+        var result = await _auctionService.CreateAuctionAsync(request, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(expectedAuction.Id);
+        result.Title.Should().Be(request.Name);
+        result.Description.Should().Be(request.Description);
+        result.StartingPrice.Should().Be(request.StartingPrice);
+        result.Category.Id.Should().Be(request.CategoryId);
+        _auctionRepositoryMock.Verify(x => x.CreateAsync(It.IsAny<Auction>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAuctionAsync_WithInvalidEndTime_ThrowsException()
+    {
+        // Arrange
+        var request = new AuctionService.Core.DTOs.Requests.CreateAuctionRequest
+        {
+            Name = "Test Auction",
+            Description = "Test Description",
+            StartingPrice = 100,
+            CategoryId = 1,
+            StartTime = DateTime.UtcNow.AddMinutes(1),
+            EndTime = DateTime.UtcNow.AddMinutes(30) // 結束時間太早
+        };
+        var userId = "test-user-id";
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FluentValidation.ValidationException>(() =>
+            _auctionService.CreateAuctionAsync(request, userId));
+    }
+
+    [Fact]
+    public async Task UpdateAuctionAsync_WithPermissionDenied_ThrowsException()
+    {
+        // Arrange
+        var auctionId = Guid.NewGuid();
+        var request = new AuctionService.Core.DTOs.Requests.UpdateAuctionRequest
+        {
+            Name = "Updated Auction",
+            Description = "Updated Description",
+            StartingPrice = 150,
+            EndTime = DateTime.UtcNow.AddHours(3)
+        };
+        var userId = "wrong-user-id";
+        var existingAuction = CreateTestAuction("Original Auction");
+        existingAuction.Id = auctionId;
+        existingAuction.UserId = "owner-user-id"; // 不同的擁有者
+
+        _auctionRepositoryMock
+            .Setup(x => x.GetByIdAsync(auctionId))
+            .ReturnsAsync(existingAuction);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _auctionService.UpdateAuctionAsync(auctionId, request, userId));
+    }
+
+    [Fact]
+    public async Task UpdateAuctionAsync_WithExistingBids_ThrowsException()
+    {
+        // Arrange
+        var auctionId = Guid.NewGuid();
+        var request = new AuctionService.Core.DTOs.Requests.UpdateAuctionRequest
+        {
+            Name = "Updated Auction",
+            Description = "Updated Description",
+            StartingPrice = 150,
+            EndTime = DateTime.UtcNow.AddHours(3)
+        };
+        var userId = "owner-user-id";
+        var existingAuction = CreateTestAuction("Original Auction");
+        existingAuction.Id = auctionId;
+        existingAuction.UserId = userId;
+
+        _auctionRepositoryMock
+            .Setup(x => x.GetByIdAsync(auctionId))
+            .ReturnsAsync(existingAuction);
+
+        _biddingServiceClientMock
+            .Setup(x => x.CheckAuctionHasBidsAsync(auctionId))
+            .ReturnsAsync(true); // 模擬已有出價
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _auctionService.UpdateAuctionAsync(auctionId, request, userId));
+    }
+
+    [Fact]
+    public async Task DeleteAuctionAsync_WithPermissionDenied_ThrowsException()
+    {
+        // Arrange
+        var auctionId = Guid.NewGuid();
+        var userId = "wrong-user-id";
+        var existingAuction = CreateTestAuction("Test Auction");
+        existingAuction.Id = auctionId;
+        existingAuction.UserId = "owner-user-id"; // 不同的擁有者
+
+        _auctionRepositoryMock
+            .Setup(x => x.GetByIdAsync(auctionId))
+            .ReturnsAsync(existingAuction);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _auctionService.DeleteAuctionAsync(auctionId, userId));
+    }
+
+    [Fact]
+    public async Task DeleteAuctionAsync_WithExistingBids_ThrowsException()
+    {
+        // Arrange
+        var auctionId = Guid.NewGuid();
+        var userId = "owner-user-id";
+        var existingAuction = CreateTestAuction("Test Auction");
+        existingAuction.Id = auctionId;
+        existingAuction.UserId = userId;
+
+        _auctionRepositoryMock
+            .Setup(x => x.GetByIdAsync(auctionId))
+            .ReturnsAsync(existingAuction);
+
+        _biddingServiceClientMock
+            .Setup(x => x.CheckAuctionHasBidsAsync(auctionId))
+            .ReturnsAsync(true); // 模擬已有出價
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _auctionService.DeleteAuctionAsync(auctionId, userId));
+    }
+
     private static Auction CreateTestAuction(string name)
     {
         return new Auction
@@ -190,7 +344,7 @@ public class AuctionServiceTests
             CategoryId = 1,
             StartTime = DateTime.UtcNow.AddDays(1),
             EndTime = DateTime.UtcNow.AddDays(2),
-            UserId = Guid.NewGuid(),
+            UserId = "test-user-id",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             Category = new Category
