@@ -144,6 +144,12 @@ public class AuctionService : IAuctionService
             throw new UnauthorizedException("You can only update your own auctions");
         }
 
+        // 檢查拍賣狀態，如果已結束則不允許更新
+        if (auction.CalculateStatus() == AuctionStatus.Ended)
+        {
+            throw new InvalidOperationException("Cannot update auction that has ended");
+        }
+
         // 檢查是否已有出價，如果有則不允許更新
         var hasBids = await _biddingServiceClient.CheckAuctionHasBidsAsync(id);
         if (hasBids)
@@ -178,6 +184,12 @@ public class AuctionService : IAuctionService
         if (auction.UserId != userId)
         {
             throw new UnauthorizedException("You can only delete your own auctions");
+        }
+
+        // 檢查拍賣狀態，如果已結束則不允許刪除
+        if (auction.CalculateStatus() == AuctionStatus.Ended)
+        {
+            throw new InvalidOperationException("Cannot delete auction that has ended");
         }
 
         // 檢查是否已有出價，如果有則不允許刪除

@@ -1,7 +1,9 @@
 using AuctionService.Core.DTOs.Common;
+using AuctionService.Core.DTOs.Requests;
 using AuctionService.Core.DTOs.Responses;
 using AuctionService.Core.Entities;
 using AuctionService.Core.Exceptions;
+using AuctionService.Core.Extensions;
 using AuctionService.Core.Interfaces;
 using AuctionService.Core.Services;
 using FluentAssertions;
@@ -328,6 +330,63 @@ public class AuctionServiceTests
         _biddingServiceClientMock
             .Setup(x => x.CheckAuctionHasBidsAsync(auctionId))
             .ReturnsAsync(true); // 模擬已有出價
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _auctionService.DeleteAuctionAsync(auctionId, userId));
+    }
+
+    [Fact]
+    public async Task UpdateAuctionAsync_WithEndedAuction_ThrowsException()
+    {
+        // Arrange
+        var auctionId = Guid.NewGuid();
+        var userId = "test-user";
+        var request = new UpdateAuctionRequest
+        {
+            Name = "Updated Auction",
+            Description = "Updated Description",
+            StartingPrice = 150.00m,
+            EndTime = DateTime.UtcNow.AddDays(3)
+        };
+
+        var endedAuction = CreateTestAuction("Test Auction");
+        endedAuction.UserId = userId; // 設置為測試用戶
+        endedAuction.StartTime = DateTime.UtcNow.AddDays(-2); // 開始時間設為昨天
+        endedAuction.EndTime = DateTime.UtcNow.AddDays(-1); // 結束時間設為昨天
+
+        _auctionRepositoryMock
+            .Setup(x => x.GetByIdAsync(auctionId))
+            .ReturnsAsync(endedAuction);
+
+        _biddingServiceClientMock
+            .Setup(x => x.CheckAuctionHasBidsAsync(auctionId))
+            .ReturnsAsync(false);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _auctionService.UpdateAuctionAsync(auctionId, request, userId));
+    }
+
+    [Fact]
+    public async Task DeleteAuctionAsync_WithEndedAuction_ThrowsException()
+    {
+        // Arrange
+        var auctionId = Guid.NewGuid();
+        var userId = "test-user";
+
+        var endedAuction = CreateTestAuction("Test Auction");
+        endedAuction.UserId = userId; // 設置為測試用戶
+        endedAuction.StartTime = DateTime.UtcNow.AddDays(-2); // 開始時間設為昨天
+        endedAuction.EndTime = DateTime.UtcNow.AddDays(-1); // 結束時間設為昨天
+
+        _auctionRepositoryMock
+            .Setup(x => x.GetByIdAsync(auctionId))
+            .ReturnsAsync(endedAuction);
+
+        _biddingServiceClientMock
+            .Setup(x => x.CheckAuctionHasBidsAsync(auctionId))
+            .ReturnsAsync(false);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
