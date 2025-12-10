@@ -65,22 +65,6 @@ public class AuctionListItemDto
 }
 
 /// <summary>
-/// 商品類別 DTO
-/// </summary>
-public class CategoryDto
-{
-    /// <summary>
-    /// 類別 ID
-    /// </summary>
-    public int Id { get; set; }
-
-    /// <summary>
-    /// 類別名稱
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-}
-
-/// <summary>
 /// 賣家資訊 DTO
 /// </summary>
 public class SellerDto

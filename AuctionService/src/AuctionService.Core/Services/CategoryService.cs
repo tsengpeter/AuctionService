@@ -44,7 +44,8 @@ public class CategoryService : ICategoryService
         return new CategoryDto
         {
             Id = category.Id,
-            Name = category.Name
+            Name = category.Name,
+            DisplayOrder = category.DisplayOrder
         };
     }
 }
