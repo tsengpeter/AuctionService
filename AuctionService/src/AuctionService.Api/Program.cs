@@ -3,6 +3,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
 using Serilog;
 using System.Text;
 
@@ -32,9 +33,6 @@ builder.Services.AddOpenApi();
 builder.Services.AddDatabaseServices(builder.Configuration);
 builder.Services.AddApplicationServices(builder.Configuration);
 
-// 設定 Swagger
-builder.Services.AddSwaggerGen();
-
 // 設定 Serilog
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
@@ -47,9 +45,12 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("AuctionService API");
+        options.WithTheme(ScalarTheme.Purple);
+    });
 }
 
 // 使用中介軟體
