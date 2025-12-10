@@ -1,3 +1,4 @@
+using AuctionService.Core.DTOs.Common;
 using AuctionService.Core.Entities;
 using AuctionService.Core.Interfaces;
 using AuctionService.Infrastructure.Data;
@@ -14,29 +15,14 @@ public class FollowRepository : Repository<Follow>, IFollowRepository
     {
     }
 
-    public async Task<IEnumerable<Follow>> GetByUserIdAsync(Guid userId)
+    public async Task<Follow> AddAsync(Follow follow)
     {
-        return await _dbSet
-            .Where(f => f.UserId == userId)
-            .Include(f => f.Auction)
-                .ThenInclude(a => a!.Category)
-            .OrderByDescending(f => f.CreatedAt)
-            .ToListAsync();
+        _dbSet.Add(follow);
+        await _context.SaveChangesAsync();
+        return follow;
     }
 
-    public async Task<bool> IsFollowingAsync(Guid userId, Guid auctionId)
-    {
-        return await _dbSet
-            .AnyAsync(f => f.UserId == userId && f.AuctionId == auctionId);
-    }
-
-    public async Task<int> GetFollowCountAsync(Guid userId)
-    {
-        return await _dbSet
-            .CountAsync(f => f.UserId == userId);
-    }
-
-    public async Task UnfollowAsync(Guid userId, Guid auctionId)
+    public async Task RemoveAsync(string userId, Guid auctionId)
     {
         var follow = await _dbSet
             .FirstOrDefaultAsync(f => f.UserId == userId && f.AuctionId == auctionId);
@@ -46,5 +32,49 @@ public class FollowRepository : Repository<Follow>, IFollowRepository
             _dbSet.Remove(follow);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<(IEnumerable<Follow> Follows, int TotalCount)> GetByUserIdAsync(string userId, AuctionQueryParameters parameters)
+    {
+        var query = _dbSet
+            .Where(f => f.UserId == userId)
+            .Include(f => f.Auction)
+            .AsQueryable();
+
+        // 排序
+        query = parameters.SortBy switch
+        {
+            AuctionSortBy.CreatedAt => parameters.SortDirection == SortDirection.Descending
+                ? query.OrderByDescending(f => f.CreatedAt)
+                : query.OrderBy(f => f.CreatedAt),
+            AuctionSortBy.EndTime => parameters.SortDirection == SortDirection.Descending
+                ? query.OrderByDescending(f => f.Auction!.EndTime)
+                : query.OrderBy(f => f.Auction!.EndTime),
+            _ => query.OrderByDescending(f => f.CreatedAt)
+        };
+
+        // 取得總筆數
+        var totalCount = await query.CountAsync();
+
+        // 分頁
+        var follows = await query
+            .Skip((parameters.PageNumber - 1) * parameters.PageSize)
+            .Take(parameters.PageSize)
+            .ToListAsync();
+
+        return (follows, totalCount);
+    }
+
+    public async Task<bool> ExistsAsync(string userId, Guid auctionId)
+    {
+        return await _dbSet
+            .AnyAsync(f => f.UserId == userId && f.AuctionId == auctionId);
+    }
+
+    public async Task<bool> IsFollowingOwnAuctionAsync(string userId, Guid auctionId)
+    {
+        return await _dbSet
+            .AnyAsync(f => f.UserId == userId && f.AuctionId == auctionId &&
+                          f.Auction != null && f.Auction.UserId == userId);
     }
 }

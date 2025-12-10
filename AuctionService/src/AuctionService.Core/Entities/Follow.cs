@@ -13,7 +13,7 @@ public class Follow
     /// <summary>
     /// 使用者 ID
     /// </summary>
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
 
     /// <summary>
     /// 商品 ID

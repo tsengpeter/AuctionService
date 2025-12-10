@@ -46,11 +46,13 @@ public static class ServiceCollectionExtensions
         // 註冊應用程式服務
         services.AddScoped<IAuctionService, Core.Services.AuctionService>();
         services.AddScoped<ICategoryService, Core.Services.CategoryService>();
+        services.AddScoped<IFollowService, Core.Services.FollowService>();
 
         // 註冊驗證器
         services.AddScoped<IValidator<AuctionQueryParameters>, AuctionQueryParametersValidator>();
         services.AddScoped<IValidator<CreateAuctionRequest>, CreateAuctionRequestValidator>();
         services.AddScoped<IValidator<UpdateAuctionRequest>, UpdateAuctionRequestValidator>();
+        services.AddScoped<IValidator<FollowAuctionRequest>, FollowAuctionRequestValidator>();
 
         // 配置 BiddingService HttpClient
         services.AddHttpClient<IBiddingServiceClient, BiddingServiceClient>(client =>

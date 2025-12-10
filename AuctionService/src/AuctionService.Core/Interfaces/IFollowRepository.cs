@@ -1,3 +1,4 @@
+using AuctionService.Core.DTOs.Common;
 using AuctionService.Core.Entities;
 
 namespace AuctionService.Core.Interfaces;
@@ -8,22 +9,27 @@ namespace AuctionService.Core.Interfaces;
 public interface IFollowRepository : IRepository<Follow>
 {
     /// <summary>
-    /// 根據使用者 ID 取得追蹤清單
+    /// 新增追蹤記錄
     /// </summary>
-    Task<IEnumerable<Follow>> GetByUserIdAsync(Guid userId);
+    Task<Follow> AddAsync(Follow follow);
 
     /// <summary>
-    /// 檢查使用者是否已追蹤特定商品
+    /// 移除追蹤記錄
     /// </summary>
-    Task<bool> IsFollowingAsync(Guid userId, Guid auctionId);
+    Task RemoveAsync(string userId, Guid auctionId);
 
     /// <summary>
-    /// 取得使用者的追蹤數量
+    /// 根據使用者 ID 取得追蹤清單 (分頁)
     /// </summary>
-    Task<int> GetFollowCountAsync(Guid userId);
+    Task<(IEnumerable<Follow> Follows, int TotalCount)> GetByUserIdAsync(string userId, AuctionQueryParameters parameters);
 
     /// <summary>
-    /// 取消追蹤
+    /// 檢查追蹤記錄是否存在
     /// </summary>
-    Task UnfollowAsync(Guid userId, Guid auctionId);
+    Task<bool> ExistsAsync(string userId, Guid auctionId);
+
+    /// <summary>
+    /// 檢查是否正在追蹤自己的商品
+    /// </summary>
+    Task<bool> IsFollowingOwnAuctionAsync(string userId, Guid auctionId);
 }
