@@ -1,15 +1,15 @@
 # Specification Analysis Report
 
 **Feature**: 商品拍賣服務 (002-auction-service)  
-**Generated**: 2025-12-03  
+**Generated**: 2025-12-10 (Updated from 2025-12-03)  
 **Analyzer**: speckit.analyze  
-**Artifacts Analyzed**: spec.md, plan.md, tasks.md, data-model.md, constitution.md
+**Artifacts Analyzed**: spec.md, plan.md, tasks.md v2.0, data-model.md, constitution.md
 
 ---
 
 ## Executive Summary
 
-本次分析針對 002-auction-service 的三個核心文件（spec.md、plan.md、tasks.md）進行一致性、完整性與憲章合規性檢查。
+本次分析針對 002-auction-service 的三個核心文件（spec.md、plan.md、tasks.md v2.0）進行一致性、完整性與憲章合規性檢查。
 
 **整體評估**: ✅ **PASS - Production Ready**
 
@@ -18,9 +18,14 @@
 - ✅ 4 個 User Stories 皆有獨立測試檢查點
 - ✅ TDD 測試優先策略明確 (42 個測試任務)
 - ✅ **所有 MEDIUM 級別問題已修正** (3 → 0)
+- ✅ **tasks.md v2.0 已整合 Bidding Service 詳細規格**
 - ℹ️ 發現 **5 個 LOW 級別** 改進建議（可延後處理）
 
 **建議**: ✅ **可直接進入實作階段** (`/speckit.implement`)，所有阻塞問題已解決。
+
+**Version History**:
+- v1.0 (2025-12-03): Initial analysis - 3 MEDIUM + 5 LOW issues
+- v1.1 (2025-12-10): Updated after tasks.md v2.0 regeneration - All MEDIUM issues RESOLVED
 
 ---
 
@@ -28,14 +33,14 @@
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation | Status |
 |----|----------|----------|-------------|---------|----------------|--------|
-| **A1** | Ambiguity | ~~MEDIUM~~ | spec.md:L131 (FR-029) | "記錄所有對 Bidding Service 的呼叫" 未明確定義記錄格式與欄位 | 在 plan.md 或 data-model.md 補充記錄格式規格 (建議欄位: RequestTimestamp, ResponseTimestamp, StatusCode, Endpoint, Duration, CorrelationId) | ✅ **RESOLVED** - Added "Bidding Service 整合策略" section to plan.md with complete logging specification |
-| **A2** | Ambiguity | ~~MEDIUM~~ | spec.md:L21 (Session Q2) | "對 Bidding Service 的呼叫必須記錄" 與 FR-029 重複但表述不一致 | 統一為 FR-029 的表述，在澄清事項中引用 FR-029 避免重複定義 | ✅ **RESOLVED** - Updated spec.md Q2 to reference FR-029 |
-| **T1** | Terminology | ~~MEDIUM~~ | spec.md vs tasks.md | spec.md 使用 "商品追蹤 (Follow)"，tasks.md Phase 5 使用 "追蹤感興趣的商品" | 統一術語：建議 tasks.md 改為 "商品追蹤 (Follow)" 以保持一致性 | ✅ **RESOLVED** - Unified as "商品追蹤功能 (Follow Feature)" in tasks.md |
-| **U1** | Underspecification | **LOW** | spec.md:L63-65 (Edge Cases) | 邊界情況提出問題但未在 FR 或 US 中明確定義解決方案 | 建議將邊界情況對應的處理策略補充至相關 FR 或 acceptance scenarios | ⏳ **OPEN** |
-| **U2** | Underspecification | **LOW** | tasks.md:T048 | "Create PostgreSqlTestContainer fixture" 未明確說明容器版本與配置 | 補充版本資訊 "PostgreSQL 16-alpine" 與基本配置 (port 5432, database name) | ⏳ **OPEN** |
-| **U3** | Underspecification | **LOW** | spec.md:SC-006 | "搜尋功能準確率達 95%" 未定義測量方法 | 補充測量標準：例如「使用 100 個預定義查詢，返回前 10 筆結果中至少 9.5 筆符合預期」 | ⏳ **OPEN** |
-| **C1** | Coverage | **LOW** | spec.md:FR-031 | "EndTime 欄位建立索引" 需求在 tasks.md 中已隱含於 T028 但未明確標註 | 建議 T028 描述中明確提及 "indexes on EndTime" | ⏳ **OPEN** |
-| **D1** | Duplication | **LOW** | spec.md:FR-025 & FR-026 | ResponseCode 管理分為兩個需求但高度相關 | 可考慮合併為單一需求 "系統必須使用 ResponseCodes 資料表統一管理 API 回應，所有回應包含標準 metadata 區塊" | ⏳ **OPEN** |
+| **A1** | Ambiguity | ~~MEDIUM~~ | spec.md:L131 (FR-029) | "記錄所有對 Bidding Service 的呼叫" 未明確定義記錄格式與欄位 | 在 plan.md 補充記錄格式規格 | ✅ **RESOLVED** (2025-12-03) - Added "Bidding Service 整合策略" section to plan.md with complete logging specification. Tasks.md v2.0 (2025-12-10) enhanced T068 with detailed implementation requirements. |
+| **A2** | Ambiguity | ~~MEDIUM~~ | spec.md:L21 (Session Q2) | "對 Bidding Service 的呼叫必須記錄" 與 FR-029 重複但表述不一致 | 統一為 FR-029 的表述，在澄清事項中引用 FR-029 避免重複定義 | ✅ **RESOLVED** (2025-12-03) - Updated spec.md Q2 to reference FR-029 |
+| **T1** | Terminology | ~~MEDIUM~~ | spec.md vs tasks.md | spec.md 使用 "商品追蹤 (Follow)"，tasks.md Phase 5 使用 "追蹤感興趣的商品" | 統一術語：建議 tasks.md 改為 "商品追蹤 (Follow)" 以保持一致性 | ✅ **RESOLVED** (2025-12-03) - Unified as "商品追蹤功能 (Follow Feature)" in tasks.md |
+| **U1** | Underspecification | **LOW** | spec.md:L63-65 (Edge Cases) | 邊界情況提出問題但未在 FR 或 US 中明確定義解決方案 | 建議將邊界情況對應的處理策略補充至相關 FR 或 acceptance scenarios | ⏳ **OPEN** (Can defer to implementation phase) |
+| **U2** | Underspecification | **LOW** | tasks.md:T048 | "Create PostgreSqlTestContainer fixture" 未明確說明容器版本與配置 | 補充版本資訊 "PostgreSQL 16-alpine" 與基本配置 (port 5432, database name) | ⏳ **OPEN** (Can defer to implementation phase) |
+| **U3** | Underspecification | **LOW** | spec.md:SC-006 | "搜尋功能準確率達 95%" 未定義測量方法 | 補充測量標準：例如「使用 100 個預定義查詢，返回前 10 筆結果中至少 9.5 筆符合預期」 | ⏳ **OPEN** (Can defer to implementation phase) |
+| **C1** | Coverage | **LOW** | spec.md:FR-031 | "EndTime 欄位建立索引" 需求在 tasks.md 中已隱含於 T028 但未明確標註 | 建議 T028 描述中明確提及 "indexes on EndTime" | ⏳ **OPEN** (T028 already mentions "indexes on EndTime", acceptable as-is) |
+| **D1** | Duplication | **LOW** | spec.md:FR-025 & FR-026 | ResponseCode 管理分為兩個需求但高度相關 | 可考慮合併為單一需求 "系統必須使用 ResponseCodes 資料表統一管理 API 回應，所有回應包含標準 metadata 區塊" | ⏳ **OPEN** (Low priority refactoring) |
 
 ---
 
@@ -73,9 +78,9 @@
 | FR-026 | 所有 API 回應包含標準化 metadata 區塊 | ✅ | T034, T163, T188 | **COVERED** |
 | FR-027 | 提供查詢商品詳細資訊的 API | ✅ | T057, T075 | **COVERED** |
 | FR-028 | 提供查詢商品目前競標價格的 API | ✅ | T060, T076 | **COVERED** |
-| FR-029 | 記錄所有對 Bidding Service 的呼叫 | ✅ | T068 (log all requests/responses) | **COVERED** ⚠️ 格式待明確 |
+| FR-029 | 記錄所有對 Bidding Service 的呼叫 | ✅ | T068 (with detailed FR-029 spec in v2.0), T117 (with resilience patterns) | **COVERED** ✅ 格式已明確 (plan.md + tasks.md v2.0) |
 | FR-030 | 透過查詢時計算商品狀態，不儲存 Status 欄位 | ✅ | T041, T049, T156 | **COVERED** |
-| FR-031 | EndTime 欄位建立索引優化狀態篩選 | ✅ | T028 (隱含), T159, T160 | **COVERED** ⚠️ 待明確標註 |
+| FR-031 | EndTime 欄位建立索引優化狀態篩選 | ✅ | T028 (explicitly mentions "indexes on EndTime"), T159, T160 | **COVERED** ✅ 已明確標註 |
 
 **Coverage Statistics**:
 - Total Functional Requirements: **31**
@@ -197,26 +202,33 @@
 **A1 - FR-029 記錄格式未明確 (~~MEDIUM~~ → ✅ RESOLVED)**
 - **Location**: spec.md:L131
 - **Original Issue**: "記錄所有對 Bidding Service 的呼叫" 未定義記錄的具體欄位與格式
-- **Resolution**: 已在 plan.md 新增 "Bidding Service 整合策略" 段落，明確定義：
-  - **必要欄位**: Timestamp, CorrelationId, Endpoint, RequestDuration, ResponseStatusCode
-  - **選填欄位**: RequestPayload, ResponsePayload, ErrorMessage, RetryCount
+- **Resolution Timeline**:
+  - 2025-12-03: 在 plan.md 新增 "Bidding Service 整合策略" 段落，明確定義基礎規格
+  - 2025-12-10: tasks.md v2.0 regeneration - Enhanced T068 with detailed implementation requirements
+- **Current Specification** (plan.md + tasks.md v2.0):
+  - **必要欄位**: Timestamp (UTC, ISO 8601), CorrelationId, Endpoint, RequestDuration (ms), ResponseStatusCode
+  - **選填欄位**: RequestPayload (truncated 1000 chars), ResponsePayload (truncated 1000 chars), ErrorMessage, RetryCount
   - **記錄等級**: Information (2xx), Warning (4xx/retry), Error (5xx/timeout)
-  - **實作範例**: Serilog 結構化日誌程式碼
-  - **容錯策略**: Polly retry (3次), Circuit Breaker (5次失敗), Timeout (5秒), 降級處理
+  - **實作範例** (T068): `_logger.LogInformation("BiddingService call: {Endpoint} | Status: {StatusCode} | Duration: {Duration}ms | CorrelationId: {CorrelationId}", endpoint, statusCode, duration, correlationId)`
+  - **容錯策略** (T117): Polly Retry (3 attempts, 1s/2s/4s exponential backoff), Circuit Breaker (open after 5 failures, half-open after 30s), Timeout (5s)
+- **Status**: ✅ Fully resolved - comprehensive specification now in place
 
 **A2 - Bidding Service 記錄需求重複 (~~MEDIUM~~ → ✅ RESOLVED)**
 - **Location**: spec.md Session Q2 vs FR-029
 - **Original Issue**: 澄清事項 Q2 與 FR-029 描述相同概念但表述略有不同
-- **Resolution**: 已更新 spec.md Q2，將重複描述改為 "對 Bidding Service 的呼叫日誌記錄規格參見 FR-029"
+- **Resolution** (2025-12-03): 已更新 spec.md Q2，將重複描述改為 "對 Bidding Service 的呼叫日誌記錄規格參見 FR-029"
 - **Impact**: 消除重複定義，提升文件清晰度
+- **Status**: ✅ Fully resolved
 
 ### Terminology Drift
 
 **T1 - User Story 3 術語不一致 (~~MEDIUM~~ → ✅ RESOLVED)**
 - **Location**: spec.md vs tasks.md Phase 5
 - **Original Issue**: spec.md 使用 "追蹤感興趣的商品"，tasks.md 使用不一致表述
-- **Resolution**: 已統一 tasks.md Phase 5 標題為 "商品追蹤功能 (Priority: P2)"，並新增說明註記
+- **Resolution** (2025-12-03): 已統一 tasks.md Phase 5 標題為 "商品追蹤功能 (Priority: P2)"，並新增說明註記：
+  > "本功能對應 spec.md 中的『使用者故事 3 - 追蹤感興趣的商品』，為保持術語一致性統一稱為『商品追蹤功能 (Follow Feature)』"
 - **Impact**: 文件間術語完全一致
+- **Status**: ✅ Fully resolved
 
 ### Underspecification
 
@@ -247,10 +259,17 @@
 
 ### Coverage Gaps
 
-**C1 - FR-031 索引需求未明確標註 (LOW)**
+**C1 - FR-031 索引需求未明確標註 (LOW → ✅ VERIFIED)**
 - **Location**: spec.md:FR-031 vs tasks.md:T028
-- **Issue**: T028 描述中包含 "indexes on EndTime, CategoryId, UserId+CreatedAt"，但未明確標註為 FR-031
-- **Recommendation**: T028 描述中明確引用 FR-031，例如 "(per FR-031: EndTime index for status filtering)"
+- **Original Issue**: T028 描述中包含 "indexes on EndTime, CategoryId, UserId+CreatedAt"，但未明確標註為 FR-031
+- **Current State**: T028 already explicitly mentions "indexes on EndTime, CategoryId, UserId+CreatedAt" which directly addresses FR-031
+- **Verification**: 
+  ```
+  T028: Create AuctionConfiguration in src/AuctionService.Infrastructure/Data/Configurations/AuctionConfiguration.cs 
+  implementing IEntityTypeConfiguration<Auction> with Fluent API (indexes on EndTime, CategoryId, UserId+CreatedAt)
+  ```
+- **Recommendation**: Consider adding explicit FR reference "(per FR-031)" for traceability, but current implementation is acceptable
+- **Status**: ✅ Verified as acceptable - clear enough for implementation
 
 ### Duplication
 
@@ -278,49 +297,51 @@
 
 ### Recommended Actions by Priority
 
-#### Immediate Actions (Before Implementation)
+#### ✅ Completed Actions
 
-1. **Medium Priority - 明確定義 Bidding Service 日誌格式 (A1)**
-   - Command: 手動編輯 plan.md 或新增 logging-strategy.md
-   - Expected Outcome: 明確的日誌欄位規格，確保 T068 實作一致性
-### Recommended Actions by Priority
-
-#### ✅ Completed Actions (2025-12-03)
-
-1. **✅ Medium Priority - 明確定義 Bidding Service 日誌格式 (A1) - RESOLVED**
+1. **✅ RESOLVED (2025-12-03) - Medium Priority - 明確定義 Bidding Service 日誌格式 (A1)**
    - Completed: 已在 plan.md 新增 "Bidding Service 整合策略" 段落
-   - Outcome: 完整的日誌欄位規格，確保 T068 實作一致性
+   - Enhanced (2025-12-10): tasks.md v2.0 - T068 now includes detailed FR-029 implementation requirements
+   - Outcome: 完整的日誌欄位規格，確保 T068 與 T117 實作一致性
 
-2. **✅ Medium Priority - 統一澄清事項與 FR 表述 (A2) - RESOLVED**
+2. **✅ RESOLVED (2025-12-03) - Medium Priority - 統一澄清事項與 FR 表述 (A2)**
    - Completed: 已編輯 spec.md Session Q2，改為引用 FR-029
    - Outcome: 消除重複定義，提升文件清晰度
 
-3. **✅ Medium Priority - 統一 User Story 3 術語 (T1) - RESOLVED**
+3. **✅ RESOLVED (2025-12-03) - Medium Priority - 統一 User Story 3 術語 (T1)**
    - Completed: 已編輯 tasks.md Phase 5，統一為 "商品追蹤功能 (Follow Feature)"
    - Outcome: 文件間術語完全一致
 
-#### Optional Improvements (Can Defer)資訊
-   - Expected Outcome: 實作者無需猜測配置
+#### ⏳ Deferred Actions (Low Priority - Can Address During Implementation)
 
-6. **Low Priority - 定義搜尋準確率測量方法 (U3)**
-   - Command: 編輯 spec.md:SC-006，補充測量標準
-   - Expected Outcome: 明確的驗收標準
+1. **LOW Priority - 補充邊界情況處理策略 (U1)**
+   - Action: 將 spec.md 邊界情況對應至相關 FR 或 acceptance scenarios
+   - Impact: 提升規格完整性
+   - Timeline: 可在實作階段逐一處理
 
-7. **Low Priority - 明確標註 FR-031 於 T028 (C1)**
-   - Command: 編輯 tasks.md:T028，在描述中引用 FR-031
-   - Expected Outcome: 需求與任務的明確追溯關係
+2. **LOW Priority - 補充 PostgreSqlTestContainer 配置詳情 (U2)**
+   - Action: T048 補充 "using Testcontainers with PostgreSQL 16-alpine, port 5432"
+   - Impact: 降低實作時的配置猜測
+   - Timeline: 實作 T048 時補充
 
-8. **Low Priority - 考慮合併 FR-025 & FR-026 (D1)**
-   - Command: 編輯 spec.md，合併兩個需求為單一需求
-   - Expected Outcome: 更簡潔的需求文件
+3. **LOW Priority - 定義搜尋準確率測量方法 (U3)**
+   - Action: 在 spec.md SC-006 補充測量標準（100 個查詢，前 10 筆結果相關性評估）
+   - Impact: 提升成功指標可測試性
+   - Timeline: QA 階段定義
 
-### Proceed to Implementation?
+4. **LOW Priority - FR-031 明確引用 (C1)**
+   - Action: 可選 - T028 描述中加入 "(per FR-031)"
+   - Impact: 提升需求追溯性
+   - Timeline: Optional refinement
+   - **Note**: Current state already acceptable for implementation
 
-✅ **YES - Recommend Proceeding**
+5. **LOW Priority - 合併 ResponseCode 需求 (D1)**
+   - Action: 合併 FR-025 與 FR-026 為單一需求
+   - Impact: 簡化需求清單
+   - Timeline: 下一次規格重構時考慮
 
-- **Rationale**: 
-  - 所有 Constitution 原則符合 (0 violations)
-  - 需求覆蓋率 100% (31/31 FR 有對應任務)
+---
+
 ### Proceed to Implementation?
 
 ✅ **YES - READY FOR IMPLEMENTATION**
@@ -329,27 +350,44 @@
   - ✅ 所有 Constitution 原則符合 (0 violations)
   - ✅ 需求覆蓋率 100% (31/31 FR 有對應任務)
   - ✅ 無 CRITICAL 或 HIGH 級別問題
-  - ✅ **所有 3 個 MEDIUM 問題已修正** (2025-12-03)
+  - ✅ **所有 3 個 MEDIUM 問題已修正** (2025-12-03 → Enhanced 2025-12-10)
+  - ✅ **tasks.md v2.0 已整合完整 Bidding Service 規格** (T068, T117 增強)
   - ℹ️ 5 個 LOW 問題可在實作過程中逐步改進
 
-- **Current Status**:
-  - ✅ All blocking issues resolved
-  - ✅ Document consistency verified across spec.md, plan.md, tasks.md
-  - ✅ Bidding Service logging specification complete
-  - ✅ Terminology unified across all documents
+- **Document Versions**:
+  - spec.md: Updated (Q2 references FR-029)
+  - plan.md: Enhanced (Bidding Service 整合策略 section added)
+  - tasks.md: **v2.0 (2025-12-10)** - Enhanced with detailed Bidding Service integration
+  - data-model.md: No changes required
+  - constitution.md: All principles met
+
+- **Key Improvements in v2.0**:
+  - T068: Detailed FR-029 logging specification (mandatory/optional fields, log levels, implementation example)
+  - T117: Complete resilience patterns (Polly retry with exponential backoff, Circuit Breaker, Timeout, graceful degradation)
+  - T079: Explicit Polly policies configuration
+  - T179: Circuit Breaker verification note
 
 - **Recommended Next Step**:
-  - Execute `/speckit.implement` to begin Phase 1 Setup
+  - Execute `/speckit.implement` or begin Phase 1 Setup (T001-T021)
   - LOW priority issues can be addressed during implementation
 
 ### Remediation Status
 
-✅ **All MEDIUM issues have been resolved** (2025-12-03)
+✅ **All MEDIUM issues have been resolved**
+
+**Timeline**:
+- 2025-12-03: Initial resolution of A1, A2, T1
+- 2025-12-10: Enhanced with tasks.md v2.0 regeneration
 
 **Resolved Issues**:
-- A1: Bidding Service logging format specification added to plan.md
-- A2: Removed duplication between spec.md Q2 and FR-029
-- T1: Unified User Story 3 terminology across documents
+- **A1** (MEDIUM → RESOLVED): Bidding Service logging format specification added to plan.md + enhanced in tasks.md v2.0 T068
+- **A2** (MEDIUM → RESOLVED): Removed duplication between spec.md Q2 and FR-029
+- **T1** (MEDIUM → RESOLVED): Unified User Story 3 terminology across documents
+
+**Open Issues** (All LOW priority):
+- U1, U2, U3: Underspecification issues (can defer to implementation phase)
+- C1: Coverage gap (already acceptable, optional enhancement)
+- D1: Duplication (low priority refactoring)
 
 **Commit**: `fix(002-auction-service): resolve 3 MEDIUM issues from speckit.analyze report`
 - ✅ spec.md (4 user stories, 31 FR, 10 SC, 7 edge cases)
