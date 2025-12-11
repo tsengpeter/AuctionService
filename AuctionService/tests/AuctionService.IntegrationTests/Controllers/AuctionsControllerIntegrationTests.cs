@@ -76,6 +76,125 @@ public class AuctionsControllerIntegrationTests : IClassFixture<PostgreSqlContai
         createdAuction.StartingPrice.Should().Be(100.00m);
     }
 
+    [Fact]
+    public async Task CreateAuction_WithEndTimeInPast_ReturnsStatusEnded()
+    {
+        // Arrange - 建立已結束的拍賣（結束時間在過去）
+        var createRequest = new CreateAuctionRequest
+        {
+            Name = "Ended Auction",
+            Description = "This auction has already ended",
+            StartingPrice = 50.00m,
+            CategoryId = 1,
+            StartTime = DateTime.UtcNow.AddMinutes(-10), // 10分鐘前開始
+            EndTime = DateTime.UtcNow.AddMinutes(-1) // 1分鐘前結束
+        };
+
+        // Act - 建立拍賣
+        var createResponse = await _client.PostAsJsonAsync("/api/auctions", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // 解析響應
+        var responseContent = await createResponse.Content.ReadAsStringAsync();
+        var wrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
+            responseContent,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        
+        wrapper.Should().NotBeNull();
+        wrapper!.Value.Should().NotBeNull();
+        wrapper.Value!.Success.Should().BeTrue();
+        wrapper.Value.Data.Should().NotBeNull();
+
+        var createdAuction = System.Text.Json.JsonSerializer.Deserialize<AuctionDetailDto>(
+            wrapper.Value.Data.ToString()!,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        
+        createdAuction.Should().NotBeNull();
+
+        // Assert - 狀態應該是 Ended，因為結束時間在過去
+        createdAuction!.Status.Should().Be(AuctionStatus.Ended);
+    }
+
+    [Fact]
+    public async Task GetAuctions_WithStatusActive_ExcludesEndedAuctions()
+    {
+        // Arrange - 先建立一個已結束的拍賣
+        var endedAuctionRequest = new CreateAuctionRequest
+        {
+            Name = "Ended Auction for Filter Test",
+            Description = "This auction ended in the past",
+            StartingPrice = 25.00m,
+            CategoryId = 1,
+            StartTime = DateTime.UtcNow.AddMinutes(-10),
+            EndTime = DateTime.UtcNow.AddMinutes(-1)
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/auctions", endedAuctionRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // Act - 查詢活躍拍賣
+        var getResponse = await _client.GetAsync("/api/auctions?status=Active");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var getContent = await getResponse.Content.ReadAsStringAsync();
+        var getWrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
+            getContent,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        getWrapper.Should().NotBeNull();
+        getWrapper!.Value.Should().NotBeNull();
+        getWrapper.Value!.Success.Should().BeTrue();
+
+        // 解析分頁結果
+        var pagedResult = System.Text.Json.JsonSerializer.Deserialize<PagedResult<AuctionListItemDto>>(
+            getWrapper.Value.Data.ToString()!,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        pagedResult.Should().NotBeNull();
+
+        // Assert - 已結束的拍賣不應該出現在活躍拍賣列表中
+        pagedResult!.Items.Should().NotContain(item => item.Title == "Ended Auction for Filter Test");
+    }
+
+    [Fact]
+    public async Task CreateAuction_WithStartTimeInFuture_ReturnsStatusPending()
+    {
+        // Arrange - 建立尚未開始的拍賣（開始時間在未來）
+        var createRequest = new CreateAuctionRequest
+        {
+            Name = "Future Auction",
+            Description = "This auction starts in the future",
+            StartingPrice = 75.00m,
+            CategoryId = 1,
+            StartTime = DateTime.UtcNow.AddMinutes(5), // 5分鐘後開始
+            EndTime = DateTime.UtcNow.AddHours(1) // 1小時後結束
+        };
+
+        // Act - 建立拍賣
+        var createResponse = await _client.PostAsJsonAsync("/api/auctions", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // 解析響應
+        var responseContent = await createResponse.Content.ReadAsStringAsync();
+        var wrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
+            responseContent,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        
+        wrapper.Should().NotBeNull();
+        wrapper!.Value.Should().NotBeNull();
+        wrapper.Value!.Success.Should().BeTrue();
+        wrapper.Value.Data.Should().NotBeNull();
+
+        var createdAuction = System.Text.Json.JsonSerializer.Deserialize<AuctionDetailDto>(
+            wrapper.Value.Data.ToString()!,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        
+        createdAuction.Should().NotBeNull();
+
+        // Assert - 狀態應該是 Pending，因為開始時間在未來
+        createdAuction!.Status.Should().Be(AuctionStatus.Pending);
+    }
+
     private class ResponseWrapper
     {
         public ApiResponse? Value { get; set; }

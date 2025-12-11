@@ -318,11 +318,11 @@ Based on plan.md, this project uses single-folder structure:
 - [X] T177 [P] Add correlation ID to all log entries via RequestLoggingMiddleware
 - [X] T178 [P] Add performance logging: log query execution times >1000ms as warnings
 - [X] T179 [P] Add circuit breaker pattern to BiddingServiceClient (already implemented in T117, verify configuration: fail fast after 5 consecutive failures, half-open after 30 seconds)
-- [ ] T180 [P] Review and optimize all database queries: ensure proper use of AsNoTracking() for read-only queries
+- [x] T180 [P] Review and optimize all database queries: ensure proper use of AsNoTracking() for read-only queries
 - [X] T181 [P] Add unit tests for all validators in tests/AuctionService.UnitTests/Validators/
 - [X] T182 [P] Add unit tests for all mapping extensions in tests/AuctionService.UnitTests/Extensions/
-- [ ] T183 [P] Add unit tests for all custom exceptions and middleware in tests/AuctionService.UnitTests/Middlewares/
-- [ ] T184 Validate quickstart.md: follow installation steps, verify all commands work, update any outdated instructions
+- [x] T183 [P] Add unit tests for all custom exceptions and middleware in tests/AuctionService.UnitTests/Middlewares/
+- [x] T184 Validate quickstart.md: follow installation steps, verify all commands work, update any outdated instructions
 - [ ] T185 Run full integration test suite against real PostgreSQL via Testcontainers
 - [ ] T186 Run contract tests to ensure API matches contracts/openapi.yaml specification
 - [ ] T187 Perform load testing: verify system handles 100+ req/s for GET /api/auctions

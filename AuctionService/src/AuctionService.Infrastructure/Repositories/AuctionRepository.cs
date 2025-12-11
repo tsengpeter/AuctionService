@@ -21,6 +21,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
         return await _dbSet
             .Where(a => a.UserId == userId)
             .Include(a => a.Category)
+            .AsNoTracking()
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
     }
@@ -30,6 +31,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
         return await _dbSet
             .Where(a => a.CategoryId == categoryId)
             .Include(a => a.Category)
+            .AsNoTracking()
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
     }
@@ -40,6 +42,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
         return await _dbSet
             .Where(a => a.StartTime <= now && a.EndTime > now)
             .Include(a => a.Category)
+            .AsNoTracking()
             .OrderBy(a => a.EndTime)
             .ToListAsync();
     }
@@ -51,6 +54,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
         return await _dbSet
             .Where(a => a.EndTime > now && a.EndTime <= endTime)
             .Include(a => a.Category)
+            .AsNoTracking()
             .OrderBy(a => a.EndTime)
             .ToListAsync();
     }
@@ -59,6 +63,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
     {
         var query = _dbSet
             .Include(a => a.Category)
+            .AsNoTracking()
             .Where(a => a.Name.Contains(searchTerm) || a.Description.Contains(searchTerm));
 
         if (categoryId.HasValue)
@@ -75,6 +80,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
     {
         var query = _dbSet
             .Include(a => a.Category)
+            .AsNoTracking()
             .AsQueryable();
 
         // 搜尋關鍵字
@@ -144,6 +150,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
     {
         return await _dbSet
             .Include(a => a.Category)
+            .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 
@@ -151,7 +158,8 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
     {
         var query = _dbSet
             .Where(a => a.UserId == userId)
-            .Include(a => a.Category);
+            .Include(a => a.Category)
+            .AsNoTracking();
 
         var totalCount = await query.CountAsync();
 

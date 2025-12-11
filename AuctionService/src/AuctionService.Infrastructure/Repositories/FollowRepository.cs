@@ -40,6 +40,7 @@ public class FollowRepository : Repository<Follow>, IFollowRepository
         var query = _dbSet
             .Where(f => f.UserId == userId)
             .Include(f => f.Auction)
+            .AsNoTracking()
             .AsQueryable();
 
         // 排序
