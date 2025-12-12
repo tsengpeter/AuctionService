@@ -303,7 +303,7 @@ Based on plan.md, this project uses single-folder structure:
 - [X] T162 [P] Create ResponseCodeService in src/AuctionService.Core/Services/ResponseCodeService.cs (retrieve localized messages from ResponseCodes table based on language header)
 - [X] T163 [P] Update all ApiResponse wrappers to use ResponseCodeService for consistent metadata (statusCode, statusName, message) across all controllers
 - [X] T164 [P] Create health check endpoint in src/AuctionService.Api/Controllers/HealthController.cs (verify DB connection, BiddingService availability)
-- [X] T165 [P] Add YARP configuration in appsettings.json for API Gateway routing (if deploying with gateway)
+- [ ] T165 [P] [FUTURE] Add YARP configuration for API Gateway routing (屬於獨立的 API Gateway 專案, 非 AuctionService)
 - [X] T166 [P] Create architecture.md in docs/ documenting Clean Architecture layers and data flow
 - [X] T167 [P] Create api-guide.md in docs/ with API usage examples and authentication guide
 - [X] T168 [P] Create deployment.md in docs/ with Docker deployment instructions and environment variables

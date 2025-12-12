@@ -171,9 +171,11 @@ var dto = auction.ToResponseDto();
 
 ---
 
-### 5. YARP API Gateway 配置與路由
+### 5. YARP API Gateway 配置與路由 (用於獨立 API Gateway 專案)
 
-**Decision**: 使用 YARP (Yet Another Reverse Proxy) 作為 API Gateway 單一進入點
+**Decision**: 使用 YARP (Yet Another Reverse Proxy) 作為獨立的 API Gateway 單一進入點
+
+**Context**: 此配置屬於獨立的 API Gateway 專案,而非 AuctionService。AuctionService 是其中一個被代理的微服務。
 
 **Rationale**:
 - **微軟官方**: .NET Foundation 專案，與 ASP.NET Core 深度整合
@@ -608,4 +610,4 @@ volumes:
 
 ## 總結
 
-所有技術選型已完成研究，無 NEEDS CLARIFICATION 項目。採用 ASP.NET Core 10 + EF Core + PostgreSQL + YARP 的技術棧，搭配 Clean Architecture 架構模式，能夠滿足所有功能需求與效能目標。後續進入 Phase 1 進行資料模型設計與 API 契約定義。
+所有技術選型已完成研究,無 NEEDS CLARIFICATION 項目。AuctionService 採用 ASP.NET Core 10 + EF Core + PostgreSQL 的技術棧,搭配 Clean Architecture 架構模式,能夠滿足所有功能需求與效能目標。YARP 作為獨立的 API Gateway 專案,負責路由與反向代理。後續進入 Phase 1 進行資料模型設計與 API 契約定義。

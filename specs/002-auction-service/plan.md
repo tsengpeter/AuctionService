@@ -7,12 +7,12 @@
 
 ## Summary
 
-實作完整的商品拍賣服務後端 REST API，提供商品的建立、查詢、管理與使用者追蹤功能。採用 ASP.NET Core 10 Web API 搭配 PostgreSQL 資料庫，使用 Entity Framework Core Code First 工作流程。系統架構包含 API Gateway (YARP) 作為單一進入點，以及微服務間的標準化 API 契約。重點功能包括：商品瀏覽與搜尋、商品建立與管理、商品追蹤、以及被動式狀態管理（透過查詢時計算狀態）。
+實作完整的商品拍賣服務後端 REST API，提供商品的建立、查詢、管理與使用者追蹤功能。採用 ASP.NET Core 10 Web API 搭配 PostgreSQL 資料庫，使用 Entity Framework Core Code First 工作流程。本專案為微服務架構中的「商品拍賣服務」(Auction Service)，未來將透過獨立的 API Gateway 專案（使用 YARP）提供統一入口。重點功能包括：商品瀏覽與搜尋、商品建立與管理、商品追蹤、以及被動式狀態管理（透過查詢時計算狀態）。
 
 ## Technical Context
 
 **Language/Version**: C# 13 / .NET 10  
-**Primary Dependencies**: ASP.NET Core 10 Web API, Entity Framework Core 10, Npgsql (PostgreSQL), YARP (API Gateway)  
+**Primary Dependencies**: ASP.NET Core 10 Web API, Entity Framework Core 10, Npgsql (PostgreSQL)  
 **Storage**: PostgreSQL 16+ (主要資料庫)  
 **Testing**: xUnit, FluentAssertions, Moq, Testcontainers (整合測試用 PostgreSQL 容器)  
 **Target Platform**: Linux Docker containers (production), Windows/Linux/macOS (development)  
@@ -435,7 +435,7 @@ AuctionService/                              # 服務根目錄（所有內容集
 2. 使用 EF Core Code First + Fluent API 配置
 3. PostgreSQL 搭配索引優化策略
 4. POCO 手動映射 DTO (不使用 AutoMapper)
-5. YARP 作為 API Gateway
+5. 微服務架構：本專案為 Auction Service，未來透過獨立的 API Gateway (YARP) 整合
 6. xUnit + Testcontainers 測試策略
 7. Serilog 結構化日誌
 8. ResponseCode 資料表統一管理 API 回應

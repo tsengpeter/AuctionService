@@ -191,7 +191,7 @@ AuctionService/                          # 單一專案根目錄
 ├── Dockerfile                           # API 容器映像
 │
 ├── src/                                 # 原始碼資料夾
-│   ├── AuctionService.Api/              # API Gateway (YARP + Controllers)
+│   ├── AuctionService.Api/              # REST API Controllers (非 API Gateway)
 │   │   ├── Controllers/                 # API 控制器
 │   │   │   ├── AuctionsController.cs
 │   │   │   ├── FollowsController.cs
