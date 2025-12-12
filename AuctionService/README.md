@@ -114,7 +114,7 @@ A: 檢查日誌並確認：
 docker-compose logs auction-service
 ```
 - PostgreSQL 已啟動
-- 端口 5000 和 5432 未被占用
+- 端口 5106 和 5432 未被占用
 - 連接字符串正確
 
 ### Q: 開發時如何即時重新載入？
@@ -123,7 +123,7 @@ A: 使用 dotnet watch 在本地開發：
 cd src/AuctionService.Api
 dotnet watch run
 ```
-瀏覽器訪問：http://localhost:5106/swagger
+瀏覽器訪問:http://localhost:5106/swagger
 
 ### Q: 如何清理 Docker 資源？
 ```bash

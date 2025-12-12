@@ -1,7 +1,9 @@
 using AuctionService.Shared.Extensions;
+using AuctionService.Shared.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
@@ -49,6 +51,14 @@ builder.Host.UseSerilog((context, configuration) =>
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();
+
+// 自動運行資料庫遷移 (開發環境)
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AuctionService.Infrastructure.Data.AuctionDbContext>();
+    dbContext.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 // Swagger UI (傳統 OpenAPI 文檔介面)

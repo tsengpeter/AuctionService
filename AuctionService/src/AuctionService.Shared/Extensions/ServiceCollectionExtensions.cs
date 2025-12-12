@@ -25,9 +25,21 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddDatabaseServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // 註冊 DbContext
-        services.AddDbContext<AuctionDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+        // 檢查是否使用 In-Memory 資料庫 (開發測試用)
+        var useInMemory = configuration.GetValue<bool>("UseInMemoryDatabase");
+
+        if (useInMemory)
+        {
+            // 使用 In-Memory 資料庫進行開發測試
+            services.AddDbContext<AuctionDbContext>(options =>
+                options.UseInMemoryDatabase("AuctionDb"));
+        }
+        else
+        {
+            // 使用 PostgreSQL 生產資料庫
+            services.AddDbContext<AuctionDbContext>(options =>
+                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+        }
 
         // 註冊 Repositories
         services.AddScoped<IAuctionRepository, AuctionRepository>();

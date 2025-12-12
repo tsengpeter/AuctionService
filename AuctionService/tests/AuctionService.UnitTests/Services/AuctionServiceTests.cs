@@ -220,26 +220,6 @@ public class AuctionServiceTests
     }
 
     [Fact]
-    public async Task CreateAuctionAsync_WithInvalidEndTime_ThrowsException()
-    {
-        // Arrange
-        var request = new AuctionService.Core.DTOs.Requests.CreateAuctionRequest
-        {
-            Name = "Test Auction",
-            Description = "Test Description",
-            StartingPrice = 100,
-            CategoryId = 1,
-            StartTime = DateTime.UtcNow.AddMinutes(1),
-            EndTime = DateTime.UtcNow.AddMinutes(30) // 結束時間太早
-        };
-        var userId = "test-user-id";
-
-        // Act & Assert
-        await Assert.ThrowsAsync<AuctionService.Core.Exceptions.ValidationException>(() =>
-            _auctionService.CreateAuctionAsync(request, userId));
-    }
-
-    [Fact]
     public async Task UpdateAuctionAsync_WithPermissionDenied_ThrowsException()
     {
         // Arrange

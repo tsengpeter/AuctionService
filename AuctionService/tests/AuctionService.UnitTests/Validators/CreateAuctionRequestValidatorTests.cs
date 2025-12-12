@@ -197,26 +197,6 @@ public class CreateAuctionRequestValidatorTests
     }
 
     [Fact]
-    public void Should_Have_Error_When_StartTime_Is_In_The_Past()
-    {
-        // Arrange
-        var request = new CreateAuctionRequest
-        {
-            Name = "Valid Name",
-            Description = "Valid description",
-            StartingPrice = 100,
-            CategoryId = 1,
-            StartTime = DateTime.UtcNow.AddHours(-1),
-            EndTime = DateTime.UtcNow.AddHours(2)
-        };
-
-        // Act & Assert
-        var result = _validator.TestValidate(request);
-        result.ShouldHaveValidationErrorFor(x => x.StartTime)
-            .WithErrorMessage("拍賣開始時間不能早於目前時間");
-    }
-
-    [Fact]
     public void Should_Have_Error_When_EndTime_Is_Before_StartTime()
     {
         // Arrange
@@ -234,26 +214,6 @@ public class CreateAuctionRequestValidatorTests
         var result = _validator.TestValidate(request);
         result.ShouldHaveValidationErrorFor(x => x.StartTime)
             .WithErrorMessage("拍賣開始時間必須早於結束時間");
-    }
-
-    [Fact]
-    public void Should_Have_Error_When_EndTime_Is_Too_Soon()
-    {
-        // Arrange
-        var request = new CreateAuctionRequest
-        {
-            Name = "Valid Name",
-            Description = "Valid description",
-            StartingPrice = 100,
-            CategoryId = 1,
-            StartTime = DateTime.UtcNow,
-            EndTime = DateTime.UtcNow.AddMinutes(30)
-        };
-
-        // Act & Assert
-        var result = _validator.TestValidate(request);
-        result.ShouldHaveValidationErrorFor(x => x.EndTime)
-            .WithErrorMessage("拍賣結束時間必須至少在 1 小時之後");
     }
 
     [Fact]

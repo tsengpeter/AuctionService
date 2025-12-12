@@ -35,7 +35,7 @@ $serviceReady = $false
 
 while ($retryCount -lt $maxRetries -and -not $serviceReady) {
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:5000/scalar/v1" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+        $response = Invoke-WebRequest -Uri "http://localhost:5106/scalar/v1" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
         if ($response.StatusCode -eq 200) {
             $serviceReady = $true
         }
@@ -54,10 +54,10 @@ if ($serviceReady) {
     Write-Host "=== 🎉 服務啟動成功！ ===" -ForegroundColor Green
     Write-Host ""
     Write-Host "📖 Scalar API 文件: " -NoNewline -ForegroundColor Cyan
-    Write-Host "http://localhost:5000/scalar/v1" -ForegroundColor White
+    Write-Host "http://localhost:5106/scalar/v1" -ForegroundColor White
     Write-Host ""
     Write-Host "🔗 OpenAPI 規格: " -NoNewline -ForegroundColor Cyan
-    Write-Host "http://localhost:5000/openapi/v1.json" -ForegroundColor White
+    Write-Host "http://localhost:5106/openapi/v1.json" -ForegroundColor White
     Write-Host ""
     Write-Host "🗄️  PostgreSQL: " -NoNewline -ForegroundColor Cyan
     Write-Host "localhost:5432 (auctiondb/auctionuser/auctionpass)" -ForegroundColor White
@@ -70,7 +70,7 @@ if ($serviceReady) {
     Write-Host ""
     
     # 自動開啟瀏覽器
-    Start-Process "http://localhost:5000/scalar/v1"
+    Start-Process "http://localhost:5106/scalar/v1"
 }
 else {
     Write-Host "❌ 服務啟動失敗" -ForegroundColor Red
