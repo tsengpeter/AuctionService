@@ -45,17 +45,97 @@ The AuctionService is built using ASP.NET Core 10 Web API with Clean Architectur
 - Integration tests: `dotnet test tests/AuctionService.IntegrationTests`
 - Contract tests: `dotnet test tests/AuctionService.ContractTests`
 
-## Docker
+## Quick Start
 
-Build and run with Docker Compose:
+### 快速啟動（推薦）
+```powershell
+.\scripts\start-dev.ps1
+```
+此腳本會自動：
+- ✅ 檢查 Docker 狀態
+- ✅ 停止舊容器
+- ✅ 啟動新容器
+- ✅ 等待服務就緒
+- ✅ 自動打開 API 文檔
 
+### 手動啟動
 ```bash
-docker-compose up --build
+# 啟動所有服務
+docker-compose up -d
+
+# 查看日誌
+docker-compose logs -f auction-service
+
+# 停止服務
+docker-compose down
 ```
 
-## API Documentation
+## API 文檔
 
-When running locally, visit `https://localhost:5001/swagger` for API documentation.
+服務啟動後可訪問以下端點：
+
+| 服務 | URL | 說明 |
+|------|-----|------|
+| 🌐 Swagger UI | http://localhost:5000/swagger | 傳統 OpenAPI 文檔介面 |
+| 🎨 Scalar UI | http://localhost:5000/scalar/v1 | 現代化 API 文檔（推薦） |
+| 📄 OpenAPI JSON | http://localhost:5000/openapi/v1.json | JSON 格式 API 規格 |
+| 📄 OpenAPI YAML | http://localhost:5000/openapi/v1/openapi.yaml | YAML 格式 API 規格 |
+
+### PostgreSQL 連接資訊
+- **Host**: localhost
+- **Port**: 5432
+- **Database**: auctiondb
+- **Username**: auctionuser
+- **Password**: auctionpass
+
+## 效能優化
+
+Docker 啟動效能提升：
+
+| 項目 | 優化前 | 優化後 | 改善 |
+|------|--------|--------|------|
+| PostgreSQL 就緒時間 | ~30s | ~5-8s | ⬇️ 75% |
+| API 首次連接 | 多次重試 | 一次成功 | ✅ |
+| 總啟動時間 | ~45s | ~10-15s | ⬇️ 67% |
+
+**優化項目**：
+- PostgreSQL healthcheck 機制（5s 間隔，5 次重試）
+- `service_healthy` 條件確保資料庫就緒後再啟動 API
+- 簡化 Docker 配置，移除 HTTPS，統一使用 HTTP 8080 端口
+
+## 常見問題
+
+### Q: 首次啟動為什麼較慢？
+A: 需要下載 Docker 映像檔（~300MB），之後會使用快取。
+
+### Q: 容器無法啟動？
+A: 檢查日誌並確認：
+```bash
+docker-compose logs auction-service
+```
+- PostgreSQL 已啟動
+- 端口 5000 和 5432 未被占用
+- 連接字符串正確
+
+### Q: 開發時如何即時重新載入？
+A: 使用 dotnet watch 在本地開發：
+```bash
+cd src/AuctionService.Api
+dotnet watch run
+```
+瀏覽器訪問：http://localhost:5106/swagger
+
+### Q: 如何清理 Docker 資源？
+```bash
+# 停止並刪除容器
+docker-compose down
+
+# 完全清理（包含資料卷）
+docker-compose down -v
+
+# 刪除映像
+docker rmi auctionservice-auction-service
+```
 
 ## Contributing
 

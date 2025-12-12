@@ -13,6 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// 設定 Swagger/OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // 設定 JWT 認證 (非測試環境)
 if (!builder.Environment.IsEnvironment("Testing"))
 {
@@ -47,16 +51,20 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Swagger UI (傳統 OpenAPI 文檔介面)
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
     {
-        options.WithTitle("AuctionService API");
-        options.WithTheme(ScalarTheme.Purple);
-        options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-        options.WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch);
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "AuctionService API v1");
+        options.RoutePrefix = "swagger"; // Swagger UI 在 /swagger
+        options.DocumentTitle = "AuctionService API 文檔";
     });
+    
+    // 同時保留 Scalar 文檔 (現代化替代方案，在 /scalar/v1)
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 // 使用中介軟體
