@@ -48,7 +48,7 @@ public class AuctionsControllerIntegrationTests : IClassFixture<PostgreSqlContai
         
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        // API 返回的是包裝對象，但 CreatedAtAction 會再包一層 value
+        // API 返回的是包裝對象
         var responseContent = await createResponse.Content.ReadAsStringAsync();
         
         var wrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
@@ -137,17 +137,16 @@ public class AuctionsControllerIntegrationTests : IClassFixture<PostgreSqlContai
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var getContent = await getResponse.Content.ReadAsStringAsync();
-        var getWrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
+        var getWrapper = System.Text.Json.JsonSerializer.Deserialize<ApiResponse>(
             getContent,
             new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         getWrapper.Should().NotBeNull();
-        getWrapper!.Value.Should().NotBeNull();
-        getWrapper.Value!.Success.Should().BeTrue();
+        getWrapper!.Success.Should().BeTrue();
 
         // 解析分頁結果
         var pagedResult = System.Text.Json.JsonSerializer.Deserialize<PagedResult<AuctionListItemDto>>(
-            getWrapper.Value.Data.ToString()!,
+            getWrapper.Data.ToString()!,
             new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         pagedResult.Should().NotBeNull();

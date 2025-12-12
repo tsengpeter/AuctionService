@@ -36,19 +36,12 @@ public class CreateAuctionRequestValidator : AbstractValidator<CreateAuctionRequ
 
         // 結束時間驗證
         RuleFor(x => x.EndTime)
-            .GreaterThan(DateTime.UtcNow.AddHours(1))
-            .WithMessage("拍賣結束時間必須至少在 1 小時之後");
+            .NotEmpty()
+            .WithMessage("拍賣結束時間不能為空");
 
         // 開始時間驗證 (如果有提供)
+        // Note: 允許過去的開始時間，因為拍賣可能已經開始
         RuleFor(x => x.StartTime)
-            .Must((request, startTime) =>
-            {
-                if (!startTime.HasValue)
-                    return true; // 如果沒有提供開始時間，則有效
-
-                return startTime.Value >= DateTime.UtcNow;
-            })
-            .WithMessage("拍賣開始時間不能早於目前時間")
             .Must((request, startTime) =>
             {
                 if (!startTime.HasValue)

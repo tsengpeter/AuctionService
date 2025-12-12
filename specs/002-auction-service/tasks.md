@@ -5,15 +5,15 @@
 
 **Branch**: `002-auction-service`  
 **Generated**: 2025-12-10  
-**Version**: 2.6 (Updated with User Story 4 status validation core implementation - T152-T161 completed)
+**Version**: 2.7 (Updated with User Story 4 status validation integration tests - T152-T154 completed)
 
 **Tests**: TDD approach - Tests are included and MUST be written first (Red-Green-Refactor cycle)
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational + ✅ User Story 1 + ✅ User Story 2 + ✅ User Story 3 + 🔄 User Story 4 (T155, T157, T158 completed) = **Status Validation In Progress**
+**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational + ✅ User Story 1 + ✅ User Story 2 + ✅ User Story 3 + ✅ User Story 4 (T152-T161 completed) = **Status Validation Complete**
 
-**Next Steps**: User Stories 1, 2 & 3 are all fully functional - Enhanced UX achieved with complete browse + manage + tracking capabilities
+**Next Steps**: User Stories 1-4 are all fully functional - Complete auction management system with passive status calculation
 
 **Changes from v2.3**:
 - Updated task completion status for User Story 3 implementation
@@ -278,9 +278,9 @@ Based on plan.md, this project uses single-folder structure:
 
 ### Tests for User Story 4 (Write FIRST - ensure they FAIL before implementation)
 
-- [ ] T152 [P] [US4] Integration test: create auction with EndTime=Now+2sec, wait 3 seconds, verify GET /api/auctions returns status=Ended in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T153 [P] [US4] Integration test: verify ended auctions excluded from GET /api/auctions?status=Active in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T154 [P] [US4] Integration test: verify auction with StartTime in future returns status=Pending in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T152 [P] [US4] Integration test: create auction with EndTime=Now+2sec, wait 3 seconds, verify GET /api/auctions returns status=Ended in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T153 [P] [US4] Integration test: verify ended auctions excluded from GET /api/auctions?status=Active in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T154 [P] [US4] Integration test: verify auction with StartTime in future returns status=Pending in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
 - [X] T155 [P] [US4] Unit test: verify operations on ended auction are rejected (edit/delete/bid) in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 
 ### Implementation for User Story 4
