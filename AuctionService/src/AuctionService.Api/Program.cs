@@ -7,7 +7,6 @@ using Scalar.AspNetCore;
 using Serilog;
 using System.IO;
 using System.Text;
-using Yarp.ReverseProxy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,10 +44,6 @@ builder.Host.UseSerilog((context, configuration) =>
 // 設定 FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-// 設定 YARP Reverse Proxy
-builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -85,8 +80,5 @@ app.MapGet("/openapi/v1/openapi.yaml", async () =>
 });
 
 app.MapControllers();
-
-// 設定 YARP Reverse Proxy 路由
-app.MapReverseProxy();
 
 app.Run();
