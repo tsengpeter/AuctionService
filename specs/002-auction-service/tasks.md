@@ -166,52 +166,52 @@ Based on plan.md, this project uses single-folder structure:
 
 ### Tests for User Story 2 (Write FIRST - ensure they FAIL before implementation)
 
-- [ ] T081 [P] [US2] Unit test for CreateAuctionRequest validation in tests/AuctionService.UnitTests/Validators/CreateAuctionRequestValidatorTests.cs (test EndTime >= CurrentTime + 1 hour, StartingPrice > 0, Name length 3-200)
-- [ ] T082 [P] [US2] Unit test for UpdateAuctionRequest validation in tests/AuctionService.UnitTests/Validators/UpdateAuctionRequestValidatorTests.cs
+- [X] T081 [P] [US2] Unit test for CreateAuctionRequest validation in tests/AuctionService.UnitTests/Validators/CreateAuctionRequestValidatorTests.cs (test EndTime >= CurrentTime + 1 hour, StartingPrice > 0, Name length 3-200)
+- [X] T082 [P] [US2] Unit test for UpdateAuctionRequest validation in tests/AuctionService.UnitTests/Validators/UpdateAuctionRequestValidatorTests.cs
 - [X] T083 [P] [US2] Unit test for AuctionService.CreateAuctionAsync() success case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [X] T084 [P] [US2] Unit test for AuctionService.CreateAuctionAsync() invalid EndTime case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [X] T085 [P] [US2] Unit test for AuctionService.UpdateAuctionAsync() permission denied case (not owner) in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [X] T086 [P] [US2] Unit test for AuctionService.UpdateAuctionAsync() has bids case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [X] T087 [P] [US2] Unit test for AuctionService.DeleteAuctionAsync() permission denied case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
 - [X] T088 [P] [US2] Unit test for AuctionService.DeleteAuctionAsync() has bids case in tests/AuctionService.UnitTests/Services/AuctionServiceTests.cs
-- [ ] T089 [P] [US2] Integration test for POST /api/auctions with valid data in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T090 [P] [US2] Integration test for POST /api/auctions with invalid EndTime in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T091 [P] [US2] Integration test for PUT /api/auctions/{id} success case (no bids) in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T092 [P] [US2] Integration test for PUT /api/auctions/{id} forbidden case (has bids) in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T093 [P] [US2] Integration test for DELETE /api/auctions/{id} success case in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T094 [P] [US2] Integration test for GET /api/auctions/user/{userId} in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
-- [ ] T095 [P] [US2] Contract test for POST /api/auctions request/response schema in tests/AuctionService.ContractTests/AuctionsContractTests.cs
+- [X] T089 [P] [US2] Integration test for POST /api/auctions with valid data in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T090 [P] [US2] Integration test for POST /api/auctions with invalid EndTime in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T091 [P] [US2] Integration test for PUT /api/auctions/{id} success case (no bids) in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T092 [P] [US2] Integration test for PUT /api/auctions/{id} forbidden case (has bids) in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T093 [P] [US2] Integration test for DELETE /api/auctions/{id} success case in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T094 [P] [US2] Integration test for GET /api/auctions/user/{userId} in tests/AuctionService.IntegrationTests/Controllers/AuctionsControllerIntegrationTests.cs
+- [X] T095 [P] [US2] Contract test for POST /api/auctions request/response schema in tests/AuctionService.ContractTests/AuctionsContractTests.cs
 
 ### Implementation for User Story 2
 
-- [ ] T096 [P] [US2] Create CreateAuctionRequest DTO in src/AuctionService.Core/DTOs/Requests/CreateAuctionRequest.cs (Name, Description, StartingPrice, CategoryId, StartTime, EndTime)
-- [ ] T097 [P] [US2] Create UpdateAuctionRequest DTO in src/AuctionService.Core/DTOs/Requests/UpdateAuctionRequest.cs (Name, Description, StartingPrice, EndTime)
-- [ ] T098 [P] [US2] Create CreateAuctionRequestValidator in src/AuctionService.Core/Validators/CreateAuctionRequestValidator.cs using FluentValidation (validate EndTime >= Now + 1 hour, StartingPrice > 0, CategoryId exists, Name/Description length)
-- [ ] T099 [P] [US2] Create UpdateAuctionRequestValidator in src/AuctionService.Core/Validators/UpdateAuctionRequestValidator.cs
-- [ ] T100 [P] [US2] Add CreateAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
-- [ ] T101 [P] [US2] Add UpdateAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
-- [ ] T102 [P] [US2] Add DeleteAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
-- [ ] T103 [P] [US2] Add GetByUserIdAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
-- [ ] T104 [US2] Implement CreateAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
-- [ ] T105 [US2] Implement UpdateAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
-- [ ] T106 [US2] Implement DeleteAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
-- [ ] T107 [US2] Implement GetByUserIdAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
-- [ ] T108 [P] [US2] Add CreateAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
-- [ ] T109 [P] [US2] Add UpdateAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
-- [ ] T110 [P] [US2] Add DeleteAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
-- [ ] T111 [P] [US2] Add GetUserAuctionsAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
+- [X] T096 [P] [US2] Create CreateAuctionRequest DTO in src/AuctionService.Core/DTOs/Requests/CreateAuctionRequest.cs (Name, Description, StartingPrice, CategoryId, StartTime, EndTime)
+- [X] T097 [P] [US2] Create UpdateAuctionRequest DTO in src/AuctionService.Core/DTOs/Requests/UpdateAuctionRequest.cs (Name, Description, StartingPrice, EndTime)
+- [X] T098 [P] [US2] Create CreateAuctionRequestValidator in src/AuctionService.Core/Validators/CreateAuctionRequestValidator.cs using FluentValidation (validate EndTime >= Now + 1 hour, StartingPrice > 0, CategoryId exists, Name/Description length)
+- [X] T099 [P] [US2] Create UpdateAuctionRequestValidator in src/AuctionService.Core/Validators/UpdateAuctionRequestValidator.cs
+- [X] T100 [P] [US2] Add CreateAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
+- [X] T101 [P] [US2] Add UpdateAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
+- [X] T102 [P] [US2] Add DeleteAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
+- [X] T103 [P] [US2] Add GetByUserIdAsync method to IAuctionRepository in src/AuctionService.Core/Interfaces/IAuctionRepository.cs
+- [X] T104 [US2] Implement CreateAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
+- [X] T105 [US2] Implement UpdateAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
+- [X] T106 [US2] Implement DeleteAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
+- [X] T107 [US2] Implement GetByUserIdAsync in AuctionRepository in src/AuctionService.Infrastructure/Repositories/AuctionRepository.cs
+- [X] T108 [P] [US2] Add CreateAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
+- [X] T109 [P] [US2] Add UpdateAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
+- [X] T110 [P] [US2] Add DeleteAuctionAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
+- [X] T111 [P] [US2] Add GetUserAuctionsAsync to IAuctionService in src/AuctionService.Core/Interfaces/IAuctionService.cs
 - [X] T112 [US2] Implement CreateAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (validate request, set UserId from auth context, set StartTime to Now, call repository)
 - [X] T113 [US2] Implement UpdateAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (check ownership, check no bids via BiddingService, update fields)
 - [X] T114 [US2] Implement DeleteAuctionAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs (check ownership, check no bids, soft/hard delete)
 - [X] T115 [US2] Implement GetUserAuctionsAsync in AuctionService in src/AuctionService.Core/Services/AuctionService.cs
-- [ ] T116 [P] [US2] Add CheckAuctionHasBidsAsync method to IBiddingServiceClient in src/AuctionService.Core/Interfaces/IBiddingServiceClient.cs
+- [X] T116 [P] [US2] Add CheckAuctionHasBidsAsync method to IBiddingServiceClient in src/AuctionService.Core/Interfaces/IBiddingServiceClient.cs
 - [X] T117 [US2] Implement CheckAuctionHasBidsAsync in BiddingServiceClient in src/AuctionService.Infrastructure/HttpClients/BiddingServiceClient.cs with resilience patterns:
   - Polly Retry: 3 attempts with exponential backoff (1s, 2s, 4s)
   - Circuit Breaker: Open after 5 consecutive failures, half-open after 30 seconds
   - Timeout: 5 seconds per request
   - Graceful degradation: Return null on service unavailable (let business logic handle)
   - Comprehensive logging per FR-029 (Timestamp, CorrelationId, Endpoint, Duration, StatusCode, RetryCount)
-- [ ] T118 [P] [US2] Create mapping extensions ToEntity(CreateAuctionRequest) in src/AuctionService.Shared/Extensions/AuctionExtensions.cs
+- [X] T118 [P] [US2] Create mapping extensions ToEntity(CreateAuctionRequest) in src/AuctionService.Shared/Extensions/AuctionExtensions.cs
 - [X] T119 [US2] Implement AuctionsController.CreateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for POST /api/auctions (validate, extract UserId from JWT claims, call service, return 201 Created)
 - [X] T120 [US2] Implement AuctionsController.UpdateAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for PUT /api/auctions/{id} (authorize owner, call service, handle forbidden/not found)
 - [X] T121 [US2] Implement AuctionsController.DeleteAuction() in src/AuctionService.Api/Controllers/AuctionsController.cs for DELETE /api/auctions/{id} (authorize owner, call service)
