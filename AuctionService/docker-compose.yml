@@ -1,5 +1,5 @@
 services:
-  auction-service:
+  auctionservice-api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,25 +8,26 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=auctiondb;Username=auctionuser;Password=auctionpass
+      - ConnectionStrings__DefaultConnection=Host=auctionservice-db;Port=5432;Database=auctionservice_dev;Username=auctionservice;Password=Dev@Password123
     depends_on:
-      postgres:
+      auctionservice-db:
         condition: service_healthy
     networks:
       - auction-network
 
-  postgres:
-    image: postgres:16
+  auctionservice-db:
+    image: postgres:16-alpine
+    container_name: auctionservice-db
     environment:
-      POSTGRES_DB: auctiondb
-      POSTGRES_USER: auctionuser
-      POSTGRES_PASSWORD: auctionpass
+      POSTGRES_DB: auctionservice_dev
+      POSTGRES_USER: auctionservice
+      POSTGRES_PASSWORD: Dev@Password123
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auctionuser -d auctiondb"]
+      test: ["CMD-SHELL", "pg_isready -U auctionservice -d auctionservice_dev"]
       interval: 5s
       timeout: 5s
       retries: 5

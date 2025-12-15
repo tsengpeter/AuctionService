@@ -85,8 +85,8 @@ docker-compose down
 - **Host**: localhost
 - **Port**: 5432
 - **Database**: auctiondb
-- **Username**: auctionuser
-- **Password**: auctionpass
+- **Username**: memberservice
+- **Password**: Dev@Password123
 
 ## 效能優化
 

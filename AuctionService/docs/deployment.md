@@ -68,7 +68,7 @@ docker run -d \
   --name auctionservice \
   -p 8080:8080 \
   -e ASPNETCORE_ENVIRONMENT=Production \
-  -e ConnectionStrings__DefaultConnection="Host=postgres;Database=auction_prod;Username=auction_user;Password=your_password" \
+  -e ConnectionStrings__DefaultConnection="Host=auctionservice-db;Database=auctionservice_prod;Username=auctionservice;Password=Dev@Password123" \
   -e BiddingService__BaseUrl="http://bidding-service:8080" \
   auctionservice:latest
 ```
@@ -83,7 +83,7 @@ ASPNETCORE_ENVIRONMENT=Production
 ASPNETCORE_URLS=http://+:8080
 
 # 資料庫連線
-ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=auction_prod;Username=auction_user;Password=your_secure_password;Pooling=true;MinPoolSize=5;MaxPoolSize=100
+ConnectionStrings__DefaultConnection=Host=auctionservice-db;Port=5432;Database=auctionservice_prod;Username=auctionservice;Password=Dev@Password123;Pooling=true;MinPoolSize=5;MaxPoolSize=100
 
 # JWT 認證 (生產環境)
 JWT__Issuer=https://auth.yourdomain.com
@@ -120,7 +120,7 @@ ReverseProxy__Clusters__auction-cluster__Destinations__destination1__Address=htt
 ASPNETCORE_ENVIRONMENT=Development
 ASPNETCORE_URLS=http://localhost:5000
 
-ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=auction_dev;Username=postgres;Password=postgres
+ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=auctionservice_dev;Username=auctionservice;Password=Dev@Password123
 
 BiddingService__BaseUrl=http://localhost:5001
 
@@ -237,7 +237,7 @@ spec:
               name: auctionservice-config
               key: ASPNETCORE_ENVIRONMENT
         - name: ConnectionStrings__DefaultConnection
-          value: "Host=postgres-service;Port=5432;Database=auction_prod;Username=auction_user;Password=$(DB_PASSWORD)"
+          value: "Host=auctionservice-db;Port=5432;Database=auctionservice_prod;Username=auctionservice;Password=$(DB_PASSWORD)"
         - name: JWT__SecretKey
           value: "$(JWT_SECRET)"
         envFrom:
@@ -518,7 +518,7 @@ curl https://bidding-api.yourdomain.com/api/health
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=postgres;Pooling=true;MinPoolSize=10;MaxPoolSize=200"
+    "DefaultConnection": "Host=auctionservice-db;Port=5432;Database=auctionservice_prod;Username=auctionservice;Password=Dev@Password123;Pooling=true;MinPoolSize=10;MaxPoolSize=200"
   }
 }
 ```

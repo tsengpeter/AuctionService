@@ -60,7 +60,7 @@ if ($serviceReady) {
     Write-Host "http://localhost:5106/openapi/v1.json" -ForegroundColor White
     Write-Host ""
     Write-Host "🗄️  PostgreSQL: " -NoNewline -ForegroundColor Cyan
-    Write-Host "localhost:5432 (auctiondb/auctionuser/auctionpass)" -ForegroundColor White
+    Write-Host "localhost:5432 (auctionservice_dev/auctionservice/Dev@Password123)" -ForegroundColor White
     Write-Host ""
     Write-Host "📋 查看日誌: " -NoNewline -ForegroundColor Cyan
     Write-Host "docker-compose logs -f auction-service" -ForegroundColor White
