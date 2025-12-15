@@ -20,7 +20,7 @@ public class BaseApiController : ControllerBase
         {
             // TODO: 實作適當的認證失敗處理
             // 這是一個臨時實作，方便測試
-            userId = "test-user-123";
+            userId = "test-user-id"; // 與測試認證處理器匹配
         }
         return userId;
     }

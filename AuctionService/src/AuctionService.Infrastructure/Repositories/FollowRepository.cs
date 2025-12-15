@@ -75,8 +75,8 @@ public class FollowRepository : Repository<Follow>, IFollowRepository
 
     public async Task<bool> IsFollowingOwnAuctionAsync(string userId, Guid auctionId)
     {
-        return await _dbSet
-            .AnyAsync(f => f.UserId == userId && f.AuctionId == auctionId &&
-                          f.Auction != null && f.Auction.UserId == userId);
+        // 檢查拍賣的創建者是否是當前用戶
+        return await _context.Auctions
+            .AnyAsync(a => a.Id == auctionId && a.UserId == userId);
     }
 }

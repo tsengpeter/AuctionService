@@ -1,4 +1,5 @@
 using AuctionService.Api;
+using AuctionService.Core.Entities;
 using AuctionService.Infrastructure.Data;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
@@ -90,6 +91,53 @@ public class PostgreSqlContainerFixture : WebApplicationFactory<Program>, IAsync
                     IsActive = true,
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) // 使用靜態日期
                 });
+                dbContext.SaveChanges();
+            }
+
+            // 插入測試拍賣資料（由其他用戶創建）
+            if (!dbContext.Auctions.Any())
+            {
+                dbContext.Auctions.AddRange(
+                    new AuctionService.Core.Entities.Auction
+                    {
+                        Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                        Name = "Test Auction 1",
+                        Description = "Test auction for following",
+                        StartingPrice = 100.00m,
+                        CategoryId = 1,
+                        StartTime = DateTime.UtcNow.AddMinutes(1),
+                        EndTime = DateTime.UtcNow.AddHours(2),
+                        UserId = "other-user-1", // 不同的用戶 ID
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    },
+                    new AuctionService.Core.Entities.Auction
+                    {
+                        Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                        Name = "Test Auction 2",
+                        Description = "Another test auction for following",
+                        StartingPrice = 150.00m,
+                        CategoryId = 1,
+                        StartTime = DateTime.UtcNow.AddMinutes(1),
+                        EndTime = DateTime.UtcNow.AddHours(2),
+                        UserId = "other-user-2", // 不同的用戶 ID
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    },
+                    new AuctionService.Core.Entities.Auction
+                    {
+                        Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                        Name = "Test Auction 3",
+                        Description = "Third test auction for following",
+                        StartingPrice = 200.00m,
+                        CategoryId = 1,
+                        StartTime = DateTime.UtcNow.AddMinutes(1),
+                        EndTime = DateTime.UtcNow.AddHours(2),
+                        UserId = "other-user-1", // 相同的其他用戶
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    }
+                );
                 dbContext.SaveChanges();
             }
         });
