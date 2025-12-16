@@ -16,8 +16,22 @@ namespace AuctionService.IntegrationTests.Controllers;
 public class ApiResponse<T>
 {
     public bool Success { get; set; }
+    public string StatusCode { get; set; } = string.Empty;
+    public string StatusName { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public T? Data { get; set; }
+}
+
+/// <summary>
+/// CreatedAtAction 回應包裝類
+/// </summary>
+public class CreatedAtActionResponse<T>
+{
+    public T? Value { get; set; }
+    public string[]? Formatters { get; set; }
+    public string[]? ContentTypes { get; set; }
+    public string? DeclaredType { get; set; }
+    public int StatusCode { get; set; }
 }
 
 /// <summary>
@@ -57,9 +71,13 @@ public class FollowsControllerIntegrationTests : IClassFixture<PostgreSqlContain
         // Assert
         followResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var followDto = await followResponse.Content.ReadFromJsonAsync<FollowDto>();
-        followDto.Should().NotBeNull();
-        followDto!.AuctionId.Should().Be(auctionId);
+        var createdResponse = await followResponse.Content.ReadFromJsonAsync<ApiResponse<FollowDto>>();
+        createdResponse.Should().NotBeNull();
+        createdResponse!.Success.Should().BeTrue();
+        createdResponse.Data.Should().NotBeNull();
+
+        var followDto = createdResponse.Data!;
+        followDto.AuctionId.Should().Be(auctionId);
     }
 
     [Fact]
@@ -79,8 +97,10 @@ public class FollowsControllerIntegrationTests : IClassFixture<PostgreSqlContain
         var createResponse = await _client.PostAsJsonAsync("/api/auctions", createAuctionRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var auctionResponse = await createResponse.Content.ReadFromJsonAsync<AuctionDetailDto>();
-        var auctionId = auctionResponse!.Id;
+        var createdResponse = await createResponse.Content.ReadFromJsonAsync<ApiResponse<AuctionDetailDto>>();
+        createdResponse.Should().NotBeNull();
+        createdResponse!.Data.Should().NotBeNull();
+        var auctionId = createdResponse.Data!.Id;
 
         // Act - 嘗試追蹤自己的商品
         var followRequest = new FollowAuctionRequest
@@ -92,6 +112,13 @@ public class FollowsControllerIntegrationTests : IClassFixture<PostgreSqlContain
 
         // Assert
         followResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        // For error responses, directly deserialize the content
+        var errorResponse = await followResponse.Content.ReadFromJsonAsync<ApiResponse<object>>();
+        errorResponse.Should().NotBeNull();
+        errorResponse!.Success.Should().BeFalse();
+        errorResponse.StatusCode.ToString().Should().Be("VALIDATION_ERROR");
+        errorResponse.Message.Should().Contain("Cannot follow your own");
     }
 
     [Fact]
@@ -113,6 +140,12 @@ public class FollowsControllerIntegrationTests : IClassFixture<PostgreSqlContain
 
         // Assert
         secondFollowResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var errorResponse = await secondFollowResponse.Content.ReadFromJsonAsync<ApiResponse<object>>();
+        errorResponse.Should().NotBeNull();
+        errorResponse!.Success.Should().BeFalse();
+        errorResponse.StatusCode.Should().Be("DUPLICATE_FOLLOW");
+        errorResponse.Message.Should().Contain("Already following");
     }
 
     [Fact]
@@ -132,8 +165,8 @@ public class FollowsControllerIntegrationTests : IClassFixture<PostgreSqlContain
         var createResponse = await _client.PostAsJsonAsync("/api/auctions", createAuctionRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var auctionResponse = await createResponse.Content.ReadFromJsonAsync<AuctionDetailDto>();
-        var auctionId = auctionResponse!.Id;
+        var createdResponse = await createResponse.Content.ReadFromJsonAsync<ApiResponse<AuctionDetailDto>>();
+        var auctionId = createdResponse!.Data!.Id;
 
         // Act - 嘗試追蹤自己的商品
         var followRequest = new FollowAuctionRequest { AuctionId = auctionId };
@@ -141,6 +174,17 @@ public class FollowsControllerIntegrationTests : IClassFixture<PostgreSqlContain
 
         // Assert
         followResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var responseContent = await followResponse.Content.ReadAsStringAsync();
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        var errorResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, options);
+        errorResponse.Should().NotBeNull();
+        errorResponse!.Success.Should().BeFalse();
+        errorResponse.StatusCode.Should().Be("VALIDATION_ERROR");
+        errorResponse.Message.Should().Contain("Cannot follow your own");
     }
 
     [Fact]

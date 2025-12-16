@@ -81,17 +81,54 @@ public class PostgreSqlContainerFixture : WebApplicationFactory<Program>, IAsync
             var dbContext = scope.ServiceProvider.GetRequiredService<AuctionDbContext>();
             dbContext.Database.Migrate();
 
-            // 插入測試資料
-            if (!dbContext.Categories.Any())
+            // 插入測試回應代碼資料（如果不存在）
+            if (!dbContext.ResponseCodes.Any())
             {
-                dbContext.Categories.Add(new AuctionService.Core.Entities.Category
-                {
-                    Name = "Test Category",
-                    DisplayOrder = 1,
-                    IsActive = true,
-                    CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) // 使用靜態日期
-                });
+                Console.WriteLine("Inserting ResponseCodes...");
+                dbContext.ResponseCodes.AddRange(
+                    new AuctionService.Core.Entities.ResponseCode
+                    {
+                        Code = "SUCCESS",
+                        Name = "成功",
+                        MessageZhTw = "操作成功",
+                        MessageEn = "Operation successful",
+                        Category = "SUCCESS",
+                        Severity = "Info",
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new AuctionService.Core.Entities.ResponseCode
+                    {
+                        Code = "VALIDATION_ERROR",
+                        Name = "驗證錯誤",
+                        MessageZhTw = "請求資料驗證失敗",
+                        MessageEn = "Validation error",
+                        Category = "VALIDATION",
+                        Severity = "Warning",
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new AuctionService.Core.Entities.ResponseCode
+                    {
+                        Code = "AUCTION_NOT_FOUND",
+                        Name = "商品不存在",
+                        MessageZhTw = "找不到指定的商品",
+                        MessageEn = "Auction not found",
+                        Category = "NOT_FOUND",
+                        Severity = "Warning",
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new AuctionService.Core.Entities.ResponseCode
+                    {
+                        Code = "DUPLICATE_FOLLOW",
+                        Name = "重複追蹤",
+                        MessageZhTw = "已經追蹤此商品",
+                        MessageEn = "Already following this auction",
+                        Category = "VALIDATION",
+                        Severity = "Warning",
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    }
+                );
                 dbContext.SaveChanges();
+                Console.WriteLine("ResponseCodes inserted successfully");
             }
 
             // 插入測試拍賣資料（由其他用戶創建）

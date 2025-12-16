@@ -27,7 +27,9 @@ public class FollowsController : BaseApiController
     public FollowsController(
         IFollowService followService,
         IValidator<AuctionQueryParameters> queryValidator,
-        IValidator<FollowAuctionRequest> followValidator)
+        IValidator<FollowAuctionRequest> followValidator,
+        IResponseCodeService responseCodeService)
+        : base(responseCodeService)
     {
         _followService = followService;
         _queryValidator = queryValidator;
@@ -65,11 +67,11 @@ public class FollowsController : BaseApiController
         var validationResult = await _queryValidator.ValidateAsync(parameters);
         if (!validationResult.IsValid)
         {
-            return Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
+            return await Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
         }
 
         var result = await _followService.GetUserFollowsAsync(userId, parameters);
-        return Success(result);
+        return await Success(result);
     }
 
     /// <summary>
@@ -89,29 +91,44 @@ public class FollowsController : BaseApiController
         var validationResult = await _followValidator.ValidateAsync(request);
         if (!validationResult.IsValid)
         {
-            return Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
+            return await Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
         }
 
         try
         {
             var followDto = await _followService.AddFollowAsync(userId, request.AuctionId);
-            return CreatedAtAction(nameof(GetFollows), followDto);
+            
+            // 建立成功回應
+            var language = GetRequestLanguage();
+            var responseInfo = await _responseCodeService.GetLocalizedResponseAsync("SUCCESS", language);
+
+            return CreatedAtAction(
+                nameof(GetFollows),
+                null,
+                new
+                {
+                    success = true,
+                    statusCode = responseInfo?.Code ?? "SUCCESS",
+                    statusName = responseInfo?.Name ?? "Success",
+                    message = responseInfo?.Message ?? "追蹤成功",
+                    data = followDto
+                });
         }
         catch (AuctionService.Core.Exceptions.ValidationException ex) when (ex.Message.Contains("Already following"))
         {
-            return Conflict("Already following this auction");
+            return await Error("DUPLICATE_FOLLOW", "Already following this auction");
         }
         catch (AuctionService.Core.Exceptions.ValidationException ex) when (ex.Message.Contains("Cannot follow your own"))
         {
-            return BadRequest("Cannot follow your own auction");
+            return await Error("VALIDATION_ERROR", "Cannot follow your own auction");
         }
         catch (AuctionService.Core.Exceptions.ValidationException ex) when (ex.Message.Contains("Maximum follow limit"))
         {
-            return BadRequest("Maximum follow limit exceeded");
+            return await Error("VALIDATION_ERROR", "Maximum follow limit exceeded");
         }
         catch (AuctionNotFoundException)
         {
-            return NotFound("Auction not found");
+            return await Error("AUCTION_NOT_FOUND", "Auction not found");
         }
     }
 

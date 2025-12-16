@@ -30,12 +30,15 @@ public class AuctionsController : BaseApiController
     /// <param name="queryValidator">查詢參數驗證器</param>
     /// <param name="createValidator">建立拍賣請求驗證器</param>
     /// <param name="updateValidator">更新拍賣請求驗證器</param>
+    /// <param name="responseCodeService">回應代碼服務</param>
     public AuctionsController(
         IAuctionService auctionService,
         ICategoryService categoryService,
         IValidator<AuctionQueryParameters> queryValidator,
         IValidator<CreateAuctionRequest> createValidator,
-        IValidator<UpdateAuctionRequest> updateValidator)
+        IValidator<UpdateAuctionRequest> updateValidator,
+        IResponseCodeService responseCodeService)
+        : base(responseCodeService)
     {
         _auctionService = auctionService;
         _categoryService = categoryService;
@@ -88,11 +91,11 @@ public class AuctionsController : BaseApiController
         var validationResult = await _queryValidator.ValidateAsync(parameters);
         if (!validationResult.IsValid)
         {
-            return Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
+            return await Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
         }
 
         var result = await _auctionService.GetAuctionsAsync(parameters);
-        return Success(result);
+        return await Success(result);
     }
 
     /// <summary>
@@ -108,10 +111,10 @@ public class AuctionsController : BaseApiController
         var auction = await _auctionService.GetAuctionByIdAsync(id);
         if (auction == null)
         {
-            return Error("AUCTION_NOT_FOUND", "找不到商品");
+            return await Error("AUCTION_NOT_FOUND", "找不到商品");
         }
 
-        return Success(auction);
+        return await Success(auction);
     }
 
     /// <summary>
@@ -127,10 +130,10 @@ public class AuctionsController : BaseApiController
         var currentBid = await _auctionService.GetCurrentBidAsync(id);
         if (currentBid == null)
         {
-            return Error("AUCTION_NOT_FOUND", "找不到商品");
+            return await Error("AUCTION_NOT_FOUND", "找不到商品");
         }
 
-        return Success(currentBid);
+        return await Success(currentBid);
     }
 
     /// <summary>
@@ -148,7 +151,7 @@ public class AuctionsController : BaseApiController
         var validationResult = await _createValidator.ValidateAsync(request);
         if (!validationResult.IsValid)
         {
-            return Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
+            return await Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
         }
 
         // 取得目前使用者 ID
@@ -157,10 +160,21 @@ public class AuctionsController : BaseApiController
         // 建立拍賣商品
         var auction = await _auctionService.CreateAuctionAsync(request, userId);
 
+        // 建立成功回應
+        var language = GetRequestLanguage();
+        var responseInfo = await _responseCodeService.GetLocalizedResponseAsync("SUCCESS", language);
+
         return CreatedAtAction(
             nameof(GetAuctionById),
             new { id = auction.Id },
-            Success(auction, "商品建立成功"));
+            new
+            {
+                success = true,
+                statusCode = responseInfo?.Code ?? "SUCCESS",
+                statusName = responseInfo?.Name ?? "Success",
+                message = responseInfo?.Message ?? "商品建立成功",
+                data = auction
+            });
     }
 
     /// <summary>
@@ -181,7 +195,7 @@ public class AuctionsController : BaseApiController
         var validationResult = await _updateValidator.ValidateAsync(request);
         if (!validationResult.IsValid)
         {
-            return Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
+            return await Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
         }
 
         // 取得目前使用者 ID
@@ -190,7 +204,7 @@ public class AuctionsController : BaseApiController
         // 更新拍賣商品
         var auction = await _auctionService.UpdateAuctionAsync(id, request, userId);
 
-        return Success(auction, "商品更新成功");
+        return await Success(auction, "商品更新成功");
     }
 
     /// <summary>
@@ -211,7 +225,7 @@ public class AuctionsController : BaseApiController
         // 刪除拍賣商品
         await _auctionService.DeleteAuctionAsync(id, userId);
 
-        return Success(null, "商品刪除成功");
+        return await Success(null, "商品刪除成功");
     }
 
     /// <summary>
@@ -261,11 +275,11 @@ public class AuctionsController : BaseApiController
         var validationResult = await _queryValidator.ValidateAsync(parameters);
         if (!validationResult.IsValid)
         {
-            return Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
+            return await Error("VALIDATION_ERROR", validationResult.Errors.First().ErrorMessage);
         }
 
         var result = await _auctionService.GetUserAuctionsAsync(userId, parameters);
-        return Success(result);
+        return await Success(result);
     }
 
     /// <summary>
@@ -277,6 +291,6 @@ public class AuctionsController : BaseApiController
     public async Task<IActionResult> GetCategories()
     {
         var categories = await _categoryService.GetAllCategoriesAsync();
-        return Success(categories);
+        return await Success(categories);
     }
 }

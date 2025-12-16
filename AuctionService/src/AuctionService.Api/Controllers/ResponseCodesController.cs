@@ -11,15 +11,13 @@ namespace AuctionService.Api.Controllers;
 [Route("api/[controller]")]
 public class ResponseCodesController : BaseApiController
 {
-    private readonly IResponseCodeService _responseCodeService;
-
     /// <summary>
     /// 建構子
     /// </summary>
     /// <param name="responseCodeService">回應代碼服務</param>
     public ResponseCodesController(IResponseCodeService responseCodeService)
+        : base(responseCodeService)
     {
-        _responseCodeService = responseCodeService;
     }
 
     /// <summary>
@@ -31,7 +29,7 @@ public class ResponseCodesController : BaseApiController
     public async Task<IActionResult> GetAll()
     {
         var responseCodes = await _responseCodeService.GetAllAsync();
-        return Ok(responseCodes);
+        return await Success(responseCodes);
     }
 
     /// <summary>
@@ -47,9 +45,9 @@ public class ResponseCodesController : BaseApiController
         var responseCode = await _responseCodeService.GetByCodeAsync(code);
         if (responseCode == null)
         {
-            return NotFound();
+            return await Error("RESPONSE_CODE_NOT_FOUND", "找不到回應代碼");
         }
-        return Ok(responseCode);
+        return await Success(responseCode);
     }
 
     /// <summary>
@@ -62,7 +60,7 @@ public class ResponseCodesController : BaseApiController
     public async Task<IActionResult> GetByCategory(string category)
     {
         var responseCodes = await _responseCodeService.GetByCategoryAsync(category);
-        return Ok(responseCodes);
+        return await Success(responseCodes);
     }
 
     /// <summary>
@@ -79,8 +77,8 @@ public class ResponseCodesController : BaseApiController
         var message = await _responseCodeService.GetLocalizedMessageAsync(code, language);
         if (message == null)
         {
-            return NotFound();
+            return await Error("RESPONSE_CODE_NOT_FOUND", "找不到回應代碼");
         }
-        return Ok(message);
+        return await Success(message);
     }
 }

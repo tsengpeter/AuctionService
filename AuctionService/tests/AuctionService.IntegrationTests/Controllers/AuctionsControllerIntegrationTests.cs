@@ -48,22 +48,15 @@ public class AuctionsControllerIntegrationTests : IClassFixture<PostgreSqlContai
         
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        // API 返回的是包裝對象
-        var responseContent = await createResponse.Content.ReadAsStringAsync();
-        
-        var wrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
-            responseContent,
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        
-        wrapper.Should().NotBeNull();
-        wrapper!.Value.Should().NotBeNull();
-        wrapper.Value!.Success.Should().BeTrue();
-        wrapper.Value.Data.Should().NotBeNull();
+        var apiResponse = await createResponse.Content.ReadFromJsonAsync<ApiResponse>();
+        apiResponse.Should().NotBeNull();
+        apiResponse!.Success.Should().BeTrue();
+        apiResponse.Data.Should().NotBeNull();
 
         var createdAuction = System.Text.Json.JsonSerializer.Deserialize<AuctionDetailDto>(
-            wrapper.Value.Data.ToString()!,
+            apiResponse.Data.ToString()!,
             new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        
+
         createdAuction.Should().NotBeNull();
 
         // 因為實際測試中我們不能等待1小時，我們將手動更新拍賣狀態為結束
@@ -95,20 +88,15 @@ public class AuctionsControllerIntegrationTests : IClassFixture<PostgreSqlContai
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 解析響應
-        var responseContent = await createResponse.Content.ReadAsStringAsync();
-        var wrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
-            responseContent,
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        
-        wrapper.Should().NotBeNull();
-        wrapper!.Value.Should().NotBeNull();
-        wrapper.Value!.Success.Should().BeTrue();
-        wrapper.Value.Data.Should().NotBeNull();
+        var apiResponse = await createResponse.Content.ReadFromJsonAsync<ApiResponse>();
+        apiResponse.Should().NotBeNull();
+        apiResponse!.Success.Should().BeTrue();
+        apiResponse.Data.Should().NotBeNull();
 
         var createdAuction = System.Text.Json.JsonSerializer.Deserialize<AuctionDetailDto>(
-            wrapper.Value.Data.ToString()!,
+            apiResponse.Data.ToString()!,
             new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        
+
         createdAuction.Should().NotBeNull();
 
         // Assert - 狀態應該是 Ended，因為結束時間在過去
@@ -174,34 +162,26 @@ public class AuctionsControllerIntegrationTests : IClassFixture<PostgreSqlContai
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 解析響應
-        var responseContent = await createResponse.Content.ReadAsStringAsync();
-        var wrapper = System.Text.Json.JsonSerializer.Deserialize<ResponseWrapper>(
-            responseContent,
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        
-        wrapper.Should().NotBeNull();
-        wrapper!.Value.Should().NotBeNull();
-        wrapper.Value!.Success.Should().BeTrue();
-        wrapper.Value.Data.Should().NotBeNull();
+        var apiResponse = await createResponse.Content.ReadFromJsonAsync<ApiResponse>();
+        apiResponse.Should().NotBeNull();
+        apiResponse!.Success.Should().BeTrue();
+        apiResponse.Data.Should().NotBeNull();
 
         var createdAuction = System.Text.Json.JsonSerializer.Deserialize<AuctionDetailDto>(
-            wrapper.Value.Data.ToString()!,
+            apiResponse.Data.ToString()!,
             new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        
+
         createdAuction.Should().NotBeNull();
 
         // Assert - 狀態應該是 Pending，因為開始時間在未來
         createdAuction!.Status.Should().Be(AuctionStatus.Pending);
     }
 
-    private class ResponseWrapper
-    {
-        public ApiResponse? Value { get; set; }
-    }
-
     private class ApiResponse
     {
         public bool Success { get; set; }
+        public object? StatusCode { get; set; }
+        public string StatusName { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
         public object? Data { get; set; }
     }
