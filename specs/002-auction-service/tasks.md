@@ -303,7 +303,7 @@ Based on plan.md, this project uses single-folder structure:
 - [X] T162 [P] Create ResponseCodeService in src/AuctionService.Core/Services/ResponseCodeService.cs (retrieve localized messages from ResponseCodes table based on language header)
 - [X] T163 [P] Update all ApiResponse wrappers to use ResponseCodeService for consistent metadata (statusCode, statusName, message) across all controllers
 - [X] T164 [P] Create health check endpoint in src/AuctionService.Api/Controllers/HealthController.cs (verify DB connection, BiddingService availability)
-- [ ] T165 [P] [FUTURE] Add YARP configuration for API Gateway routing (屬於獨立的 API Gateway 專案, 非 AuctionService)
+- [X] T165 [P] Create bidding-integration.md in docs/ documenting AuctionService integration with BiddingService (API contracts, error handling, resilience patterns, current bid display logic)
 - [X] T166 [P] Create architecture.md in docs/ documenting Clean Architecture layers and data flow
 - [X] T167 [P] Create api-guide.md in docs/ with API usage examples and authentication guide
 - [X] T168 [P] Create deployment.md in docs/ with Docker deployment instructions and environment variables
@@ -455,7 +455,7 @@ Once US4 completes, team can validate full enhanced UX (US1 + US2 + US3 + US4) b
 
 **MVP Scope**: Phases 1-4 (T001-T128) = 128 tasks for complete browse + manage functionality
 
-**Completed Tasks**: 21 (Setup) + 27 (Foundational) + 32 (User Story 1) + 48 (User Story 2) + 23 (User Story 3) + 10 (User Story 4) + 29 (Polish Phase) = **190 tasks completed** (1 remaining: T165)
+**Completed Tasks**: 21 (Setup) + 27 (Foundational) + 32 (User Story 1) + 48 (User Story 2) + 23 (User Story 3) + 10 (User Story 4) + 30 (Polish Phase) = **191 tasks completed**
 
 **Enhanced UX Status**: ✅ FULLY ACHIEVED - User Stories 1, 2, 3 & 4 are complete with comprehensive browse + manage + tracking + status validation functionality
 
