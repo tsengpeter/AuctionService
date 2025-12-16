@@ -134,7 +134,7 @@ public class AuctionQueryParametersValidatorTests
 
         // Act & Assert
         var result = _validator.TestValidate(parameters);
-        result.ShouldHaveAnyValidationError();
+        result.ShouldHaveValidationErrorFor(x => x.MaxPrice);
     }
 
     [Fact]

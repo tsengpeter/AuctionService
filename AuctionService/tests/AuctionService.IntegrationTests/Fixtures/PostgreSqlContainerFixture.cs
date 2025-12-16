@@ -28,7 +28,6 @@ public class PostgreSqlContainerFixture : WebApplicationFactory<Program>, IAsync
         .WithDatabase("auctionservice_test")
         .WithUsername("testuser")
         .WithPassword("testpass123")
-        .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(5432))
         .Build();
 
     public async Task InitializeAsync()
@@ -189,9 +188,8 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
     public TestAuthHandler(
         Microsoft.Extensions.Options.IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
-        UrlEncoder encoder,
-        ISystemClock clock)
-        : base(options, logger, encoder, clock)
+        UrlEncoder encoder)
+        : base(options, logger, encoder)
     {
     }
 
