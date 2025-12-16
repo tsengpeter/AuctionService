@@ -15,6 +15,33 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// 設定 CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000", // React 開發服務器
+                "http://localhost:4200", // Angular 開發服務器
+                "https://your-frontend-domain.com" // 生產前端域名
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials(); // 如果需要發送認證 cookie
+    });
+
+    // 開發環境允許所有來源
+    if (builder.Environment.IsDevelopment())
+    {
+        options.AddPolicy("AllowAll", policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    }
+});
+
 // 設定 Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -27,11 +54,15 @@ if (!builder.Environment.IsEnvironment("Testing"))
         {
             options.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = false, // 開發環境簡化設定
-                ValidateAudience = false, // 開發環境簡化設定
+                ValidateIssuer = true,
+                ValidateAudience = true,
                 ValidateLifetime = true,
-                ValidateIssuerSigningKey = false, // 開發環境簡化設定
-                // 在生產環境中應該設定適當的 Issuer, Audience 和 SigningKey
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "AuctionService",
+                ValidAudience = builder.Configuration["Jwt:Audience"] ?? "AuctionService",
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultDevelopmentKey12345678901234567890")),
+                ClockSkew = TimeSpan.FromMinutes(5) // 允許 5 分鐘的時鐘偏差
             };
         });
 
@@ -80,6 +111,19 @@ if (app.Environment.IsDevelopment())
 // 使用中介軟體
 app.UseGlobalExceptionHandler();
 app.UseRequestLogging();
+
+// 設定 CORS
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("AllowAll");
+}
+else
+{
+    app.UseCors("AllowSpecificOrigins");
+}
+
+// 安全標頭
+app.UseSecurityHeaders();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
