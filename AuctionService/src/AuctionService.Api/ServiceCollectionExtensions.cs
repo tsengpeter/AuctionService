@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Extensions.Http;
 
-namespace AuctionService.Shared.Extensions;
+namespace AuctionService.Api.Extensions;
 
 /// <summary>
 /// 服務註冊擴充方法

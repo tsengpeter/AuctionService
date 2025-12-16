@@ -9,11 +9,6 @@ namespace AuctionService.Core.Interfaces;
 public interface IFollowRepository : IRepository<Follow>
 {
     /// <summary>
-    /// 新增追蹤記錄
-    /// </summary>
-    Task<Follow> AddAsync(Follow follow);
-
-    /// <summary>
     /// 移除追蹤記錄
     /// </summary>
     Task RemoveAsync(string userId, Guid auctionId);

@@ -16,7 +16,7 @@ public class FollowRepository : Repository<Follow>, IFollowRepository
     {
     }
 
-    public async Task<Follow> AddAsync(Follow follow)
+    public new async Task<Follow> AddAsync(Follow follow)
     {
         _dbSet.Add(follow);
         await _context.SaveChangesAsync();

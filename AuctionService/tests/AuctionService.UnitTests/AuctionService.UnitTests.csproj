@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AuctionService.Core\AuctionService.Core.csproj" />
+    <ProjectReference Include="..\..\src\AuctionService.Infrastructure\AuctionService.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\AuctionService.Shared\AuctionService.Shared.csproj" />
   </ItemGroup>
 

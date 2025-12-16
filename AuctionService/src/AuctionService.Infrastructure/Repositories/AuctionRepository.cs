@@ -183,7 +183,7 @@ public class AuctionRepository : Repository<Auction>, IAuctionRepository
             .FirstAsync(a => a.Id == auction.Id);
     }
 
-    public async Task<Auction> UpdateAsync(Auction auction)
+    public new async Task<Auction> UpdateAsync(Auction auction)
     {
         _dbSet.Update(auction);
         await _context.SaveChangesAsync();

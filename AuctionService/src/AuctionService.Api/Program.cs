@@ -1,4 +1,4 @@
-using AuctionService.Shared.Extensions;
+using AuctionService.Api.Extensions;
 using AuctionService.Shared.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -109,8 +109,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // 使用中介軟體
-app.UseGlobalExceptionHandler();
-app.UseRequestLogging();
+app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 // 設定 CORS
 if (app.Environment.IsDevelopment())

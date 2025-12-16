@@ -163,8 +163,9 @@ public class AuctionService : IAuctionService
         auction.EndTime = request.EndTime;
         auction.UpdatedAt = DateTime.UtcNow;
 
-        var updatedAuction = await _auctionRepository.UpdateAsync(auction);
-        return updatedAuction.ToDetailDto();
+        await _auctionRepository.UpdateAsync(auction);
+        var updatedAuction = await _auctionRepository.GetAuctionByIdAsync(auction.Id);
+        return updatedAuction!.ToDetailDto();
     }
 
     /// <summary>
