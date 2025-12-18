@@ -7,7 +7,7 @@
 
 ## 摘要
 
-競標服務 (Bidding Service) 負責處理所有出價相關的邏輯與歷史記錄，確保競標過程的公平性、即時性與一致性。採用 Redis 作為主要寫入層搭配 PostgreSQL 持久化存儲的架構，使用 Lua Script 確保併發安全，背景 Worker 進行非同步批次同步。系統設計為無狀態服務，支援單一實例部署，通過 YARP API Gateway 作為統一入口。
+競標服務 (Bidding Service) 負責處理所有出價相關的邏輯與歷史記錄，確保競標過程的公平性、即時性與一致性。採用 Redis 作為主要寫入層搭配 PostgreSQL 持久化存儲的架構，使用 Lua Script 確保併發安全，背景 Worker 進行非同步批次同步。系統設計為無狀態服務，支援單一實例部署，直接對外提供 REST API 服務。
 
 **核心技術決策**:
 - Redis Write-Behind Cache 架構實現 < 10ms 出價回應
@@ -26,7 +26,6 @@
 - **Redis Client**: StackExchange.Redis 2.7+
 - **Snowflake ID**: IdGen 或 Snowflake.Core (64-bit Long ID 生成)
 - **Logging**: Serilog (結構化日誌，JSON 格式)
-- **API Gateway**: YARP (統一入口點)
 - **密碼學**: System.Security.Cryptography (AES-256-GCM)
 - **Key Management**: Azure.Security.KeyVault.Secrets
 - **測試**: xUnit, Moq, FluentAssertions, Testcontainers (PostgreSQL, Redis)
