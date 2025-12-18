@@ -42,20 +42,23 @@ MemberService 是拍賣系統的核心身份驗證微服務，提供使用者註
    cd AuctionService/MemberService
    ```
 
-2. 啟動資料庫
+2. 啟動服務 (包含 HTTPS)
    ```bash
    docker-compose up -d
    ```
 
-3. 執行應用程式
+3. 驗證服務運行
    ```bash
-   dotnet run --project src/MemberService.API
+   # HTTP 端點
+   curl http://localhost:5191/api/health
+   
+   # HTTPS 端點
+   curl -k https://localhost:7070/api/health
    ```
 
-4. 驗證服務運行
-   ```bash
-   curl http://localhost:5000/api/health
-   ```
+4. 開啟 Swagger UI
+   - HTTP: http://localhost:5191
+   - HTTPS: https://localhost:7070
 
 ### 本地開發設定
 
@@ -70,6 +73,16 @@ MemberService 是拍賣系統的核心身份驗證微服務，提供使用者註
    ```bash
    dotnet run --project src/MemberService.API
    ```
+
+### HTTPS 開發證書設定
+
+對於本地開發，執行以下命令生成並信任開發證書：
+
+```bash
+dotnet dev-certs https --trust
+```
+
+Docker 環境中會自動生成開發證書。
 
 ## API 端點
 
@@ -108,7 +121,7 @@ SNOWFLAKE_DATACENTER_ID=1
 
 # 應用程式設定
 ASPNETCORE_ENVIRONMENT=Development
-ASPNETCORE_URLS=http://localhost:5000;https://localhost:5001
+ASPNETCORE_URLS=http://localhost:5191;https://localhost:7070
 
 # 日誌設定
 LOG_LEVEL=Information

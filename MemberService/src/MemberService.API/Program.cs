@@ -112,10 +112,14 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "MemberService API V1");
         c.RoutePrefix = string.Empty; // 設定 Swagger UI 在根路徑
+        c.ConfigObject.AdditionalItems.Add("persistAuthorization", "true");
+        c.ConfigObject.AdditionalItems.Add("displayRequestDuration", "true");
+        c.ConfigObject.AdditionalItems.Add("docExpansion", "none");
+        c.ConfigObject.AdditionalItems.Add("filter", "true");
     });
 }
 
-// app.UseHttpsRedirection(); // Temporarily disabled for debugging
+app.UseHttpsRedirection();
 
 // Add custom middlewares
 app.UseMiddleware<GlobalExceptionHandler>();

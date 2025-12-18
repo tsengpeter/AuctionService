@@ -25,16 +25,22 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 80
+      ASPNETCORE_HTTPS_PORTS: 443
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /app/https/aspnetapp.pfx
       ConnectionStrings__MemberDb: Host=auction-service-db;Port=5432;Database=memberservice_dev;Username=memberservice;Password=Dev@Password123
       Jwt__SecretKey: your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm
       Jwt__Issuer: MemberService
       Jwt__Audience: MemberService
       Jwt__ExpiryInMinutes: 15
     ports:
-      - "5001:80"
+      - "5191:80"
+      - "7070:443"
     depends_on:
       auction-service-db:
         condition: service_healthy
+    volumes:
+      - ~/.aspnet/https:/app/https:ro
 
 volumes:
   postgres_data:
