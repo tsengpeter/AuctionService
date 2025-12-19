@@ -22,6 +22,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Net;
+using System.Text.Json;
 using WireMock.Server;
 using BiddingService.Shared.Helpers;
 
@@ -327,5 +328,104 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         result.Should().BeOfType<NotFoundObjectResult>();
         var notFoundResult = result as NotFoundObjectResult;
         notFoundResult.Value.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetAuctionStats_WhenAuctionHasBids_ReturnsAuctionStats()
+    {
+        // Arrange
+        var auctionId = 200L;
+        var now = DateTime.UtcNow;
+        var oneHourAgo = now.AddHours(-1);
+        var oneDayAgo = now.AddDays(-1);
+
+        // Setup auction mock response
+        _auctionServiceMock.Reset();
+        _auctionServiceMock
+            .Given(WireMock.RequestBuilders.Request.Create().WithPath("/api/auctions/*").UsingGet())
+            .RespondWith(WireMock.ResponseBuilders.Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody($@"{{""id"":{auctionId},""title"":""Test Auction"",""startingPrice"":100.00,""isActive"":true,""endTime"":""2025-12-31T23:59:59Z""}}"));
+
+        // Create test bids in database
+        var bids = new[]
+        {
+            new Bid(1001, auctionId, "bidder1", "hash1", new BidAmount(100.00m), oneDayAgo.AddMinutes(1)), // Old bid (1 day ago + 1 min)
+            new Bid(1002, auctionId, "bidder2", "hash2", new BidAmount(150.00m), oneHourAgo.AddMinutes(1)), // Recent bid (1 hour ago + 1 min)
+            new Bid(1003, auctionId, "bidder1", "hash1", new BidAmount(200.00m), now), // Latest bid from same bidder
+            new Bid(1004, auctionId, "bidder3", "hash3", new BidAmount(180.00m), now.AddMinutes(-30)) // Another recent bid
+        };
+
+        await _dbContext.Bids.AddRangeAsync(bids);
+        await _dbContext.SaveChangesAsync();
+
+        // Set highest bid in Redis (bidId: 1003, amount: 200.00)
+        var db = _redisConnection.GetDatabase();
+        var highestBidKey = $"highest_bid:{auctionId}";
+        await db.HashSetAsync(highestBidKey, new HashEntry[]
+        {
+            new HashEntry("bidId", "1003"),
+            new HashEntry("bidderId", "bidder1"),
+            new HashEntry("bidderIdHash", "hash1"),
+            new HashEntry("amount", "200.00"),
+            new HashEntry("bidAt", now.ToString("O"))
+        });
+
+        // Act
+        var result = await _controller.GetAuctionStats(auctionId);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result as OkObjectResult;
+        okResult.Value.Should().BeOfType<AuctionStatsResponse>();
+
+        var response = okResult.Value as AuctionStatsResponse;
+        response.AuctionId.Should().Be(auctionId);
+        response.TotalBids.Should().Be(4);
+        response.UniqueBidders.Should().Be(3);
+        response.StartingPrice.Should().Be(100.00m);
+        response.CurrentHighestBid.Should().Be(200.00m);
+        response.AverageBidAmount.Should().Be(157.50m); // (100+150+200+180)/4
+        response.FirstBidAt.Should().BeCloseTo(oneDayAgo.AddMinutes(1), TimeSpan.FromSeconds(1));
+        response.LastBidAt.Should().BeCloseTo(now, TimeSpan.FromSeconds(1));
+        response.BidsInLastHour.Should().Be(3); // 1002, 1003, 1004
+        response.BidsInLast24Hours.Should().Be(4); // All bids
+    }
+
+    [Fact]
+    public async Task GetAuctionStats_WhenAuctionHasNoBids_ReturnsEmptyStats()
+    {
+        // Arrange
+        var auctionId = 300L;
+
+        // Setup auction mock response
+        _auctionServiceMock.Reset();
+        _auctionServiceMock
+            .Given(WireMock.RequestBuilders.Request.Create().WithPath("/api/auctions/*").UsingGet())
+            .RespondWith(WireMock.ResponseBuilders.Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody($@"{{""id"":{auctionId},""title"":""Empty Auction"",""startingPrice"":50.00,""isActive"":true,""endTime"":""2025-12-31T23:59:59Z""}}"));
+
+        // Act
+        var result = await _controller.GetAuctionStats(auctionId);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result as OkObjectResult;
+        okResult.Value.Should().BeOfType<AuctionStatsResponse>();
+
+        var response = okResult.Value as AuctionStatsResponse;
+        response.AuctionId.Should().Be(auctionId);
+        response.TotalBids.Should().Be(0);
+        response.UniqueBidders.Should().Be(0);
+        response.StartingPrice.Should().Be(50.00m);
+        response.CurrentHighestBid.Should().BeNull();
+        response.AverageBidAmount.Should().BeNull();
+        response.FirstBidAt.Should().BeNull();
+        response.LastBidAt.Should().BeNull();
+        response.BidsInLastHour.Should().Be(0);
+        response.BidsInLast24Hours.Should().Be(0);
     }
 }

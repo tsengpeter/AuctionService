@@ -207,7 +207,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 - [x] T083 [P] [US4] Unit test for BiddingService.GetHighestBidAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
 - [x] T084 [P] [US4] Integration test for BidsController.GetHighestBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
-- [ ] T085 [P] [US4] Integration test for RedisRepository.GetHighestBidAsync in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
+- [x] T085 [P] [US4] Integration test for RedisRepository.GetHighestBidAsync in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
 
 ### Implementation for User Story 4
 
@@ -231,7 +231,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 ### Tests for User Story 5
 
 - [x] T092 [P] [US5] Unit test for BiddingService.GetAuctionStatsAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
-- [ ] T093 [P] [US5] Integration test for BidsController.GetAuctionStats in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
+- [x] T093 [P] [US5] Integration test for BidsController.GetAuctionStats in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
 
 ### Implementation for User Story 5
 

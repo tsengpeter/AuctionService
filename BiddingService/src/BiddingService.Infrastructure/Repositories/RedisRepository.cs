@@ -3,6 +3,7 @@ using BiddingService.Core.Interfaces;
 using StackExchange.Redis;
 using System.IO;
 using System.Text.Json;
+using System.Globalization;
 
 namespace BiddingService.Infrastructure.Repositories;
 
@@ -48,7 +49,7 @@ public class RedisRepository : IRedisRepository
             hash.First(h => h.Name == "bidderId").Value,
             hash.First(h => h.Name == "bidderIdHash").Value,
             new Core.ValueObjects.BidAmount(decimal.Parse(hash.First(h => h.Name == "amount").Value)),
-            DateTime.Parse(hash.First(h => h.Name == "bidAt").Value),
+            DateTime.Parse(hash.First(h => h.Name == "bidAt").Value, null, DateTimeStyles.RoundtripKind),
             false
         );
     }
@@ -70,7 +71,7 @@ public class RedisRepository : IRedisRepository
                 bidData["bidderId"].ToString(),
                 bidData["bidderIdHash"].ToString(),
                 new Core.ValueObjects.BidAmount(decimal.Parse(bidData["amount"].ToString())),
-                DateTime.Parse(bidData["bidAt"].ToString()),
+                DateTime.Parse(bidData["bidAt"].ToString(), null, DateTimeStyles.RoundtripKind),
                 false
             );
         });

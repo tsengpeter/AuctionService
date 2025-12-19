@@ -8,6 +8,11 @@ public class AuctionServiceClient : IAuctionServiceClient
 {
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     public AuctionServiceClient(HttpClient httpClient, IMemoryCache cache)
     {
@@ -23,7 +28,7 @@ public class AuctionServiceClient : IAuctionServiceClient
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<AuctionInfo>(content);
+                return JsonSerializer.Deserialize<AuctionInfo>(content, _jsonOptions);
             }
             return null;
         }
@@ -75,7 +80,7 @@ public class AuctionServiceClient : IAuctionServiceClient
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var fetchedAuctions = JsonSerializer.Deserialize<IEnumerable<AuctionInfo>>(content) ?? Enumerable.Empty<AuctionInfo>();
+                    var fetchedAuctions = JsonSerializer.Deserialize<IEnumerable<AuctionInfo>>(content, _jsonOptions) ?? Enumerable.Empty<AuctionInfo>();
 
                     // Cache the fetched auctions
                     foreach (var auction in fetchedAuctions)
