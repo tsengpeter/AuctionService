@@ -182,10 +182,47 @@ public class BiddingService : IBiddingService
 
     public async Task<HighestBidResponse> GetHighestBidAsync(long auctionId)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        // Try Redis first for fast access
         var highestBid = await _redisRepository.GetHighestBidAsync(auctionId);
 
-        if (highestBid == null)
+        stopwatch.Stop();
+
+        if (highestBid != null)
         {
+            _logger.LogInformation(
+                "Retrieved highest bid for auction {AuctionId} from Redis, bid {BidId}, amount {Amount}, query time {QueryTime}ms",
+                auctionId, highestBid.BidId, highestBid.Amount.Value, stopwatch.ElapsedMilliseconds);
+
+            return new HighestBidResponse
+            {
+                AuctionId = auctionId,
+                HighestBid = new BidResponse
+                {
+                    BidId = highestBid.BidId,
+                    AuctionId = highestBid.AuctionId,
+                    Amount = highestBid.Amount.Value,
+                    BidAt = highestBid.BidAt
+                }
+            };
+        }
+
+        // Fallback to database if Redis doesn't have the data
+        _logger.LogWarning(
+            "Highest bid for auction {AuctionId} not found in Redis, falling back to database",
+            auctionId);
+
+        var dbStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var dbHighestBid = await _bidRepository.GetHighestBidAsync(auctionId);
+        dbStopwatch.Stop();
+
+        if (dbHighestBid == null)
+        {
+            _logger.LogInformation(
+                "No highest bid found for auction {AuctionId} in database either, total query time {TotalTime}ms",
+                auctionId, stopwatch.ElapsedMilliseconds + dbStopwatch.ElapsedMilliseconds);
+
             return new HighestBidResponse
             {
                 AuctionId = auctionId,
@@ -193,15 +230,19 @@ public class BiddingService : IBiddingService
             };
         }
 
+        _logger.LogInformation(
+            "Retrieved highest bid for auction {AuctionId} from database fallback, bid {BidId}, amount {Amount}, Redis query {RedisTime}ms, DB query {DbTime}ms",
+            auctionId, dbHighestBid.BidId, dbHighestBid.Amount.Value, stopwatch.ElapsedMilliseconds, dbStopwatch.ElapsedMilliseconds);
+
         return new HighestBidResponse
         {
             AuctionId = auctionId,
             HighestBid = new BidResponse
             {
-                BidId = highestBid.BidId,
-                AuctionId = highestBid.AuctionId,
-                Amount = highestBid.Amount.Value,
-                BidAt = highestBid.BidAt
+                BidId = dbHighestBid.BidId,
+                AuctionId = dbHighestBid.AuctionId,
+                Amount = dbHighestBid.Amount.Value,
+                BidAt = dbHighestBid.BidAt
             }
         };
     }

@@ -211,12 +211,12 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Implementation for User Story 4
 
-- [ ] T086 [P] [US4] Create HighestBidResponse DTO in src/BiddingService.Core/DTOs/Responses/HighestBidResponse.cs
-- [ ] T087 [US4] Implement BiddingService.GetHighestBidAsync with Redis priority in src/BiddingService.Core/Services/BiddingService.cs
-- [ ] T088 [US4] Add RedisRepository.GetHighestBidAsync (HGETALL) in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
-- [ ] T089 [US4] Add BidRepository.GetHighestBidAsync (ORDER BY amount DESC LIMIT 1) in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
-- [ ] T090 [US4] Implement BidsController.GetHighestBid (GET /api/auctions/{auctionId}/highest-bid) in src/BiddingService.Api/Controllers/BidsController.cs
-- [ ] T091 [US4] Add logging for highest bid query (Redis hit/miss, query time < 50ms verification)
+- [x] T086 [P] [US4] Create HighestBidResponse DTO in src/BiddingService.Core/DTOs/Responses/HighestBidResponse.cs
+- [x] T087 [US4] Implement BiddingService.GetHighestBidAsync with Redis priority in src/BiddingService.Core/Services/BiddingService.cs
+- [x] T088 [US4] Add RedisRepository.GetHighestBidAsync (HGETALL) in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
+- [x] T089 [US4] Add BidRepository.GetHighestBidAsync (ORDER BY amount DESC LIMIT 1) in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
+- [x] T090 [US4] Implement BidsController.GetHighestBid (GET /api/auctions/{auctionId}/highest-bid) in src/BiddingService.Api/Controllers/BidsController.cs
+- [x] T091 [US4] Add logging for highest bid query (Redis hit/miss, query time < 50ms verification)
 
 **Checkpoint**: User Story 4 fully functional - highest bid query works with sub-50ms Redis cache performance
 
