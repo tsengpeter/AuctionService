@@ -68,6 +68,15 @@ public class BidsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{bidId}")]
+    [ProducesResponseType(typeof(BidResponse), 200)]
+    [ProducesResponseType(typeof(ErrorResponse), 404)]
+    public async Task<IActionResult> GetBidById(long bidId)
+    {
+        var result = await _biddingService.GetBidByIdAsync(bidId);
+        return Ok(result);
+    }
+
     private string GetBidderIdFromToken()
     {
         // TODO: Implement JWT token parsing to get bidder ID

@@ -293,4 +293,25 @@ public class BiddingService : IBiddingService
             BidsInLast24Hours = statsData.BidsInLast24Hours
         };
     }
+
+    public async Task<BidResponse> GetBidByIdAsync(long bidId)
+    {
+        _logger.LogInformation("Getting bid by ID: {BidId}", bidId);
+
+        var bid = await _bidRepository.GetByIdAsync(bidId);
+        if (bid == null)
+        {
+            _logger.LogWarning("Bid not found: {BidId}", bidId);
+            throw new BidNotFoundException(bidId);
+        }
+
+        return new BidResponse
+        {
+            BidId = bid.BidId,
+            AuctionId = bid.AuctionId,
+            BidderIdHash = bid.BidderIdHash,
+            Amount = bid.Amount.Value,
+            BidAt = bid.BidAt
+        };
+    }
 }

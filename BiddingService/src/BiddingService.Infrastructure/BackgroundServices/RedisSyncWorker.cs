@@ -11,6 +11,7 @@ public class RedisSyncWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<RedisSyncWorker> _logger;
     private readonly TimeSpan _syncInterval = TimeSpan.FromSeconds(1);
+    private readonly TimeSpan[] _retryDelays = { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4) };
 
     public RedisSyncWorker(
         IServiceProvider serviceProvider,
@@ -28,7 +29,7 @@ public class RedisSyncWorker : BackgroundService
         {
             try
             {
-                await SyncDeadLetterQueueAsync(stoppingToken);
+                await SyncDeadLetterQueueWithRetryInternalAsync(stoppingToken);
                 await Task.Delay(_syncInterval, stoppingToken);
             }
             catch (Exception ex)
@@ -41,6 +42,43 @@ public class RedisSyncWorker : BackgroundService
         _logger.LogInformation("RedisSyncWorker stopped");
     }
 
+    private async Task SyncDeadLetterQueueWithRetryInternalAsync(CancellationToken cancellationToken)
+    {
+        var retryCount = 0;
+        var maxRetries = _retryDelays.Length;
+
+        while (retryCount <= maxRetries && !cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await SyncDeadLetterQueueAsync(cancellationToken);
+                return; // Success, exit retry loop
+            }
+            catch (Exception ex)
+            {
+                retryCount++;
+                if (retryCount <= maxRetries)
+                {
+                    var delay = _retryDelays[retryCount - 1];
+                    _logger.LogWarning(ex, "Sync failed, retrying in {Delay}s (attempt {RetryCount}/{MaxRetries})",
+                        delay.TotalSeconds, retryCount, maxRetries);
+                    await Task.Delay(delay, cancellationToken);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Sync failed after {MaxRetries} retries, giving up", maxRetries);
+                    throw;
+                }
+            }
+        }
+    }
+
+    // Public method for testing purposes
+    public async Task SyncDeadLetterQueueWithRetryAsync(CancellationToken cancellationToken)
+    {
+        await SyncDeadLetterQueueWithRetryInternalAsync(cancellationToken);
+    }
+
     private async Task SyncDeadLetterQueueAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -50,7 +88,12 @@ public class RedisSyncWorker : BackgroundService
         var deadLetterBids = await redisRepository.GetDeadLetterBidsAsync(100);
 
         if (!deadLetterBids.Any())
+        {
+            _logger.LogDebug("No bids in dead letter queue");
             return;
+        }
+
+        _logger.LogInformation("Processing {Count} bids from dead letter queue", deadLetterBids.Count());
 
         var syncedCount = 0;
         var failedCount = 0;
@@ -65,6 +108,11 @@ public class RedisSyncWorker : BackgroundService
                 {
                     await bidRepository.AddAsync(bid);
                     syncedCount++;
+                    _logger.LogDebug("Synced bid {BidId} for auction {AuctionId}", bid.BidId, bid.AuctionId);
+                }
+                else
+                {
+                    _logger.LogDebug("Bid {BidId} already exists, skipping", bid.BidId);
                 }
 
                 // Remove from dead letter queue
@@ -77,6 +125,7 @@ public class RedisSyncWorker : BackgroundService
             }
         }
 
-        _logger.LogInformation("Synced {SyncedCount} bids, {FailedCount} failed", syncedCount, failedCount);
+        _logger.LogInformation("Sync completed: {SyncedCount} bids synced, {FailedCount} failed, {RemainingCount} remaining in queue",
+            syncedCount, failedCount, deadLetterBids.Count() - syncedCount - failedCount);
     }
 }

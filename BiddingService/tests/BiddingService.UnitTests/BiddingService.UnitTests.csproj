@@ -17,6 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\BiddingService.Api\BiddingService.Api.csproj" />
+    <ProjectReference Include="..\..\src\BiddingService.Core\BiddingService.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

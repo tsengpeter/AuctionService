@@ -249,12 +249,12 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 **Purpose**: Ensure Redis-to-PostgreSQL sync reliability
 
-- [ ] T099 Implement RedisSyncWorker exponential backoff retry (1s, 2s, 4s) in src/BiddingService.Infrastructure/BackgroundServices/RedisSyncWorker.cs
-- [ ] T100 [P] Add RedisRepository.AddToDeadLetterQueueAsync in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
-- [ ] T101 [P] Add RedisRepository.GetDeadLetterBidsAsync in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
-- [ ] T102 Add logging for sync operations (success count, dead letter queue size, errors) in RedisSyncWorker
-- [ ] T103 [P] Integration test for RedisSyncWorker in tests/BiddingService.IntegrationTests/BackgroundServices/RedisSyncWorkerTests.cs
-- [ ] T104 [P] Integration test for RedisHealthCheckService (降級機制) in tests/BiddingService.IntegrationTests/BackgroundServices/RedisHealthCheckServiceTests.cs
+- [x] T099 Implement RedisSyncWorker exponential backoff retry (1s, 2s, 4s) in src/BiddingService.Infrastructure/BackgroundServices/RedisSyncWorker.cs
+- [x] T100 [P] Add RedisRepository.AddToDeadLetterQueueAsync in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
+- [x] T101 [P] Add RedisRepository.GetDeadLetterBidsAsync in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
+- [x] T102 Add logging for sync operations (success count, dead letter queue size, errors) in RedisSyncWorker
+- [x] T103 [P] Integration test for RedisSyncWorker in tests/BiddingService.IntegrationTests/BackgroundServices/RedisSyncWorkerTests.cs
+- [x] T104 [P] Integration test for RedisHealthCheckService (降級機制) in tests/BiddingService.IntegrationTests/BackgroundServices/RedisHealthCheckServiceTests.cs
 
 ---
 
@@ -262,10 +262,10 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 **Purpose**: Support endpoints for external services
 
-- [ ] T105 [P] Implement BidsController.GetBidById (GET /api/bids/{bidId}) in src/BiddingService.Api/Controllers/BidsController.cs
-- [ ] T106 [P] Unit test for GetBidById in tests/BiddingService.UnitTests/Controllers/BidsControllerTests.cs
-- [ ] T107 Add BidRepository.GetByIdAsync in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
-- [ ] T108 [P] Contract test for AuctionServiceClient endpoints (GET /api/auctions/{id}/basic, POST /api/auctions/batch) in tests/BiddingService.IntegrationTests/Contracts/AuctionServiceContractTests.cs
+- [x] T105 [P] Implement BidsController.GetBidById (GET /api/bids/{bidId}) in src/BiddingService.Api/Controllers/BidsController.cs
+- [x] T106 [P] Unit test for GetBidById in tests/BiddingService.UnitTests/Controllers/BidsControllerTests.cs
+- [x] T107 Add BidRepository.GetByIdAsync in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
+- [x] T108 [P] Contract test for AuctionServiceClient endpoints (GET /api/auctions/{id}/basic, POST /api/auctions/batch) in tests/BiddingService.IntegrationTests/Contracts/AuctionServiceContractTests.cs
 
 ---
 
@@ -273,10 +273,10 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T109 [P] Update README.md with quickstart instructions in BiddingService/README.md
-- [ ] T110 [P] Create architecture.md documentation in BiddingService/docs/architecture.md
-- [ ] T111 [P] Create api-guide.md with usage examples in BiddingService/docs/api-guide.md
-- [ ] T112 Add Prometheus metrics (bid_requests_total, bid_latency_seconds, redis_fallback_active) in Program.cs
+- [x] T109 [P] Update README.md with quickstart instructions in BiddingService/README.md
+- [x] T110 [P] Create architecture.md documentation in BiddingService/docs/architecture.md
+- [x] T111 [P] Create api-guide.md with usage examples in BiddingService/docs/api-guide.md
+- [x] T112 Add Prometheus metrics (bid_requests_total, bid_latency_seconds, redis_fallback_active) in Program.cs
 - [ ] T113 [P] Configure APM integration (Application Insights or Elastic APM) per plan.md monitoring strategy in src/BiddingService.Api/Program.cs
   - Install NuGet package (Microsoft.ApplicationInsights.AspNetCore or Elastic.Apm.NetCoreAll)
   - Configure connection string in appsettings.json

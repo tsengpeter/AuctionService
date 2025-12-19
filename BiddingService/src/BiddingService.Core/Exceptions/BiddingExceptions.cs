@@ -49,3 +49,14 @@ public class DuplicateBidException : Exception
     public long AuctionId { get; }
     public string BidderId { get; }
 }
+
+public class BidNotFoundException : Exception
+{
+    public BidNotFoundException(long bidId)
+        : base($"Bid with ID {bidId} not found")
+    {
+        BidId = bidId;
+    }
+
+    public long BidId { get; }
+}
