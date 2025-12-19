@@ -62,6 +62,9 @@ public static class ServiceCollectionExtensions
 
         services.AddTransient<CorrelationIdDelegatingHandler>();
 
+        // Caching
+        services.AddMemoryCache();
+
         // Background services
         services.AddHostedService<RedisSyncWorker>();
 

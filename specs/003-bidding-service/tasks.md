@@ -185,13 +185,13 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Implementation for User Story 3
 
-- [ ] T076 [P] [US3] Create MyBidResponse DTO in src/BiddingService.Core/DTOs/Responses/MyBidResponse.cs
-- [ ] T077 [US3] Implement BiddingService.GetMyBidsAsync with BidderIdHash query in src/BiddingService.Core/Services/BiddingService.cs
-- [ ] T078 [US3] Add BidRepository.GetBidsByBidderIdHashAsync with pagination in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
-- [ ] T079 [US3] Implement AuctionServiceClient.GetAuctionsBatchAsync for batch auction info in src/BiddingService.Infrastructure/HttpClients/AuctionServiceClient.cs
-- [ ] T080 [US3] Implement BidsController.GetMyBids (GET /api/me/bids) in src/BiddingService.Api/Controllers/BidsController.cs
+- [x] T076 [P] [US3] Create MyBidResponse DTO in src/BiddingService.Core/DTOs/Responses/MyBidResponse.cs
+- [x] T077 [US3] Implement BiddingService.GetMyBidsAsync with BidderIdHash query in src/BiddingService.Core/Services/BiddingService.cs
+- [x] T078 [US3] Add BidRepository.GetBidsByBidderIdHashAsync with pagination in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
+- [x] T079 [US3] Implement AuctionServiceClient.GetAuctionsBatchAsync for batch auction info in src/BiddingService.Infrastructure/HttpClients/AuctionServiceClient.cs
+- [x] T080 [US3] Implement BidsController.GetMyBids (GET /api/me/bids) in src/BiddingService.Api/Controllers/BidsController.cs
 - [ ] T081 [US3] Add caching for auction info (MemoryCache, 5 minutes TTL) in AuctionServiceClient
-- [ ] T082 [US3] Add logging for my bids query operations
+- [x] T082 [US3] Add logging for my bids query operations
 
 **Checkpoint**: User Story 3 fully functional - users can query their bid history with auction details, filtering works
 

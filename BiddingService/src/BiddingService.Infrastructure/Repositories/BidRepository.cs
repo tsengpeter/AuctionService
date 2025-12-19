@@ -40,6 +40,23 @@ public class BidRepository : GenericRepository<Bid>, IBidRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Bid>> GetBidsByBidderIdHashAsync(string bidderIdHash, int page = 1, int pageSize = 50)
+    {
+        return await _context.Bids
+            .Where(b => b.BidderIdHash == bidderIdHash)
+            .OrderByDescending(b => b.BidAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
+    public async Task<int> GetBidsCountByBidderIdHashAsync(string bidderIdHash)
+    {
+        return await _context.Bids
+            .Where(b => b.BidderIdHash == bidderIdHash)
+            .CountAsync();
+    }
+
     public async Task<int> GetBidCountAsync(long auctionId)
     {
         return await _context.Bids

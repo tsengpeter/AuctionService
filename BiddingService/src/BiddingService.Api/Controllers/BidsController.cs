@@ -42,7 +42,7 @@ public class BidsController : ControllerBase
     }
 
     [HttpGet("my-bids")]
-    [ProducesResponseType(typeof(BidHistoryResponse), 200)]
+    [ProducesResponseType(typeof(MyBidsResponse), 200)]
     public async Task<IActionResult> GetMyBids([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         var bidderId = GetBidderIdFromToken();

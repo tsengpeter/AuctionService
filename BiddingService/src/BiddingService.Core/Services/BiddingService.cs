@@ -122,20 +122,55 @@ public class BiddingService : IBiddingService
         };
     }
 
-    public async Task<BidHistoryResponse> GetMyBidsAsync(string bidderId, int page = 1, int pageSize = 50)
+    public async Task<MyBidsResponse> GetMyBidsAsync(string bidderId, int page = 1, int pageSize = 50)
     {
-        var bids = await _redisRepository.GetBidsByBidderAsync(bidderId, page, pageSize);
-        var totalCount = (int)await _redisRepository.GetBidCountByBidderAsync(bidderId);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        return new BidHistoryResponse
+        var bidderIdHash = HashHelper.ComputeSha256Hash(bidderId);
+        var bids = await _bidRepository.GetBidsByBidderIdHashAsync(bidderIdHash, page, pageSize);
+        var totalCount = await _bidRepository.GetBidsCountByBidderIdHashAsync(bidderIdHash);
+
+        // Get unique auction IDs
+        var auctionIds = bids.Select(b => b.AuctionId).Distinct().ToList();
+
+        // Batch fetch auction information
+        var auctions = await _auctionServiceClient.GetAuctionsBatchAsync(auctionIds);
+        var auctionDict = auctions.ToDictionary(a => a.Id);
+
+        // Get highest bids for each auction to determine if user's bid is highest
+        var highestBids = new Dictionary<long, BidAmount?>();
+        foreach (var auctionId in auctionIds)
         {
-            Bids = bids.Select(b => new BidResponse
+            var highestBid = await _redisRepository.GetHighestBidAsync(auctionId);
+            highestBids[auctionId] = highestBid?.Amount;
+        }
+
+        var myBids = bids.Select(b =>
+        {
+            auctionDict.TryGetValue(b.AuctionId, out var auction);
+            highestBids.TryGetValue(b.AuctionId, out var highestBidAmount);
+
+            return new MyBidResponse
             {
                 BidId = b.BidId,
                 AuctionId = b.AuctionId,
+                AuctionTitle = auction?.Title ?? "Unknown Auction",
                 Amount = b.Amount.Value,
-                BidAt = b.BidAt
-            }).ToList(),
+                BidAt = b.BidAt,
+                IsHighestBid = highestBidAmount != null && b.Amount.Value >= highestBidAmount.Value,
+                IsAuctionActive = auction?.IsActive ?? false
+            };
+        }).ToList();
+
+        stopwatch.Stop();
+
+        _logger.LogInformation(
+            "Retrieved my bids for bidder {BidderIdHash}, page {Page}, pageSize {PageSize}, returned {Count} bids, total {TotalCount}, query time {QueryTime}ms",
+            bidderIdHash, page, pageSize, myBids.Count, totalCount, stopwatch.ElapsedMilliseconds);
+
+        return new MyBidsResponse
+        {
+            Bids = myBids,
             Pagination = new PaginationMetadata
             {
                 CurrentPage = page,
