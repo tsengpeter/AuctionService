@@ -25,19 +25,19 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 **Purpose**: Project initialization and basic structure per plan.md
 
-- [ ] T001 Create BiddingService.sln solution file and project structure (Api/Core/Infrastructure/Shared)
-- [ ] T002 Initialize BiddingService.Api project with ASP.NET Core 10 Web API (Controller-based)
-- [ ] T003 [P] Initialize BiddingService.Core project with .NET 10 class library
-- [ ] T004 [P] Initialize BiddingService.Infrastructure project with .NET 10 class library
-- [ ] T005 [P] Initialize BiddingService.Shared project with .NET 10 class library
-- [ ] T006 [P] Create docker-compose.yml with PostgreSQL 14 and Redis 7 containers
-- [ ] T007 [P] Create Dockerfile for multi-stage production build
-- [ ] T008 [P] Configure .gitignore, .editorconfig, global.json (SDK 10.0)
-- [ ] T009 Add NuGet packages to BiddingService.Api (Serilog, Prometheus.NET, Swashbuckle)
-- [ ] T010 [P] Add NuGet packages to BiddingService.Infrastructure (EF Core 10, Npgsql, StackExchange.Redis 2.7+, IdGen, Azure.Security.KeyVault.Secrets)
-- [ ] T011 [P] Create BiddingService.UnitTests project with xUnit, Moq, FluentAssertions
-- [ ] T012 [P] Create BiddingService.IntegrationTests project with Testcontainers
-- [ ] T013 Configure appsettings.json and appsettings.Development.json in BiddingService.Api
+- [x] T001 Create BiddingService.sln solution file and project structure (Api/Core/Infrastructure/Shared)
+- [x] T002 Initialize BiddingService.Api project with ASP.NET Core 10 Web API (Controller-based)
+- [x] T003 [P] Initialize BiddingService.Core project with .NET 10 class library
+- [x] T004 [P] Initialize BiddingService.Infrastructure project with .NET 10 class library
+- [x] T005 [P] Initialize BiddingService.Shared project with .NET 10 class library
+- [x] T006 [P] Create docker-compose.yml with PostgreSQL 14 and Redis 7 containers
+- [x] T007 [P] Create Dockerfile for multi-stage production build
+- [x] T008 [P] Configure .gitignore, .editorconfig, global.json (SDK 10.0)
+- [x] T009 Add NuGet packages to BiddingService.Api (Serilog, Prometheus.NET, Swashbuckle)
+- [x] T010 [P] Add NuGet packages to BiddingService.Infrastructure (EF Core 10, Npgsql, StackExchange.Redis 2.7+, IdGen, Azure.Security.KeyVault.Secrets)
+- [x] T011 [P] Create BiddingService.UnitTests project with xUnit, Moq, FluentAssertions
+- [x] T012 [P] Create BiddingService.IntegrationTests project with Testcontainers
+- [x] T013 Configure appsettings.json and appsettings.Development.json in BiddingService.Api
 
 ---
 
@@ -49,61 +49,61 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Infrastructure Setup
 
-- [ ] T014 Create BiddingDbContext in src/BiddingService.Infrastructure/Data/BiddingDbContext.cs
-- [ ] T015 Implement SnowflakeIdGenerator using IdGen in src/BiddingService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs
-- [ ] T016 [P] Implement EncryptionService (AES-256-GCM) in src/BiddingService.Infrastructure/Encryption/EncryptionService.cs
+- [x] T014 Create BiddingDbContext in src/BiddingService.Infrastructure/Data/BiddingDbContext.cs
+- [x] T015 Implement SnowflakeIdGenerator using IdGen in src/BiddingService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs
+- [x] T016 [P] Implement EncryptionService (AES-256-GCM) in src/BiddingService.Infrastructure/Encryption/EncryptionService.cs
 - [ ] T017 [P] Implement EncryptionValueConverter for EF Core in src/BiddingService.Infrastructure/Encryption/EncryptionValueConverter.cs
-- [ ] T018 [P] Create RedisConnection manager in src/BiddingService.Infrastructure/Redis/RedisConnection.cs
-- [ ] T019 Implement CorrelationIdMiddleware in src/BiddingService.Api/Middlewares/CorrelationIdMiddleware.cs
-- [ ] T020 [P] Implement ExceptionHandlingMiddleware with standardized ErrorResponse DTO (per spec.md FR-014) in src/BiddingService.Api/Middlewares/ExceptionHandlingMiddleware.cs
+- [x] T018 [P] Create RedisConnection manager in src/BiddingService.Infrastructure/Redis/RedisConnection.cs
+- [x] T019 Implement CorrelationIdMiddleware in src/BiddingService.Api/Middlewares/CorrelationIdMiddleware.cs
+- [x] T020 [P] Implement ExceptionHandlingMiddleware with standardized ErrorResponse DTO (per spec.md FR-014) in src/BiddingService.Api/Middlewares/ExceptionHandlingMiddleware.cs
   - Map exceptions to HTTP status codes (400/401/403/404/409/500/503)
   - Return consistent ErrorResponse format with error code and message
   - Log errors with correlation ID
-- [ ] T021 [P] Implement RequestLoggingMiddleware with Serilog in src/BiddingService.Api/Middlewares/RequestLoggingMiddleware.cs
+- [x] T021 [P] Implement RequestLoggingMiddleware with Serilog in src/BiddingService.Api/Middlewares/RequestLoggingMiddleware.cs
 
 ### Core Entities and Value Objects
 
-- [ ] T022 Create Bid entity in src/BiddingService.Core/Entities/Bid.cs (with BidId, AuctionId, BidderId, Amount, BidAt, CreatedAt, SyncedFromRedis, BidderIdHash)
-- [ ] T023 [P] Create BidAmount value object in src/BiddingService.Core/ValueObjects/BidAmount.cs
-- [ ] T024 Configure BidConfiguration (EF Core) with encryption converters in src/BiddingService.Infrastructure/Data/Configurations/BidConfiguration.cs
+- [x] T022 Create Bid entity in src/BiddingService.Core/Entities/Bid.cs (with BidId, AuctionId, BidderId, Amount, BidAt, CreatedAt, SyncedFromRedis, BidderIdHash)
+- [x] T023 [P] Create BidAmount value object in src/BiddingService.Core/ValueObjects/BidAmount.cs
+- [x] T024 Configure BidConfiguration (EF Core) with encryption converters in src/BiddingService.Infrastructure/Data/Configurations/BidConfiguration.cs
 - [ ] T025 Create EF Core migration InitialCreate in src/BiddingService.Infrastructure/Migrations/
 
 ### Repository Interfaces and Base Classes
 
-- [ ] T026 [P] Define IRepository<T> generic interface in src/BiddingService.Core/Interfaces/IRepository.cs
-- [ ] T027 [P] Define IBidRepository interface in src/BiddingService.Core/Interfaces/IBidRepository.cs
-- [ ] T028 [P] Define IRedisRepository interface in src/BiddingService.Core/Interfaces/IRedisRepository.cs
-- [ ] T029 Implement GenericRepository<T> base class in src/BiddingService.Infrastructure/Repositories/GenericRepository.cs
-- [ ] T030 Implement BidRepository (PostgreSQL) in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
+- [x] T026 [P] Define IRepository<T> generic interface in src/BiddingService.Core/Interfaces/IRepository.cs
+- [x] T027 [P] Define IBidRepository interface in src/BiddingService.Core/Interfaces/IBidRepository.cs
+- [x] T028 [P] Define IRedisRepository interface in src/BiddingService.Core/Interfaces/IRedisRepository.cs
+- [x] T029 Implement GenericRepository<T> base class in src/BiddingService.Infrastructure/Repositories/GenericRepository.cs
+- [x] T030 Implement BidRepository (PostgreSQL) in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
 
 ### Redis Lua Script and Repository
 
-- [ ] T031 Create place-bid.lua script in src/BiddingService.Infrastructure/Redis/Scripts/place-bid.lua
-- [ ] T032 Implement RedisRepository with Lua script execution in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
+- [x] T031 Create place-bid.lua script in src/BiddingService.Infrastructure/Redis/Scripts/place-bid.lua
+- [x] T032 Implement RedisRepository with Lua script execution in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
 
 ### Cross-Service Communication
 
-- [ ] T033 [P] Define IAuctionServiceClient interface in src/BiddingService.Core/Interfaces/IAuctionServiceClient.cs
-- [ ] T034 Implement AuctionServiceClient with HttpClient and Polly retry in src/BiddingService.Infrastructure/HttpClients/AuctionServiceClient.cs
-- [ ] T035 [P] Implement CorrelationIdDelegatingHandler for HttpClient in src/BiddingService.Infrastructure/HttpClients/CorrelationIdDelegatingHandler.cs
+- [x] T033 [P] Define IAuctionServiceClient interface in src/BiddingService.Core/Interfaces/IAuctionServiceClient.cs
+- [x] T034 Implement AuctionServiceClient with HttpClient and Polly retry in src/BiddingService.Infrastructure/HttpClients/AuctionServiceClient.cs
+- [x] T035 [P] Implement CorrelationIdDelegatingHandler for HttpClient in src/BiddingService.Infrastructure/HttpClients/CorrelationIdDelegatingHandler.cs
 
 ### Background Services
 
-- [ ] T036 [P] Implement RedisSyncWorker (IHostedService) in src/BiddingService.Infrastructure/BackgroundServices/RedisSyncWorker.cs
-- [ ] T037 [P] Implement RedisHealthCheckService in src/BiddingService.Infrastructure/BackgroundServices/RedisHealthCheckService.cs
+- [x] T036 [P] Implement RedisSyncWorker (IHostedService) in src/BiddingService.Infrastructure/BackgroundServices/RedisSyncWorker.cs
+- [x] T037 [P] Implement RedisHealthCheckService in src/BiddingService.Infrastructure/BackgroundServices/RedisHealthCheckService.cs
 
 ### Shared Utilities
 
-- [ ] T038 [P] Create ErrorCodes constants in src/BiddingService.Shared/Constants/ErrorCodes.cs
-- [ ] T039 [P] Create HashHelper (SHA-256) in src/BiddingService.Shared/Helpers/HashHelper.cs
+- [x] T038 [P] Create ErrorCodes constants in src/BiddingService.Shared/Constants/ErrorCodes.cs
+- [x] T039 [P] Create HashHelper (SHA-256) in src/BiddingService.Shared/Helpers/HashHelper.cs
 - [ ] T040 [P] Create ServiceCollectionExtensions for DI in src/BiddingService.Shared/Extensions/ServiceCollectionExtensions.cs
 - [ ] T041 [P] Create BidExtensions for POCO mapping in src/BiddingService.Shared/Extensions/BidExtensions.cs
 
 ### API Infrastructure
 
-- [ ] T042 Configure Program.cs with DI, middleware pipeline, Serilog, Prometheus in src/BiddingService.Api/Program.cs
-- [ ] T043 [P] Create HealthController in src/BiddingService.Api/Controllers/HealthController.cs
-- [ ] T044 Configure Swagger/OpenAPI generation in Program.cs
+- [x] T042 Configure Program.cs with DI, middleware pipeline, Serilog, Prometheus in src/BiddingService.Api/Program.cs
+- [x] T043 [P] Create HealthController in src/BiddingService.Api/Controllers/HealthController.cs
+- [x] T044 Configure Swagger/OpenAPI generation in Program.cs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
