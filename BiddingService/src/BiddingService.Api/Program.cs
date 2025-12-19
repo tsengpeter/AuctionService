@@ -1,6 +1,5 @@
 using BiddingService.Api.Middlewares;
 using BiddingService.Api.Filters;
-using BiddingService.Shared.Extensions;
 using BiddingService.Infrastructure.Extensions;
 using BiddingService.Core.Validators;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +16,12 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+// Add Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
+
+// Add OpenTelemetry (optional future enhancement)
+builder.Services.AddOpenTelemetry();
 
 // Add services to the container.
 builder.Services.AddControllers(options =>

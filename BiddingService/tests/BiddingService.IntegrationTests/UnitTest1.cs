@@ -1,4 +1,4 @@
-﻿namespace BiddingService.IntegrationTests;
+namespace BiddingService.IntegrationTests;
 
 public class UnitTest1
 {

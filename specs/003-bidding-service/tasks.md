@@ -52,7 +52,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T014 Create BiddingDbContext in src/BiddingService.Infrastructure/Data/BiddingDbContext.cs
 - [x] T015 Implement SnowflakeIdGenerator using IdGen in src/BiddingService.Infrastructure/IdGeneration/SnowflakeIdGenerator.cs
 - [x] T016 [P] Implement EncryptionService (AES-256-GCM) in src/BiddingService.Infrastructure/Encryption/EncryptionService.cs
-- [ ] T017 [P] Implement EncryptionValueConverter for EF Core in src/BiddingService.Infrastructure/Encryption/EncryptionValueConverter.cs
+- [x] T017 [P] Implement EncryptionValueConverter for EF Core in src/BiddingService.Infrastructure/Encryption/EncryptionValueConverter.cs
 - [x] T018 [P] Create RedisConnection manager in src/BiddingService.Infrastructure/Redis/RedisConnection.cs
 - [x] T019 Implement CorrelationIdMiddleware in src/BiddingService.Api/Middlewares/CorrelationIdMiddleware.cs
 - [x] T020 [P] Implement ExceptionHandlingMiddleware with standardized ErrorResponse DTO (per spec.md FR-014) in src/BiddingService.Api/Middlewares/ExceptionHandlingMiddleware.cs
@@ -66,7 +66,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T022 Create Bid entity in src/BiddingService.Core/Entities/Bid.cs (with BidId, AuctionId, BidderId, Amount, BidAt, CreatedAt, SyncedFromRedis, BidderIdHash)
 - [x] T023 [P] Create BidAmount value object in src/BiddingService.Core/ValueObjects/BidAmount.cs
 - [x] T024 Configure BidConfiguration (EF Core) with encryption converters in src/BiddingService.Infrastructure/Data/Configurations/BidConfiguration.cs
-- [ ] T025 Create EF Core migration InitialCreate in src/BiddingService.Infrastructure/Migrations/
+- [x] T025 Create EF Core migration InitialCreate in src/BiddingService.Infrastructure/Migrations/
 
 ### Repository Interfaces and Base Classes
 
@@ -96,8 +96,8 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 - [x] T038 [P] Create ErrorCodes constants in src/BiddingService.Shared/Constants/ErrorCodes.cs
 - [x] T039 [P] Create HashHelper (SHA-256) in src/BiddingService.Shared/Helpers/HashHelper.cs
-- [ ] T040 [P] Create ServiceCollectionExtensions for DI in src/BiddingService.Shared/Extensions/ServiceCollectionExtensions.cs
-- [ ] T041 [P] Create BidExtensions for POCO mapping in src/BiddingService.Shared/Extensions/BidExtensions.cs
+- [x] T040 [P] Create ServiceCollectionExtensions for DI in src/BiddingService.Shared/Extensions/ServiceCollectionExtensions.cs
+- [x] T041 [P] Create BidExtensions for POCO mapping in src/BiddingService.Shared/Extensions/BidExtensions.cs
 
 ### API Infrastructure
 
@@ -277,20 +277,20 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T110 [P] Create architecture.md documentation in BiddingService/docs/architecture.md
 - [x] T111 [P] Create api-guide.md with usage examples in BiddingService/docs/api-guide.md
 - [x] T112 Add Prometheus metrics (bid_requests_total, bid_latency_seconds, redis_fallback_active) in Program.cs
-- [ ] T113 [P] Configure APM integration (Application Insights or Elastic APM) per plan.md monitoring strategy in src/BiddingService.Api/Program.cs
+- [x] T113 [P] Configure APM integration (Application Insights or Elastic APM) per plan.md monitoring strategy in src/BiddingService.Api/Program.cs
   - Install NuGet package (Microsoft.ApplicationInsights.AspNetCore or Elastic.Apm.NetCoreAll)
   - Configure connection string in appsettings.json
   - Verify telemetry data flows to APM platform
   - Document APM setup in docs/deployment.md
-- [ ] T114 [P] Create GitHub Actions workflow for build in .github/workflows/build.yml
-- [ ] T115 [P] Create GitHub Actions workflow for tests in .github/workflows/test.yml
-- [ ] T116 [P] Create GitHub Actions workflow step for EF Core database update (dotnet ef database update) in .github/workflows/deploy.yml
-- [ ] T117 Code cleanup and refactoring (remove unused usings, apply code style)
-- [ ] T118 Security hardening (validate all inputs, sanitize error messages)
-- [ ] T119 Performance optimization (review connection pooling, Redis pipeline operations)
-- [ ] T120 Run quickstart.md validation (follow all steps, verify working)
-- [ ] T121 [P] Add OpenTelemetry support (optional future enhancement) in Program.cs
-- [ ] T122 Final integration test run covering all 5 user stories end-to-end
+- [x] T114 [P] Create GitHub Actions workflow for build in .github/workflows/build.yml
+- [x] T115 [P] Create GitHub Actions workflow for tests in .github/workflows/test.yml
+- [x] T116 [P] Create GitHub Actions workflow step for EF Core database update (dotnet ef database update) in .github/workflows/deploy.yml
+- [x] T117 Code cleanup and refactoring (remove unused usings, apply code style)
+- [x] T118 Security hardening (validate all inputs, sanitize error messages)
+- [x] T119 Performance optimization (review connection pooling, Redis pipeline operations)
+- [x] T120 Run quickstart.md validation (follow all steps, verify working)
+- [x] T121 [P] Add OpenTelemetry support (optional future enhancement) in Program.cs
+- [x] T122 Final integration test run covering all 5 user stories end-to-end
 
 ---
 
