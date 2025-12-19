@@ -159,13 +159,13 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Implementation for User Story 2
 
-- [ ] T066 [P] [US2] Create BidHistoryResponse DTO in src/BiddingService.Core/DTOs/Responses/BidHistoryResponse.cs
-- [ ] T067 [P] [US2] Create PaginationMetadata DTO in src/BiddingService.Core/DTOs/Responses/PaginationMetadata.cs
-- [ ] T068 [US2] Implement BiddingService.GetBidHistoryAsync with Redis priority fallback in src/BiddingService.Core/Services/BiddingService.cs
-- [ ] T069 [US2] Add RedisRepository.GetBidsByAuctionAsync (ZREVRANGE) in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
-- [ ] T070 [US2] Add BidRepository.GetBidsByAuctionAsync with pagination in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
-- [ ] T071 [US2] Implement BidsController.GetBidHistory (GET /api/auctions/{auctionId}/bids) in src/BiddingService.Api/Controllers/BidsController.cs
-- [ ] T072 [US2] Add logging for bid history query operations (Redis hit/miss, query time)
+- [x] T066 [P] [US2] Create BidHistoryResponse DTO in src/BiddingService.Core/DTOs/Responses/BidHistoryResponse.cs
+- [x] T067 [P] [US2] Create PaginationMetadata DTO in src/BiddingService.Core/DTOs/Responses/PaginationMetadata.cs
+- [x] T068 [US2] Implement BiddingService.GetBidHistoryAsync with Redis priority fallback in src/BiddingService.Core/Services/BiddingService.cs
+- [x] T069 [US2] Add RedisRepository.GetBidsByAuctionAsync (ZREVRANGE) in src/BiddingService.Infrastructure/Repositories/RedisRepository.cs
+- [x] T070 [US2] Add BidRepository.GetBidsByAuctionAsync with pagination in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
+- [x] T071 [US2] Implement BidsController.GetBidHistory (GET /api/auctions/{auctionId}/bids) in src/BiddingService.Api/Controllers/BidsController.cs
+- [x] T072 [US2] Add logging for bid history query operations (Redis hit/miss, query time)
 
 **Checkpoint**: User Story 2 fully functional - can query bid history with pagination, Redis caching works, < 200ms response time
 

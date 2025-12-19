@@ -6,6 +6,7 @@ using BiddingService.Core.Interfaces;
 using BiddingService.Core.ValueObjects;
 using BiddingService.Shared.Constants;
 using BiddingService.Shared.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace BiddingService.Core.Services;
 
@@ -16,19 +17,22 @@ public class BiddingService : IBiddingService
     private readonly IAuctionServiceClient _auctionServiceClient;
     private readonly ISnowflakeIdGenerator _idGenerator;
     private readonly IEncryptionService _encryptionService;
+    private readonly ILogger<BiddingService> _logger;
 
     public BiddingService(
         IBidRepository bidRepository,
         IRedisRepository redisRepository,
         IAuctionServiceClient auctionServiceClient,
         ISnowflakeIdGenerator idGenerator,
-        IEncryptionService encryptionService)
+        IEncryptionService encryptionService,
+        ILogger<BiddingService> logger)
     {
         _bidRepository = bidRepository;
         _redisRepository = redisRepository;
         _auctionServiceClient = auctionServiceClient;
         _idGenerator = idGenerator;
         _encryptionService = encryptionService;
+        _logger = logger;
     }
 
     public async Task<BidResponse> CreateBidAsync(CreateBidRequest request, string bidderId)
@@ -88,8 +92,16 @@ public class BiddingService : IBiddingService
 
     public async Task<BidHistoryResponse> GetBidHistoryAsync(long auctionId, int page = 1, int pageSize = 50)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         var bids = await _redisRepository.GetBidHistoryAsync(auctionId, page, pageSize);
         var totalCount = (int)await _redisRepository.GetBidCountAsync(auctionId);
+
+        stopwatch.Stop();
+
+        _logger.LogInformation(
+            "Retrieved bid history for auction {AuctionId}, page {Page}, pageSize {PageSize}, returned {Count} bids, total {TotalCount}, query time {QueryTime}ms",
+            auctionId, page, pageSize, bids.Count(), totalCount, stopwatch.ElapsedMilliseconds);
 
         return new BidHistoryResponse
         {
@@ -101,9 +113,12 @@ public class BiddingService : IBiddingService
                 Amount = b.Amount.Value,
                 BidAt = b.BidAt
             }).ToList(),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
+            Pagination = new PaginationMetadata
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            }
         };
     }
 
@@ -121,9 +136,12 @@ public class BiddingService : IBiddingService
                 Amount = b.Amount.Value,
                 BidAt = b.BidAt
             }).ToList(),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
+            Pagination = new PaginationMetadata
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            }
         };
     }
 

@@ -21,7 +21,5 @@ public class BidHistoryResponse
 {
     public long AuctionId { get; set; }
     public IEnumerable<BidResponse> Bids { get; set; } = new List<BidResponse>();
-    public int TotalCount { get; set; }
-    public int Page { get; set; }
-    public int PageSize { get; set; }
+    public PaginationMetadata Pagination { get; set; } = new PaginationMetadata();
 }
