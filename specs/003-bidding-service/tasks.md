@@ -119,10 +119,10 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T045 [P] [US1] Unit test for BiddingService.CreateBidAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
-- [ ] T046 [P] [US1] Unit test for BidValidator in tests/BiddingService.UnitTests/Validators/BidValidatorTests.cs
-- [ ] T047 [P] [US1] Unit test for SnowflakeIdGenerator in tests/BiddingService.UnitTests/Infrastructure/SnowflakeIdGeneratorTests.cs
-- [ ] T048 [P] [US1] Unit test for EncryptionService in tests/BiddingService.UnitTests/Infrastructure/EncryptionServiceTests.cs
+- [x] T045 [P] [US1] Unit test for BiddingService.CreateBidAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
+- [x] T046 [P] [US1] Unit test for BidValidator in tests/BiddingService.UnitTests/Validators/BidValidatorTests.cs
+- [x] T047 [P] [US1] Unit test for SnowflakeIdGenerator in tests/BiddingService.UnitTests/Infrastructure/SnowflakeIdGeneratorTests.cs
+- [x] T048 [P] [US1] Unit test for EncryptionService in tests/BiddingService.UnitTests/Infrastructure/EncryptionServiceTests.cs
 - [ ] T049 [P] [US1] Integration test for BidsController.CreateBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs (with Testcontainers)
 - [ ] T050 [P] [US1] Integration test for RedisRepository.PlaceBidAsync (Lua script) in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
 - [ ] T051 [P] [US1] Load test for concurrent bidding (1000 requests) in tests/BiddingService.LoadTests/ConcurrentBiddingTests.cs
@@ -137,8 +137,8 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T057 [P] [US1] Create custom exceptions (BidTooLowException, AuctionNotFoundException, UnauthorizedException) in src/BiddingService.Core/Exceptions/
 - [x] T058 [US1] Implement BidsController.CreateBid (POST /api/bids) in src/BiddingService.Api/Controllers/BidsController.cs
 - [x] T059 [US1] Add ValidationFilter for model validation in src/BiddingService.Api/Filters/ValidationFilter.cs
-- [ ] T060 [US1] Add logging for bid creation operations in BiddingService and BidsController
-- [ ] T061 [US1] Verify Redis Lua script handles concurrent bids correctly (金額檢查 + ZADD + HSET + SADD 原子操作)
+- [x] T060 [US1] Add logging for bid creation operations in BiddingService and BidsController
+- [x] T061 [US1] Verify Redis Lua script handles concurrent bids correctly (金額檢查 + ZADD + HSET + SADD 原子操作)
 - [x] T062 [US1] Integrate AuctionServiceClient to fetch auction info and validate ownership
 
 **Checkpoint**: User Story 1 fully functional - can create bids with all validations, < 100ms response time verified in load tests
@@ -153,7 +153,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Tests for User Story 2
 
-- [ ] T063 [P] [US2] Unit test for BiddingService.GetBidHistoryAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
+- [x] T063 [P] [US2] Unit test for BiddingService.GetBidHistoryAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
 - [ ] T064 [P] [US2] Integration test for BidsController.GetBidHistory in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
 - [ ] T065 [P] [US2] Integration test for BidRepository.GetBidsByAuctionAsync (PostgreSQL fallback) in tests/BiddingService.IntegrationTests/Repositories/BidRepositoryTests.cs
 
@@ -179,7 +179,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Tests for User Story 3
 
-- [ ] T073 [P] [US3] Unit test for BiddingService.GetMyBidsAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
+- [x] T073 [P] [US3] Unit test for BiddingService.GetMyBidsAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
 - [ ] T074 [P] [US3] Integration test for BidsController.GetMyBids in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
 - [ ] T075 [P] [US3] Unit test for AuctionServiceClient.GetAuctionsBatchAsync in tests/BiddingService.UnitTests/HttpClients/AuctionServiceClientTests.cs
 
@@ -205,7 +205,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Tests for User Story 4
 
-- [ ] T083 [P] [US4] Unit test for BiddingService.GetHighestBidAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
+- [x] T083 [P] [US4] Unit test for BiddingService.GetHighestBidAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
 - [ ] T084 [P] [US4] Integration test for BidsController.GetHighestBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
 - [ ] T085 [P] [US4] Integration test for RedisRepository.GetHighestBidAsync in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
 
@@ -230,7 +230,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Tests for User Story 5
 
-- [ ] T092 [P] [US5] Unit test for BiddingService.GetAuctionStatsAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
+- [x] T092 [P] [US5] Unit test for BiddingService.GetAuctionStatsAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
 - [ ] T093 [P] [US5] Integration test for BidsController.GetAuctionStats in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
 
 ### Implementation for User Story 5

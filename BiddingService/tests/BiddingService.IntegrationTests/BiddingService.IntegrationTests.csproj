@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\BiddingService.Api\BiddingService.Api.csproj" />
     <ProjectReference Include="..\..\src\BiddingService.Core\BiddingService.Core.csproj" />
     <ProjectReference Include="..\..\src\BiddingService.Infrastructure\BiddingService.Infrastructure.csproj" />
   </ItemGroup>

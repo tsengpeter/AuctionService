@@ -4,6 +4,7 @@ using BiddingService.Core.Exceptions;
 using BiddingService.Core.Interfaces;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -12,12 +13,14 @@ namespace BiddingService.UnitTests.Controllers;
 public class BidsControllerTests
 {
     private readonly Mock<IBiddingService> _biddingServiceMock;
+    private readonly Mock<ILogger<BidsController>> _loggerMock;
     private readonly BidsController _controller;
 
     public BidsControllerTests()
     {
         _biddingServiceMock = new Mock<IBiddingService>();
-        _controller = new BidsController(_biddingServiceMock.Object);
+        _loggerMock = new Mock<ILogger<BidsController>>();
+        _controller = new BidsController(_biddingServiceMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -51,7 +54,7 @@ public class BidsControllerTests
     }
 
     [Fact]
-    public async Task GetBidById_WhenBidDoesNotExist_ReturnsNotFound()
+    public async Task GetBidById_WhenBidDoesNotExist_ThrowsBidNotFoundException()
     {
         // Arrange
         var bidId = 999999L;
@@ -60,14 +63,15 @@ public class BidsControllerTests
             .ThrowsAsync(new BidNotFoundException(bidId));
 
         // Act
-        var result = await _controller.GetBidById(bidId);
+        Func<Task> act = async () => await _controller.GetBidById(bidId);
 
         // Assert
-        result.Should().BeOfType<NotFoundObjectResult>();
+        await act.Should().ThrowAsync<BidNotFoundException>()
+            .WithMessage($"Bid with ID {bidId} not found");
     }
 
     [Fact]
-    public async Task GetBidById_WhenServiceThrowsException_ReturnsInternalServerError()
+    public async Task GetBidById_WhenServiceThrowsException_ThrowsException()
     {
         // Arrange
         var bidId = 123456789L;
@@ -76,10 +80,10 @@ public class BidsControllerTests
             .ThrowsAsync(new Exception("Database error"));
 
         // Act
-        var result = await _controller.GetBidById(bidId);
+        Func<Task> act = async () => await _controller.GetBidById(bidId);
 
         // Assert
-        var statusCodeResult = result.Should().BeOfType<ObjectResult>().Subject;
-        statusCodeResult.StatusCode.Should().Be(500);
+        await act.Should().ThrowAsync<Exception>()
+            .WithMessage("Database error");
     }
 }

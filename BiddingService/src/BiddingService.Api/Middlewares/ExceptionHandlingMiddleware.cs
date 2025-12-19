@@ -91,6 +91,22 @@ public class ExceptionHandlingMiddleware
 
             await context.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
+        catch (BidNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Bid not found: {BidId}", ex.BidId);
+
+            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            context.Response.ContentType = "application/json";
+
+            var response = new ErrorResponse
+            {
+                ErrorCode = ErrorCodes.BID_NOT_FOUND,
+                Message = ex.Message,
+                CorrelationId = context.Request.Headers["X-Correlation-ID"].FirstOrDefault() ?? string.Empty
+            };
+
+            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An unhandled exception occurred");
