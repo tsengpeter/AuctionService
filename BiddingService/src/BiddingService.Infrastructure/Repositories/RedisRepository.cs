@@ -1,6 +1,7 @@
 using BiddingService.Core.Entities;
 using BiddingService.Core.Interfaces;
 using StackExchange.Redis;
+using System.IO;
 using System.Text.Json;
 
 namespace BiddingService.Infrastructure.Repositories;
@@ -13,7 +14,10 @@ public class RedisRepository : IRedisRepository
     public RedisRepository(IRedisConnection redisConnection)
     {
         _redis = (IConnectionMultiplexer)redisConnection.Connection;
-        _luaScript = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Redis", "Scripts", "place-bid.lua"));
+        var assembly = typeof(RedisRepository).Assembly;
+        using var stream = assembly.GetManifestResourceStream("BiddingService.Infrastructure.Redis.Scripts.place-bid.lua");
+        using var reader = new StreamReader(stream);
+        _luaScript = reader.ReadToEnd();
     }
 
     public async Task<bool> PlaceBidAsync(Bid bid)

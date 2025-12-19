@@ -29,4 +29,8 @@
     <ProjectReference Include="..\BiddingService.Shared\BiddingService.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Redis\Scripts\place-bid.lua" />
+  </ItemGroup>
+
 </Project>

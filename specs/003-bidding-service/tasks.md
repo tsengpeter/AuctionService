@@ -180,7 +180,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 ### Tests for User Story 3
 
 - [x] T073 [P] [US3] Unit test for BiddingService.GetMyBidsAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
-- [ ] T074 [P] [US3] Integration test for BidsController.GetMyBids in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
+- [x] T074 [P] [US3] Integration test for BidsController.GetMyBids in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
 - [ ] T075 [P] [US3] Unit test for AuctionServiceClient.GetAuctionsBatchAsync in tests/BiddingService.UnitTests/HttpClients/AuctionServiceClientTests.cs
 
 ### Implementation for User Story 3
