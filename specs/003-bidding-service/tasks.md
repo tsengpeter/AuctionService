@@ -129,17 +129,17 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Implementation for User Story 1
 
-- [ ] T052 [P] [US1] Define IBiddingService interface in src/BiddingService.Core/Interfaces/IBiddingService.cs
-- [ ] T053 [US1] Implement BiddingService.CreateBidAsync with business rules in src/BiddingService.Core/Services/BiddingService.cs
-- [ ] T054 [P] [US1] Create CreateBidRequest DTO in src/BiddingService.Core/DTOs/Requests/CreateBidRequest.cs
-- [ ] T055 [P] [US1] Create BidResponse DTO in src/BiddingService.Core/DTOs/Responses/BidResponse.cs
-- [ ] T056 [P] [US1] Create BidValidator using FluentValidation in src/BiddingService.Core/Validators/BidValidator.cs
-- [ ] T057 [P] [US1] Create custom exceptions (BidTooLowException, AuctionNotFoundException, UnauthorizedException) in src/BiddingService.Core/Exceptions/
-- [ ] T058 [US1] Implement BidsController.CreateBid (POST /api/bids) in src/BiddingService.Api/Controllers/BidsController.cs
-- [ ] T059 [US1] Add ValidationFilter for model validation in src/BiddingService.Api/Filters/ValidationFilter.cs
+- [x] T052 [P] [US1] Define IBiddingService interface in src/BiddingService.Core/Interfaces/IBiddingService.cs
+- [x] T053 [US1] Implement BiddingService.CreateBidAsync with business rules in src/BiddingService.Core/Services/BiddingService.cs
+- [x] T054 [P] [US1] Create CreateBidRequest DTO in src/BiddingService.Core/DTOs/Requests/CreateBidRequest.cs
+- [x] T055 [P] [US1] Create BidResponse DTO in src/BiddingService.Core/DTOs/Responses/BidResponse.cs
+- [x] T056 [P] [US1] Create BidValidator using FluentValidation in src/BiddingService.Core/Validators/BidValidator.cs
+- [x] T057 [P] [US1] Create custom exceptions (BidTooLowException, AuctionNotFoundException, UnauthorizedException) in src/BiddingService.Core/Exceptions/
+- [x] T058 [US1] Implement BidsController.CreateBid (POST /api/bids) in src/BiddingService.Api/Controllers/BidsController.cs
+- [x] T059 [US1] Add ValidationFilter for model validation in src/BiddingService.Api/Filters/ValidationFilter.cs
 - [ ] T060 [US1] Add logging for bid creation operations in BiddingService and BidsController
 - [ ] T061 [US1] Verify Redis Lua script handles concurrent bids correctly (金額檢查 + ZADD + HSET + SADD 原子操作)
-- [ ] T062 [US1] Integrate AuctionServiceClient to fetch auction info and validate ownership
+- [x] T062 [US1] Integrate AuctionServiceClient to fetch auction info and validate ownership
 
 **Checkpoint**: User Story 1 fully functional - can create bids with all validations, < 100ms response time verified in load tests
 

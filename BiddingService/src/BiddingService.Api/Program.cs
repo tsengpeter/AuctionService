@@ -1,10 +1,13 @@
 using BiddingService.Api.Middlewares;
+using BiddingService.Api.Filters;
 using BiddingService.Shared.Extensions;
 using BiddingService.Infrastructure.Extensions;
+using BiddingService.Core.Validators;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using BiddingService.Infrastructure.Data;
 using Prometheus;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +19,12 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+});
+
+builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddOpenApi();
 
 // Add custom services

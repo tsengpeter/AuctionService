@@ -1,4 +1,5 @@
 using BiddingService.Core.Interfaces;
+using System.Text.Json;
 
 namespace BiddingService.Infrastructure.HttpClients;
 
@@ -9,6 +10,24 @@ public class AuctionServiceClient : IAuctionServiceClient
     public AuctionServiceClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
+    }
+
+    public async Task<AuctionInfo?> GetAuctionAsync(long auctionId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/auctions/{auctionId}");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<AuctionInfo>(content);
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task<bool> ValidateAuctionAsync(long auctionId)

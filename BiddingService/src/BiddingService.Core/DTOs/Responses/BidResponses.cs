@@ -14,8 +14,7 @@ public class BidResponse
 public class HighestBidResponse
 {
     public long AuctionId { get; set; }
-    public decimal? HighestAmount { get; set; }
-    public int TotalBids { get; set; }
+    public BidResponse? HighestBid { get; set; }
 }
 
 public class BidHistoryResponse

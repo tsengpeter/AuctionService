@@ -49,6 +49,60 @@ public class RedisRepository : IRedisRepository
         );
     }
 
+    public async Task<IEnumerable<Bid>> GetBidHistoryAsync(long auctionId, int page = 1, int pageSize = 50)
+    {
+        var db = _redis.GetDatabase();
+        var auctionKey = $"auction:{auctionId}";
+
+        var bids = await db.SortedSetRangeByRankAsync(auctionKey, (page - 1) * pageSize, page * pageSize - 1, Order.Descending);
+
+        return bids.Select(value =>
+        {
+            // Parse bid data from Redis value (assuming JSON format)
+            var bidData = JsonSerializer.Deserialize<Dictionary<string, object>>(value.ToString());
+            return new Bid(
+                long.Parse(bidData["bidId"].ToString()),
+                auctionId,
+                bidData["bidderId"].ToString(),
+                bidData["bidderIdHash"].ToString(),
+                new Core.ValueObjects.BidAmount(decimal.Parse(bidData["amount"].ToString())),
+                DateTime.Parse(bidData["bidAt"].ToString()),
+                false
+            );
+        });
+    }
+
+    public async Task<long> GetBidCountAsync(long auctionId)
+    {
+        var db = _redis.GetDatabase();
+        var auctionKey = $"auction:{auctionId}";
+        return await db.SortedSetLengthAsync(auctionKey);
+    }
+
+    public async Task<Bid?> GetBidAsync(long auctionId, string bidderId)
+    {
+        var db = _redis.GetDatabase();
+        var auctionKey = $"auction:{auctionId}";
+
+        // This is a simplified implementation - in practice, you'd need to scan the sorted set
+        // For now, we'll check if the bidder has any bids in the auction
+        var bids = await GetBidHistoryAsync(auctionId, 1, 1000);
+        return bids.FirstOrDefault(b => b.BidderId == bidderId);
+    }
+
+    public async Task<IEnumerable<Bid>> GetBidsByBidderAsync(string bidderId, int page = 1, int pageSize = 50)
+    {
+        // This is a simplified implementation - in practice, you'd maintain separate indexes
+        // For now, we'll return empty list as this requires additional Redis data structures
+        return new List<Bid>();
+    }
+
+    public async Task<long> GetBidCountByBidderAsync(string bidderId)
+    {
+        // This is a simplified implementation
+        return 0;
+    }
+
     public async Task AddToDeadLetterQueueAsync(Bid bid)
     {
         var db = _redis.GetDatabase();

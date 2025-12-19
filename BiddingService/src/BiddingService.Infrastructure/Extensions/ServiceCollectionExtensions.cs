@@ -1,4 +1,5 @@
 using BiddingService.Core.Interfaces;
+using BiddingService.Core.Services;
 using BiddingService.Infrastructure.BackgroundServices;
 using BiddingService.Infrastructure.Data;
 using BiddingService.Infrastructure.Encryption;
@@ -25,6 +26,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IBidRepository, BidRepository>();
         services.AddScoped<IRedisRepository, RedisRepository>();
+
+        // Core services
+        services.AddScoped<IBiddingService, BiddingService.Core.Services.BiddingService>();
 
         // Infrastructure services
         services.AddScoped<IEncryptionService>(sp =>
