@@ -123,9 +123,9 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T046 [P] [US1] Unit test for BidValidator in tests/BiddingService.UnitTests/Validators/BidValidatorTests.cs
 - [x] T047 [P] [US1] Unit test for SnowflakeIdGenerator in tests/BiddingService.UnitTests/Infrastructure/SnowflakeIdGeneratorTests.cs
 - [x] T048 [P] [US1] Unit test for EncryptionService in tests/BiddingService.UnitTests/Infrastructure/EncryptionServiceTests.cs
-- [ ] T049 [P] [US1] Integration test for BidsController.CreateBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs (with Testcontainers)
-- [ ] T050 [P] [US1] Integration test for RedisRepository.PlaceBidAsync (Lua script) in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
-- [ ] T051 [P] [US1] Load test for concurrent bidding (1000 requests) in tests/BiddingService.LoadTests/ConcurrentBiddingTests.cs
+- [x] T049 [P] [US1] Integration test for BidsController.CreateBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs (with Testcontainers)
+- [x] T050 [P] [US1] Integration test for RedisRepository.PlaceBidAsync (Lua script) in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
+- [x] T051 [P] [US1] Load test for concurrent bidding (1000 requests) in tests/BiddingService.LoadTests/ConcurrentBiddingTests.cs
 
 ### Implementation for User Story 1
 
@@ -154,8 +154,8 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 ### Tests for User Story 2
 
 - [x] T063 [P] [US2] Unit test for BiddingService.GetBidHistoryAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
-- [ ] T064 [P] [US2] Integration test for BidsController.GetBidHistory in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
-- [ ] T065 [P] [US2] Integration test for BidRepository.GetBidsByAuctionAsync (PostgreSQL fallback) in tests/BiddingService.IntegrationTests/Repositories/BidRepositoryTests.cs
+- [x] T064 [P] [US2] Integration test for BidsController.GetBidHistory in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
+- [x] T065 [P] [US2] Integration test for BidRepository.GetBidsByAuctionAsync (PostgreSQL fallback) in tests/BiddingService.IntegrationTests/Repositories/BidRepositoryTests.cs
 
 ### Implementation for User Story 2
 

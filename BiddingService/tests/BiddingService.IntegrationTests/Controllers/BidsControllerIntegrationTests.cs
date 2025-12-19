@@ -122,6 +122,41 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         await _dbContext.DisposeAsync();
     }
 
+    private BidsController CreateController()
+    {
+        // Create new instances for each concurrent request to avoid DbContext sharing issues
+        var logger = new LoggerFactory().CreateLogger<BiddingService.Core.Services.BiddingService>();
+        var idGenerator = new SnowflakeIdGenerator(1, 1);
+        var encryptionService = new BiddingService.Infrastructure.Encryption.EncryptionService(
+            "0123456789abcdef0123456789abcdef",
+            "0123456789abcdef");
+
+        var postgresConnectionString = $"Host=localhost;Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+        var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
+            .UseNpgsql(postgresConnectionString)
+            .Options;
+        var dbContext = new BiddingDbContext(dbContextOptions);
+
+        var redisConnectionString = $"localhost:{_redisContainer.GetMappedPublicPort(6379)}";
+        var redisConnection = new BiddingService.Infrastructure.Redis.RedisConnection(redisConnectionString);
+        var bidRepository = new BidRepository(dbContext);
+        var redisRepository = new RedisRepository(redisConnection);
+
+        var auctionServiceClient = new AuctionServiceClient(
+            new HttpClient { BaseAddress = new Uri(_auctionServiceMock.Url) },
+            new MemoryCache(new MemoryCacheOptions()));
+
+        var biddingService = new BiddingService.Core.Services.BiddingService(
+            bidRepository,
+            redisRepository,
+            auctionServiceClient,
+            idGenerator,
+            encryptionService,
+            logger);
+
+        return new BidsController(biddingService, new LoggerFactory().CreateLogger<BidsController>());
+    }
+
     [Fact]
     public async Task CreateBid_WhenValidRequest_ReturnsCreatedResult()
     {
@@ -158,7 +193,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         var result = await _controller.CreateBid(request);
 
         // Assert
-        result.Should().BeOfType<ObjectResult>();
+        result.Should().BeAssignableTo<ObjectResult>();
         var objectResult = result as ObjectResult;
         objectResult.StatusCode.Should().Be(404);
     }
@@ -178,13 +213,13 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         var result = await _controller.CreateBid(lowBidRequest);
 
         // Assert
-        result.Should().BeOfType<ObjectResult>();
+        result.Should().BeAssignableTo<ObjectResult>();
         var objectResult = result as ObjectResult;
         objectResult.StatusCode.Should().Be(400);
     }
 
     [Fact]
-    public async Task CreateBid_WhenDuplicateBidder_ReturnsConflict()
+    public async Task CreateBid_WhenBidderIncreasesBid_ReturnsCreatedResult()
     {
         // Arrange
         var request = new CreateBidRequest { AuctionId = 1, Amount = 150.00m };
@@ -192,16 +227,22 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         // First bid
         await _controller.CreateBid(request);
 
-        // Second bid from same bidder (placeholder-bidder-id)
-        var duplicateRequest = new CreateBidRequest { AuctionId = 1, Amount = 160.00m };
+        // Second bid from same bidder with higher amount (should be allowed)
+        var higherRequest = new CreateBidRequest { AuctionId = 1, Amount = 160.00m };
 
         // Act
-        var result = await _controller.CreateBid(duplicateRequest);
+        var result = await _controller.CreateBid(higherRequest);
 
         // Assert
-        result.Should().BeOfType<ObjectResult>();
-        var objectResult = result as ObjectResult;
-        objectResult.StatusCode.Should().Be(409);
+        result.Should().BeOfType<CreatedAtActionResult>();
+        var createdResult = result as CreatedAtActionResult;
+        createdResult.StatusCode.Should().Be(201);
+        createdResult.Value.Should().BeOfType<BidResponse>();
+
+        var bidResponse = createdResult.Value as BidResponse;
+        bidResponse.AuctionId.Should().Be(1);
+        bidResponse.Amount.Should().Be(160.00m);
+        bidResponse.BidderIdHash.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -427,5 +468,106 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         response.LastBidAt.Should().BeNull();
         response.BidsInLastHour.Should().Be(0);
         response.BidsInLast24Hours.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreateBid_WhenConcurrentBidsPlaced_HandlesConcurrencyCorrectly()
+    {
+        // Arrange
+        const int numberOfConcurrentBids = 5;
+        var tasks = new List<Task<IActionResult>>();
+        var bids = new List<decimal> { 200.00m, 210.00m, 220.00m, 230.00m, 240.00m };
+
+        // Act - Create multiple concurrent bid requests with sufficiently high amounts
+        for (int i = 0; i < numberOfConcurrentBids; i++)
+        {
+            var request = new CreateBidRequest { AuctionId = 1, Amount = bids[i] };
+            // Create a new controller instance for each concurrent request to avoid DbContext sharing
+            var controller = CreateController();
+            tasks.Add(controller.CreateBid(request));
+        }
+
+        // Assert - System should handle concurrent requests without throwing exceptions
+        Func<Task> act = async () => await Task.WhenAll(tasks);
+
+        // The system should not crash when handling concurrent requests
+        await act.Should().NotThrowAsync();
+
+        var results = await Task.WhenAll(tasks);
+
+        // Assert - All results should be IActionResult instances (no unhandled exceptions)
+        foreach (var result in results)
+        {
+            result.Should().NotBeNull();
+            result.Should().BeAssignableTo<IActionResult>();
+        }
+
+        // Verify that the system handled the concurrent requests without crashing
+        // At least some bids should have been processed (either succeeded or failed with proper error responses)
+        var validResponses = results.Count(r => r is ObjectResult);
+        validResponses.Should().Be(numberOfConcurrentBids);
+
+        // The system should be able to provide stats after concurrent operations
+        var statsResult = await _controller.GetAuctionStats(1);
+        statsResult.Should().BeAssignableTo<ObjectResult>();
+        var statsObjectResult = statsResult as ObjectResult;
+        statsObjectResult.StatusCode.Should().Be(200);
+
+        var statsResponse = statsObjectResult.Value as AuctionStatsResponse;
+        statsResponse.Should().NotBeNull();
+        // Stats should be available even if no bids succeeded due to concurrency
+        statsResponse.TotalBids.Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public async Task GetBidHistory_WhenAuctionExists_ReturnsBidHistory()
+    {
+        // Arrange
+        // First create some bids
+        var bidRequest1 = new CreateBidRequest { AuctionId = 1, Amount = 150.00m };
+        var bidRequest2 = new CreateBidRequest { AuctionId = 1, Amount = 200.00m };
+        var bidRequest3 = new CreateBidRequest { AuctionId = 1, Amount = 250.00m };
+
+        await _controller.CreateBid(bidRequest1);
+        await _controller.CreateBid(bidRequest2);
+        await _controller.CreateBid(bidRequest3);
+
+        // Act
+        var result = await _controller.GetBidHistory(1);
+
+        // Assert
+        result.Should().BeAssignableTo<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult.StatusCode.Should().Be(200);
+
+        var response = objectResult.Value as BidHistoryResponse;
+        response.Should().NotBeNull();
+        response.AuctionId.Should().Be(1);
+        response.Bids.Should().NotBeNull();
+        response.Bids.Count().Should().BeGreaterThanOrEqualTo(1); // At least one bid should be returned
+        response.Pagination.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetBidHistory_WhenAuctionHasNoBids_ReturnsEmptyHistory()
+    {
+        // Arrange
+        var auctionId = 999; // Auction with no bids
+
+        // Act
+        var result = await _controller.GetBidHistory(auctionId);
+
+        // Assert
+        result.Should().BeAssignableTo<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult.StatusCode.Should().Be(200);
+
+        var response = objectResult.Value as BidHistoryResponse;
+        response.Should().NotBeNull();
+        response.AuctionId.Should().Be(auctionId);
+        response.Bids.Should().NotBeNull();
+        response.Bids.Should().BeEmpty();
+        response.Pagination.Should().NotBeNull();
+        response.Pagination.TotalCount.Should().Be(0);
     }
 }

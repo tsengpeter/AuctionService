@@ -1,5 +1,6 @@
 using BiddingService.Core.DTOs.Requests;
 using BiddingService.Core.DTOs.Responses;
+using BiddingService.Core.Exceptions;
 using BiddingService.Core.Interfaces;
 using BiddingService.Core.Validators;
 using BiddingService.Shared.Constants;
@@ -33,11 +34,32 @@ public class BidsController : ControllerBase
 
         _logger.LogInformation($"Creating bid for auction {request.AuctionId} by bidder {bidderId} with amount {request.Amount}");
 
-        var result = await _biddingService.CreateBidAsync(request, bidderId);
+        try
+        {
+            var result = await _biddingService.CreateBidAsync(request, bidderId);
 
-        _logger.LogInformation($"Bid created successfully: {result.BidId} for auction {request.AuctionId}");
+            _logger.LogInformation($"Bid created successfully: {result.BidId} for auction {request.AuctionId}");
 
-        return CreatedAtAction(nameof(CreateBid), new { id = result.BidId }, result);
+            return CreatedAtAction(nameof(CreateBid), new { id = result.BidId }, result);
+        }
+        catch (AuctionNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Auction not found when creating bid: {AuctionId}", ex.AuctionId);
+            return NotFound(new ErrorResponse
+            {
+                ErrorCode = ErrorCodes.AUCTION_NOT_FOUND,
+                Message = ex.Message
+            });
+        }
+        catch (BidAmountTooLowException ex)
+        {
+            _logger.LogWarning(ex, "Bid amount too low: {BidAmount}, current highest: {CurrentHighest}", ex.BidAmount, ex.CurrentHighestBid);
+            return BadRequest(new ErrorResponse
+            {
+                ErrorCode = ErrorCodes.BID_AMOUNT_TOO_LOW,
+                Message = ex.Message
+            });
+        }
     }
 
     [HttpGet("history/{auctionId}")]
