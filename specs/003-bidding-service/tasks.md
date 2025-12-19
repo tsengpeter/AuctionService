@@ -181,7 +181,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 - [x] T073 [P] [US3] Unit test for BiddingService.GetMyBidsAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
 - [x] T074 [P] [US3] Integration test for BidsController.GetMyBids in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
-- [ ] T075 [P] [US3] Unit test for AuctionServiceClient.GetAuctionsBatchAsync in tests/BiddingService.UnitTests/HttpClients/AuctionServiceClientTests.cs
+- [x] T075 [P] [US3] Unit test for AuctionServiceClient.GetAuctionsBatchAsync in tests/BiddingService.UnitTests/HttpClients/AuctionServiceClientTests.cs
 
 ### Implementation for User Story 3
 
@@ -190,7 +190,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T078 [US3] Add BidRepository.GetBidsByBidderIdHashAsync with pagination in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
 - [x] T079 [US3] Implement AuctionServiceClient.GetAuctionsBatchAsync for batch auction info in src/BiddingService.Infrastructure/HttpClients/AuctionServiceClient.cs
 - [x] T080 [US3] Implement BidsController.GetMyBids (GET /api/me/bids) in src/BiddingService.Api/Controllers/BidsController.cs
-- [ ] T081 [US3] Add caching for auction info (MemoryCache, 5 minutes TTL) in AuctionServiceClient
+- [x] T081 [US3] Add caching for auction info (MemoryCache, 5 minutes TTL) in AuctionServiceClient
 - [x] T082 [US3] Add logging for my bids query operations
 
 **Checkpoint**: User Story 3 fully functional - users can query their bid history with auction details, filtering works
@@ -206,7 +206,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 ### Tests for User Story 4
 
 - [x] T083 [P] [US4] Unit test for BiddingService.GetHighestBidAsync in tests/BiddingService.UnitTests/Services/BiddingServiceTests.cs
-- [ ] T084 [P] [US4] Integration test for BidsController.GetHighestBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
+- [x] T084 [P] [US4] Integration test for BidsController.GetHighestBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs
 - [ ] T085 [P] [US4] Integration test for RedisRepository.GetHighestBidAsync in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
 
 ### Implementation for User Story 4

@@ -2,6 +2,7 @@ using BiddingService.Core.DTOs.Requests;
 using BiddingService.Core.DTOs.Responses;
 using BiddingService.Core.Interfaces;
 using BiddingService.Core.Validators;
+using BiddingService.Shared.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -77,7 +78,16 @@ public class BidsController : ControllerBase
 
         var result = await _biddingService.GetHighestBidAsync(auctionId);
 
-        _logger.LogInformation($"Retrieved highest bid for auction {auctionId}: {result?.HighestBid?.Amount ?? 0}");
+        if (result.HighestBid == null)
+        {
+            return NotFound(new ErrorResponse
+            {
+                ErrorCode = ErrorCodes.BID_NOT_FOUND,
+                Message = $"No bids found for auction {auctionId}"
+            });
+        }
+
+        _logger.LogInformation($"Retrieved highest bid for auction {auctionId}: {result.HighestBid.Amount}");
 
         return Ok(result);
     }

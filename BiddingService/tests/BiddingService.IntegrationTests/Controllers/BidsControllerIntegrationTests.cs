@@ -229,7 +229,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
 
         // Setup Redis highest bid
         var highestBid = new Bid(3, 1, "other-bidder", "other-hash", new BidAmount(170.00m), DateTime.UtcNow);
-        await _redisConnection.GetDatabase().HashSetAsync($"auction:1:highest", new HashEntry[]
+        await _redisConnection.GetDatabase().HashSetAsync($"highest_bid:1", new HashEntry[]
         {
             new HashEntry("bidId", highestBid.BidId),
             new HashEntry("auctionId", highestBid.AuctionId),
@@ -252,5 +252,80 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         response.Bids.Should().Contain(b => b.BidId == 1 && b.Amount == 150.00m);
         response.Bids.Should().Contain(b => b.BidId == 2 && b.Amount == 160.00m);
         response.Pagination.TotalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetHighestBid_WhenBidExistsInRedis_ReturnsHighestBidFromRedis()
+    {
+        // Arrange
+        var auctionId = 100L;
+        var highestBid = new Bid(999, auctionId, "test-bidder", "test-hash", new BidAmount(250.00m), DateTime.UtcNow);
+
+        // Setup Redis highest bid
+        await _redisConnection.GetDatabase().HashSetAsync($"highest_bid:{auctionId}", new HashEntry[]
+        {
+            new HashEntry("bidId", highestBid.BidId),
+            new HashEntry("auctionId", highestBid.AuctionId),
+            new HashEntry("bidderId", highestBid.BidderId),
+            new HashEntry("bidderIdHash", highestBid.BidderIdHash),
+            new HashEntry("amount", highestBid.Amount.Value.ToString()),
+            new HashEntry("bidAt", highestBid.BidAt.ToString("O"))
+        });
+
+        // Act
+        var result = await _controller.GetHighestBid(auctionId);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result as OkObjectResult;
+        okResult.Value.Should().BeOfType<HighestBidResponse>();
+
+        var response = okResult.Value as HighestBidResponse;
+        response.AuctionId.Should().Be(auctionId);
+        response.HighestBid.Should().NotBeNull();
+        response.HighestBid!.BidId.Should().Be(999);
+        response.HighestBid!.Amount.Should().Be(250.00m);
+    }
+
+    [Fact]
+    public async Task GetHighestBid_WhenBidExistsInDatabaseOnly_ReturnsHighestBidFromDatabase()
+    {
+        // Arrange
+        var auctionId = 200L;
+        var bid1 = new Bid(201, auctionId, "bidder1", "hash1", new BidAmount(100.00m), DateTime.UtcNow.AddMinutes(-10));
+        var bid2 = new Bid(202, auctionId, "bidder2", "hash2", new BidAmount(150.00m), DateTime.UtcNow.AddMinutes(-5));
+        var bid3 = new Bid(203, auctionId, "bidder3", "hash3", new BidAmount(120.00m), DateTime.UtcNow.AddMinutes(-3));
+
+        await _dbContext.Bids.AddRangeAsync(bid1, bid2, bid3);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetHighestBid(auctionId);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result as OkObjectResult;
+        okResult.Value.Should().BeOfType<HighestBidResponse>();
+
+        var response = okResult.Value as HighestBidResponse;
+        response.AuctionId.Should().Be(auctionId);
+        response.HighestBid.Should().NotBeNull();
+        response.HighestBid!.BidId.Should().Be(202); // bid2 has the highest amount
+        response.HighestBid!.Amount.Should().Be(150.00m);
+    }
+
+    [Fact]
+    public async Task GetHighestBid_WhenNoBidsExist_ReturnsNotFound()
+    {
+        // Arrange
+        var auctionId = 999L;
+
+        // Act
+        var result = await _controller.GetHighestBid(auctionId);
+
+        // Assert
+        result.Should().BeOfType<NotFoundObjectResult>();
+        var notFoundResult = result as NotFoundObjectResult;
+        notFoundResult.Value.Should().NotBeNull();
     }
 }

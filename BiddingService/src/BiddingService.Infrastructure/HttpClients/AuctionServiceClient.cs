@@ -67,6 +67,7 @@ public class AuctionServiceClient : IAuctionServiceClient
         // Fetch missing auctions from service
         if (missingAuctionIds.Any())
         {
+            bool batchSuccess = false;
             try
             {
                 var requestContent = JsonSerializer.Serialize(new { auctionIds = missingAuctionIds });
@@ -82,11 +83,17 @@ public class AuctionServiceClient : IAuctionServiceClient
                         _cache.Set($"auction:{auction.Id}", auction, TimeSpan.FromMinutes(5));
                         auctionInfos.Add(auction);
                     }
+                    batchSuccess = true;
                 }
             }
             catch
             {
-                // If batch fetch fails, try individual fetches for missing auctions
+                // Batch request threw exception, will fall back to individual requests
+            }
+
+            // If batch fetch fails, try individual fetches for missing auctions
+            if (!batchSuccess)
+            {
                 foreach (var auctionId in missingAuctionIds)
                 {
                     var auction = await GetAuctionAsync(auctionId);
