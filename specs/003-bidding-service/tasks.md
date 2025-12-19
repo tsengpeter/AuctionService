@@ -235,11 +235,11 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Implementation for User Story 5
 
-- [ ] T094 [P] [US5] Create AuctionStatsResponse DTO in src/BiddingService.Core/DTOs/Responses/AuctionStatsResponse.cs
-- [ ] T095 [US5] Implement BiddingService.GetAuctionStatsAsync in src/BiddingService.Core/Services/BiddingService.cs
-- [ ] T096 [US5] Add BidRepository.GetAuctionStatsAsync (aggregate queries) in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
-- [ ] T097 [US5] Implement BidsController.GetAuctionStats (GET /api/auctions/{auctionId}/stats) in src/BiddingService.Api/Controllers/BidsController.cs
-- [ ] T098 [US5] Add logging for stats query operations
+- [x] T094 [P] [US5] Create AuctionStatsResponse DTO in src/BiddingService.Core/DTOs/Responses/AuctionStatsResponse.cs
+- [x] T095 [US5] Implement BiddingService.GetAuctionStatsAsync in src/BiddingService.Core/Services/BiddingService.cs
+- [x] T096 [US5] Add BidRepository.GetAuctionStatsAsync (aggregate queries) in src/BiddingService.Infrastructure/Repositories/BidRepository.cs
+- [x] T097 [US5] Implement BidsController.GetAuctionStats (GET /api/auctions/{auctionId}/stats) in src/BiddingService.Api/Controllers/BidsController.cs
+- [x] T098 [US5] Add logging for stats query operations
 
 **Checkpoint**: All user stories (US1-US5) are independently functional
 

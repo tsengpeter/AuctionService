@@ -9,4 +9,5 @@ public interface IBiddingService
     Task<BidHistoryResponse> GetBidHistoryAsync(long auctionId, int page = 1, int pageSize = 50);
     Task<MyBidsResponse> GetMyBidsAsync(string bidderId, int page = 1, int pageSize = 50);
     Task<HighestBidResponse> GetHighestBidAsync(long auctionId);
+    Task<AuctionStatsResponse> GetAuctionStatsAsync(long auctionId);
 }

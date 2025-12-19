@@ -246,4 +246,51 @@ public class BiddingService : IBiddingService
             }
         };
     }
+
+    public async Task<AuctionStatsResponse> GetAuctionStatsAsync(long auctionId)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        // Get auction basic info for starting price
+        var auction = await _auctionServiceClient.GetAuctionAsync(auctionId);
+        if (auction == null)
+        {
+            _logger.LogWarning("Auction {AuctionId} not found when getting stats", auctionId);
+            throw new AuctionNotFoundException(auctionId);
+        }
+
+        // Get current highest bid from Redis
+        var highestBid = await _redisRepository.GetHighestBidAsync(auctionId);
+
+        // Get stats from database
+        var statsData = await _bidRepository.GetAuctionStatsAsync(auctionId);
+
+        // Calculate price growth rate
+        decimal? priceGrowthRate = null;
+        if (highestBid != null && auction.StartingPrice > 0)
+        {
+            priceGrowthRate = ((highestBid.Amount.Value - auction.StartingPrice) / auction.StartingPrice) * 100;
+        }
+
+        stopwatch.Stop();
+
+        _logger.LogInformation(
+            "Retrieved auction stats for auction {AuctionId}, total bids {TotalBids}, unique bidders {UniqueBidders}, query time {QueryTime}ms",
+            auctionId, statsData.TotalBids, statsData.UniqueBidders, stopwatch.ElapsedMilliseconds);
+
+        return new AuctionStatsResponse
+        {
+            AuctionId = auctionId,
+            TotalBids = statsData.TotalBids,
+            UniqueBidders = statsData.UniqueBidders,
+            StartingPrice = auction.StartingPrice,
+            CurrentHighestBid = highestBid?.Amount.Value,
+            AverageBidAmount = statsData.AverageBidAmount,
+            PriceGrowthRate = priceGrowthRate,
+            FirstBidAt = statsData.FirstBidAt,
+            LastBidAt = statsData.LastBidAt,
+            BidsInLastHour = statsData.BidsInLastHour,
+            BidsInLast24Hours = statsData.BidsInLast24Hours
+        };
+    }
 }
