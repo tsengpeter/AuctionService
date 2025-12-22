@@ -38,35 +38,37 @@ This service follows Clean Architecture principles with the following layers:
 
 - .NET 10 SDK
 - Docker and Docker Compose
-- PostgreSQL 14+
-- Redis 7+
 
-### Running Locally
+### Running with Docker Compose
 
-1. Clone the repository
-2. Navigate to the BiddingService directory
-3. Start dependencies:
-   ```bash
-   docker-compose up -d
-   ```
-4. Run the application:
-   ```bash
-   dotnet run --project src/BiddingService.Api
-   ```
-5. Run tests:
-   ```bash
-   dotnet test
-   ```
+```bash
+# Start all services (PostgreSQL, Redis, API)
+docker-compose up -d --build
 
-### Configuration
+# View logs
+docker-compose logs -f
 
-The service uses the following environment variables:
+# Stop all services
+docker-compose down
+```
 
-- `ConnectionStrings__Database`: PostgreSQL connection string
-- `ConnectionStrings__Redis`: Redis connection string
-- `AuctionService__BaseUrl`: Auction service base URL
-- `Encryption__Key`: AES encryption key (32 bytes, base64 encoded)
-- `Encryption__IV`: AES initialization vector (16 bytes, base64 encoded)
+### Running Locally (without Docker)
+
+```bash
+# Make sure PostgreSQL and Redis are running
+dotnet run --project src/BiddingService.Api
+```
+
+### Access the API
+
+- Swagger UI: http://localhost:5107 (HTTP) or https://localhost:7276 (HTTPS)
+- Health check: http://localhost:5107/health
+
+### Run Tests
+
+```bash
+dotnet test
+```
 
 ## API Endpoints
 
@@ -112,12 +114,29 @@ tests/
 
 ## Deployment
 
-The service is containerized and can be deployed using Docker:
+### Using Docker Compose
 
 ```bash
-docker build -t biddingservice .
-docker run -p 8080:80 biddingservice
+docker-compose up -d --build
 ```
+
+### Using Docker
+
+```bash
+# Build image
+docker build -f Dockerfile -t biddingservice:latest ./src
+
+# Run container
+docker run -p 5107:8080 -p 7276:8081 \
+  -e ConnectionStrings__DefaultConnection="Host=biddingservice-db;Port=5432;Database=biddingservice_dev;Username=biddingservice;Password=Dev@Password123" \
+  -e ConnectionStrings__Redis="biddingservice-redis:6379" \
+  -e AuctionService__BaseUrl="http://auctionservice-api:8080" \
+  -e Encryption__Key="your-key" \
+  -e Encryption__IV="your-iv" \
+  biddingservice:latest
+```
+
+**Note**: Update environment variables for production use.
 
 ## Monitoring
 

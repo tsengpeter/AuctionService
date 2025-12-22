@@ -3,10 +3,10 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy csproj files and restore dependencies
-COPY ["BiddingService.Api/BiddingService.Api.csproj", "BiddingService.Api/"]
-COPY ["BiddingService.Core/BiddingService.Core.csproj", "BiddingService.Core/"]
-COPY ["BiddingService.Infrastructure/BiddingService.Infrastructure.csproj", "BiddingService.Infrastructure/"]
-COPY ["BiddingService.Shared/BiddingService.Shared.csproj", "BiddingService.Shared/"]
+COPY ["src/BiddingService.Api/BiddingService.Api.csproj", "BiddingService.Api/"]
+COPY ["src/BiddingService.Core/BiddingService.Core.csproj", "BiddingService.Core/"]
+COPY ["src/BiddingService.Infrastructure/BiddingService.Infrastructure.csproj", "BiddingService.Infrastructure/"]
+COPY ["src/BiddingService.Shared/BiddingService.Shared.csproj", "BiddingService.Shared/"]
 
 RUN dotnet restore "BiddingService.Api/BiddingService.Api.csproj"
 
