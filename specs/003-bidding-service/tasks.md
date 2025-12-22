@@ -30,7 +30,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T003 [P] Initialize BiddingService.Core project with .NET 10 class library
 - [x] T004 [P] Initialize BiddingService.Infrastructure project with .NET 10 class library
 - [x] T005 [P] Initialize BiddingService.Shared project with .NET 10 class library
-- [x] T006 [P] Create docker-compose.yml with PostgreSQL 14 and Redis 7 containers
+- [x] T006 [P] Create docker-compose.yml with PostgreSQL 16 and Redis 7 containers
 - [x] T007 [P] Create Dockerfile for multi-stage production build
 - [x] T008 [P] Configure .gitignore, .editorconfig, global.json (SDK 10.0)
 - [x] T009 Add NuGet packages to BiddingService.Api (Serilog, Prometheus.NET, Swashbuckle)
@@ -407,7 +407,7 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - **Tests are included** per憲法原則 II (TDD requirement) and SC-005 (> 80% coverage)
-- **PostgreSQL 14+** and **Redis 7** via Docker Compose (docker-compose.yml)
+- **PostgreSQL 16** and **Redis 7** via Docker Compose (docker-compose.yml)
 - **Snowflake ID** (64-bit Long) via IdGen package
 - **AES-256-GCM encryption** for Amount and BidderId fields
 - **Correlation ID tracking** via X-Correlation-ID header

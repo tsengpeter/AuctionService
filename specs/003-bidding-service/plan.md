@@ -32,7 +32,7 @@
 - **監控**: Prometheus.NET (metrics), OpenTelemetry (optional 未來升級)
 
 **Storage**: 
-- **Primary**: PostgreSQL 14+ (持久化存儲，加密敏感欄位)
+- **Primary**: PostgreSQL 16 (持久化存儲，加密敏感欄位)
 - **Cache/Write Layer**: Redis 7+ (AOF 持久化，寫入層)
 - **Key Vault**: Azure Key Vault (加密金鑰管理)
 
@@ -332,7 +332,7 @@ BiddingService/                              # 專案根目錄 (所有內容在�
 ### 開發環境（Local Development）
 
 **資料庫部署方式**:
-- **選項 A（推薦）**: 使用 Docker Compose 同時執行 PostgreSQL 14 + Redis 7
+- **選項 A（推薦）**: 使用 Docker Compose 同時執行 PostgreSQL 16 + Redis 7
   ```bash
   # docker-compose.yml 已包含 PostgreSQL 和 Redis 配置
   docker-compose up -d
@@ -341,7 +341,7 @@ BiddingService/                              # 專案根目錄 (所有內容在�
   docker-compose ps
   # 預期輸出: postgres_bidding (Up), redis_bidding (Up)
   ```
-- **選項 B**: 本機安裝 PostgreSQL 14 + Redis 7（Windows/macOS/Linux）
+- **選項 B**: 本機安裝 PostgreSQL 16 + Redis 7（Windows/macOS/Linux）
 
 **連線字串**:
 ```bash

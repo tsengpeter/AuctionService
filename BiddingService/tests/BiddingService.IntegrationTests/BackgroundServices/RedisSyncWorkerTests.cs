@@ -21,7 +21,7 @@ public class RedisSyncWorkerTests : IAsyncLifetime
     public RedisSyncWorkerTests()
     {
         _postgresContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:14")
+            .WithImage("postgres:16")
             .WithDatabase("biddingservice_test")
             .WithUsername("postgres")
             .WithPassword("password")

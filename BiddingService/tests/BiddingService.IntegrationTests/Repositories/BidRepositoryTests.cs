@@ -21,7 +21,7 @@ public class BidRepositoryTests : IAsyncLifetime
     {
         // Create PostgreSQL container (don't start yet)
         _postgresContainer = new ContainerBuilder()
-            .WithImage("postgres:14")
+            .WithImage("postgres:16")
             .WithEnvironment("POSTGRES_DB", "bidding_test")
             .WithEnvironment("POSTGRES_USER", "testuser")
             .WithEnvironment("POSTGRES_PASSWORD", "testpass")

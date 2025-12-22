@@ -450,7 +450,7 @@ public async Task<bool> TrySyncBidWithRetryAsync(long bidId)
 public class PostgreSqlFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:14")
+        .WithImage("postgres:16")
         .WithDatabase("biddingservice_test")
         .WithUsername("test")
         .WithPassword("test")

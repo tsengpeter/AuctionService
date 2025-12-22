@@ -74,7 +74,7 @@ docker-compose up -d
 docker-compose ps
 # 預期輸出:
 # NAME                IMAGE               STATUS
-# postgres_bidding    postgres:14         Up
+# postgres_bidding    postgres:16-alpine  Up
 # redis_bidding       redis:7-alpine      Up
 ```
 
@@ -84,7 +84,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:14-alpine
+    image: postgres:16-alpine
     container_name: postgres_bidding
     environment:
       POSTGRES_DB: bidding_dev
