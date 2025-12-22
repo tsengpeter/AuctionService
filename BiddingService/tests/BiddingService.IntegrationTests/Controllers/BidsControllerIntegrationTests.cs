@@ -20,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using StackExchange.Redis;
 using System.Net;
 using System.Text.Json;
@@ -63,11 +64,11 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         await _postgresContainer.StartAsync();
         await _redisContainer.StartAsync();
 
-        // Wait for PostgreSQL to be ready
-        await Task.Delay(5000); // Wait 5 seconds for PostgreSQL to initialize
+        // Wait for PostgreSQL to be ready with retry logic
+        await WaitForPostgresReady();
 
         // Setup database context
-        var postgresConnectionString = $"Host=localhost;Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+        var postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
             .UseNpgsql(postgresConnectionString)
             .Options;
@@ -569,5 +570,26 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         response.Bids.Should().BeEmpty();
         response.Pagination.Should().NotBeNull();
         response.Pagination.TotalCount.Should().Be(0);
+    }
+
+    private async Task WaitForPostgresReady()
+    {
+        var connectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+        
+        for (int i = 0; i < 30; i++) // Try for up to 30 seconds
+        {
+            try
+            {
+                await using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+                return; // Success
+            }
+            catch
+            {
+                await Task.Delay(1000); // Wait 1 second before retry
+            }
+        }
+        
+        throw new Exception("PostgreSQL container did not become ready within 30 seconds");
     }
 }

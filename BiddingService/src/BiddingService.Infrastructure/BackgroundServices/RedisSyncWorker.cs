@@ -141,5 +141,11 @@ public class RedisSyncWorker : BackgroundService
 
         _logger.LogInformation("Sync completed: {SyncedCount} bids synced, {FailedCount} failed, {RemainingCount} remaining in queue",
             syncedCount, failedCount, deadLetterBids.Count() - syncedCount - failedCount);
+
+        // If all bids failed to sync, throw an exception to trigger retry
+        if (syncedCount == 0 && failedCount > 0)
+        {
+            throw new Exception($"Failed to sync any bids from dead letter queue. {failedCount} bids failed.");
+        }
     }
 }

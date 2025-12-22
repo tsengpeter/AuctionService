@@ -4,6 +4,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Net;
+using System.Text.RegularExpressions;
+using WireMock.Matchers;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 using WireMock.Server;
@@ -15,16 +17,17 @@ public class AuctionServiceContractTests : IAsyncLifetime
 {
     private readonly WireMockServer _mockServer;
     private readonly AuctionServiceClient _client;
-    private readonly Mock<IMemoryCache> _cacheMock;
+    private readonly IMemoryCache _cache;
 
     public AuctionServiceContractTests()
     {
         _mockServer = WireMockServer.Start();
-        _cacheMock = new Mock<IMemoryCache>();
+        // Use real MemoryCache instead of mock to avoid Moq issues with out parameters
+        _cache = new MemoryCache(new MemoryCacheOptions());
 
         // Create client with mock server URL
         var httpClient = new HttpClient { BaseAddress = new Uri(_mockServer.Url) };
-        _client = new AuctionServiceClient(httpClient, _cacheMock.Object);
+        _client = new AuctionServiceClient(httpClient, _cache);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -51,7 +54,7 @@ public class AuctionServiceContractTests : IAsyncLifetime
         };
 
         _mockServer
-            .Given(Request.Create().WithPath($"/api/auctions/{auctionId}/basic").UsingGet())
+            .Given(Request.Create().WithPath($"/api/auctions/{auctionId}").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
@@ -82,7 +85,7 @@ public class AuctionServiceContractTests : IAsyncLifetime
         var auctionId = 999L;
 
         _mockServer
-            .Given(Request.Create().WithPath($"/api/auctions/{auctionId}/basic").UsingGet())
+            .Given(Request.Create().WithPath($"/api/auctions/{auctionId}").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(404));
 
         // Act
@@ -118,7 +121,9 @@ public class AuctionServiceContractTests : IAsyncLifetime
         };
 
         _mockServer
-            .Given(Request.Create().WithPath("/api/auctions/batch").UsingPost())
+            .Given(Request.Create()
+                .WithPath("/api/auctions/batch")
+                .UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
@@ -143,6 +148,10 @@ public class AuctionServiceContractTests : IAsyncLifetime
         // Act
         var result = await _client.GetAuctionsBatchAsync(auctionIds);
 
+        // Debug: Check if WireMock received any requests
+        var logEntries = _mockServer.LogEntries;
+        Assert.NotEmpty(logEntries); // Ensure at least one request was made
+
         // Assert
         Assert.NotNull(result);
         var auctions = result.ToList();
@@ -160,7 +169,9 @@ public class AuctionServiceContractTests : IAsyncLifetime
         var auctionIds = new[] { 123L, 999L }; // 999 doesn't exist
 
         _mockServer
-            .Given(Request.Create().WithPath("/api/auctions/batch").UsingPost())
+            .Given(Request.Create()
+                .WithPath("/api/auctions/batch")
+                .UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")

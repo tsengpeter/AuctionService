@@ -190,11 +190,11 @@ public class BiddingServiceTests
             new Bid(2, auctionId, "bidder2", "hash2", new BidAmount(150), DateTime.UtcNow)
         };
 
-        _redisRepositoryMock
-            .Setup(x => x.GetBidHistoryAsync(auctionId, page, pageSize))
+        _bidRepositoryMock
+            .Setup(x => x.GetBidsByAuctionAsync(auctionId, page, pageSize))
             .ReturnsAsync(bids);
 
-        _redisRepositoryMock
+        _bidRepositoryMock
             .Setup(x => x.GetBidCountAsync(auctionId))
             .ReturnsAsync(2);
 

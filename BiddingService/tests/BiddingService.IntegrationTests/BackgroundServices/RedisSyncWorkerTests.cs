@@ -2,6 +2,9 @@ using BiddingService.Core.Entities;
 using BiddingService.Core.Interfaces;
 using BiddingService.Core.ValueObjects;
 using BiddingService.Infrastructure.BackgroundServices;
+using BiddingService.Infrastructure.Data;
+using BiddingService.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -15,7 +18,7 @@ public class RedisSyncWorkerTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgresContainer;
     private readonly RedisContainer _redisContainer;
-    private readonly IServiceProvider _serviceProvider;
+    private IServiceProvider _serviceProvider;
     private readonly Mock<ILogger<RedisSyncWorker>> _loggerMock;
 
     public RedisSyncWorkerTests()
@@ -32,17 +35,32 @@ public class RedisSyncWorkerTests : IAsyncLifetime
             .Build();
 
         _loggerMock = new Mock<ILogger<RedisSyncWorker>>();
-
-        var services = new ServiceCollection();
-        // Configure services for testing
-        services.AddSingleton<ILogger<RedisSyncWorker>>(_loggerMock.Object);
-        _serviceProvider = services.BuildServiceProvider();
     }
 
     public async Task InitializeAsync()
     {
         await _postgresContainer.StartAsync();
         await _redisContainer.StartAsync();
+
+        var services = new ServiceCollection();
+        // Configure services for testing
+        services.AddSingleton<ILogger<RedisSyncWorker>>(_loggerMock.Object);
+        
+        // Add Redis connection
+        var redisConnectionString = $"{_redisContainer.Hostname}:{_redisContainer.GetMappedPublicPort(6379)}";
+        services.AddSingleton<IRedisConnection>(new RedisConnection(redisConnectionString));
+        services.AddSingleton<IRedisRepository, RedisRepository>();
+        
+        // Add PostgreSQL connection and BidRepository for RedisSyncWorker
+        var postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=biddingservice_test;Username=postgres;Password=password;SSL Mode=Disable";
+        var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
+            .UseNpgsql(postgresConnectionString)
+            .Options;
+        var dbContext = new BiddingDbContext(dbContextOptions);
+        await dbContext.Database.EnsureCreatedAsync();
+        services.AddSingleton<IBidRepository>(new BidRepository(dbContext));
+        
+        _serviceProvider = services.BuildServiceProvider();
     }
 
     public async Task DisposeAsync()
@@ -91,6 +109,22 @@ public class RedisSyncWorkerTests : IAsyncLifetime
         // Arrange
         var worker = new RedisSyncWorker(_serviceProvider, _loggerMock.Object);
 
+        // Create test bid and add to dead letter queue
+        var bid = new Bid(
+            1234567890123456789L, // Test ID
+            1,
+            "test-bidder",
+            "hashed-bidder",
+            new BidAmount(100.00m),
+            DateTime.UtcNow,
+            false
+        );
+
+        // Add bid to dead letter queue first
+        using var scope = _serviceProvider.CreateScope();
+        var redisRepo = scope.ServiceProvider.GetRequiredService<IRedisRepository>();
+        await redisRepo.AddToDeadLetterQueueAsync(bid);
+
         // Mock repository to always fail
         var mockBidRepo = new Mock<IBidRepository>();
         mockBidRepo.Setup(x => x.GetByIdAsync(It.IsAny<long>())).ThrowsAsync(new Exception("Database error"));
@@ -98,7 +132,8 @@ public class RedisSyncWorkerTests : IAsyncLifetime
 
         var services = new ServiceCollection();
         services.AddSingleton<IBidRepository>(mockBidRepo.Object);
-        services.AddSingleton<IRedisRepository>(Mock.Of<IRedisRepository>());
+        services.AddSingleton<IRedisRepository>(redisRepo); // Use real Redis repo to get the bid
+        services.AddSingleton<IRedisConnection>(new RedisConnection($"{_redisContainer.Hostname}:{_redisContainer.GetMappedPublicPort(6379)}"));
         services.AddSingleton<ILogger<RedisSyncWorker>>(_loggerMock.Object);
         var failingServiceProvider = services.BuildServiceProvider();
 

@@ -49,6 +49,13 @@ public class BiddingService : IBiddingService
             throw new AuctionNotActiveException(request.AuctionId);
         }
 
+        // Check if bidder already has a bid on this auction
+        var existingBid = await _redisRepository.GetBidAsync(request.AuctionId, bidderId);
+        if (existingBid != null)
+        {
+            throw new DuplicateBidException(request.AuctionId, bidderId);
+        }
+
         // Get current highest bid
         var highestBid = await _redisRepository.GetHighestBidAsync(request.AuctionId);
         if (highestBid != null && request.Amount <= highestBid.Amount.Value)
