@@ -17,12 +17,6 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// Add Application Insights
-builder.Services.AddApplicationInsightsTelemetry();
-
-// Add OpenTelemetry (optional future enhancement)
-builder.Services.AddOpenTelemetry();
-
 // Add services to the container.
 builder.Services.AddControllers(options =>
 {

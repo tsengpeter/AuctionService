@@ -32,10 +32,24 @@ public class RedisSyncWorker : BackgroundService
                 await SyncDeadLetterQueueWithRetryInternalAsync(stoppingToken);
                 await Task.Delay(_syncInterval, stoppingToken);
             }
+            catch (TaskCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // Expected when application is shutting down
+                _logger.LogInformation("RedisSyncWorker stopping");
+                break;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in RedisSyncWorker");
-                await Task.Delay(_syncInterval, stoppingToken);
+                try
+                {
+                    await Task.Delay(_syncInterval, stoppingToken);
+                }
+                catch (TaskCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("RedisSyncWorker stopping");
+                    break;
+                }
             }
         }
 
