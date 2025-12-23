@@ -302,12 +302,12 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ### Load Testing Tasks
 
-- [ ] T123 [P] Load test for concurrent bidding (1000 requests) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
-- [ ] T124 [P] Load test for highest bid queries (5000 concurrent reads) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
-- [ ] T125 [P] Load test for bid history queries (1000 concurrent paginated reads) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
-- [ ] T126 [P] Load test for mixed read/write scenario (500 bids + 2000 queries) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
-- [ ] T127 [P] Load test for error handling under high concurrency (invalid bids) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
-- [ ] T128 [P] Load test for multi-auction concurrent bidding (10 auctions, 100 bids each) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [x] T123 [P] Load test for concurrent bidding (1000 requests) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [x] T124 [P] Load test for highest bid queries (5000 concurrent reads) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [x] T125 [P] Load test for bid history queries (1000 concurrent paginated reads) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [x] T126 [P] Load test for mixed read/write scenario (500 bids + 2000 queries) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [x] T127 [P] Load test for error handling under high concurrency (invalid bids) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [x] T128 [P] Load test for multi-auction concurrent bidding (10 auctions, 100 bids each) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
 
 **Checkpoint**: 所有壓測情境通過效能目標（出價 < 100ms P95, 查詢 < 200ms P95, 最高出價 < 50ms P95），系統穩定無崩潰。
 

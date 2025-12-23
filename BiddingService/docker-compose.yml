@@ -41,7 +41,7 @@ services:
       - ASPNETCORE_URLS=http://+:8080;https://+:8081
       - ASPNETCORE_Kestrel__Certificates__Default__Password=password
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
-      - ConnectionStrings__BiddingDatabase=Host=biddingservice-db;Port=5432;Database=biddingservice_dev;Username=biddingservice;Password=Dev@Password123
+      - ConnectionStrings__BiddingDatabase=Host=auctionservice-db;Port=5432;Database=biddingservice_dev;Username=biddingservice;Password=Dev@Password123
       - Redis__ConnectionString=biddingservice-redis:6379
       - AuctionService__BaseUrl=http://auctionservice-api:8080
       - Encryption__Key=Your32CharacterEncryptionKeyHere123

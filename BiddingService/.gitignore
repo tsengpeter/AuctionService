@@ -48,9 +48,19 @@ build/
 logs/
 *.log
 
+# Load Test Reports
+loadtests/**/reports/
+loadtests/**/*.html
+loadtests/**/*.txt
+loadtests/**/*.csv
+loadtests/**/*.md
+
 # Database
 *.db
 *.sqlite
 
 # Secrets
 secrets.json
+
+# Scripts (temporary test data)
+scripts/seed-test-data.sql

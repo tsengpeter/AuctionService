@@ -11,7 +11,7 @@ COPY ["src/BiddingService.Shared/BiddingService.Shared.csproj", "BiddingService.
 RUN dotnet restore "BiddingService.Api/BiddingService.Api.csproj"
 
 # Copy everything else and build
-COPY . .
+COPY src/ .
 WORKDIR "/src/BiddingService.Api"
 RUN dotnet build "BiddingService.Api.csproj" -c Release -o /app/build
 
