@@ -125,7 +125,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T048 [P] [US1] Unit test for EncryptionService in tests/BiddingService.UnitTests/Infrastructure/EncryptionServiceTests.cs
 - [x] T049 [P] [US1] Integration test for BidsController.CreateBid in tests/BiddingService.IntegrationTests/Controllers/BidsControllerIntegrationTests.cs (with Testcontainers)
 - [x] T050 [P] [US1] Integration test for RedisRepository.PlaceBidAsync (Lua script) in tests/BiddingService.IntegrationTests/Repositories/RedisRepositoryTests.cs
-- [x] T051 [P] [US1] Load test for concurrent bidding (1000 requests) in tests/BiddingService.LoadTests/ConcurrentBiddingTests.cs
+- [ ] T051 [P] [US1] Load test for concurrent bidding (1000 requests) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
 
 ### Implementation for User Story 1
 
@@ -294,6 +294,25 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 
 ---
 
+## Phase 11: Load Testing (壓測)
+
+**Purpose**: 驗證系統在高負載下的效能、穩定性和錯誤處理能力，使用 NBomber 實作多種情境測試。
+
+**Prerequisites**: 所有整合測試完成（Phase 10 的 T122），部署之前執行。
+
+### Load Testing Tasks
+
+- [ ] T123 [P] Load test for concurrent bidding (1000 requests) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [ ] T124 [P] Load test for highest bid queries (5000 concurrent reads) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [ ] T125 [P] Load test for bid history queries (1000 concurrent paginated reads) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [ ] T126 [P] Load test for mixed read/write scenario (500 bids + 2000 queries) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [ ] T127 [P] Load test for error handling under high concurrency (invalid bids) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+- [ ] T128 [P] Load test for multi-auction concurrent bidding (10 auctions, 100 bids each) in loadtests/BiddingService.LoadTests/Program.cs (NBomber)
+
+**Checkpoint**: 所有壓測情境通過效能目標（出價 < 100ms P95, 查詢 < 200ms P95, 最高出價 < 50ms P95），系統穩定無崩潰。
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -306,6 +325,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - **Background Worker (Phase 8)**: Depends on Foundational (can run in parallel with user stories)
 - **Additional Endpoints (Phase 9)**: Depends on Foundational + US1 data model
 - **Polish (Phase 10)**: Depends on all user stories being complete
+- **Load Testing (Phase 11)**: Depends on Phase 10 completion - MUST pass before deployment
 
 ### User Story Dependencies
 

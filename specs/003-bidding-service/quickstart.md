@@ -190,7 +190,7 @@ cd tests/BiddingService.IntegrationTests
 dotnet test
 
 # 負載測試 (選用)
-cd tests/BiddingService.LoadTests
+cd loadtests/BiddingService.LoadTests
 dotnet run
 ```
 
@@ -274,7 +274,9 @@ BiddingService/                              # 專案根目錄
 │
 ├── tests/
 │   ├── BiddingService.UnitTests/
-│   ├── BiddingService.IntegrationTests/
+│   └── BiddingService.IntegrationTests/
+│
+├── loadtests/
 │   └── BiddingService.LoadTests/
 │
 ├── scripts/
@@ -466,7 +468,7 @@ Npgsql.PostgresException: duplicate key value violates unique constraint "PK_Bid
 ### 使用 LoadTests 專案
 
 ```powershell
-cd tests/BiddingService.LoadTests
+cd loadtests/BiddingService.LoadTests
 dotnet run
 
 # 預期輸出:

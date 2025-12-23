@@ -669,9 +669,13 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 - [ ] Redis 快取命中率 > 90%
 
 ### SC-003: 併發正確性
-- [ ] 通過 100 併發使用者同時出價的壓力測試
+- [ ] 通過 1000 併發使用者同時出價的壓力測試
+- [ ] 通過 5000 併發使用者同時查詢最高出價的壓力測試
+- [ ] 通過混合讀寫場景的壓力測試（500 出價 + 2000 查詢）
+- [ ] 通過多商品併發測試（10 個商品，各 100 個出價）
 - [ ] 無重複得標者 (同一商品只有一個最高出價)
 - [ ] 併發衝突正確回傳 409 錯誤
+- [ ] 高併發下錯誤處理穩定，系統無崩潰
 
 ### SC-004: 資料一致性
 - [ ] 所有出價永久保存於 PostgreSQL,無遺失
@@ -684,6 +688,20 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 - [ ] 單元測試覆蓋率 > 80%
 - [ ] 整合測試覆蓋所有 API 端點
 - [ ] 包含併發場景測試
+- [ ] 負載測試（Load Testing）覆蓋所有核心 API（使用 NBomber）
+  - 併發出價測試（1000 requests）
+  - 最高出價查詢測試（5000 concurrent reads）
+  - 出價歷史查詢測試（1000 concurrent paginated reads）
+  - 混合讀寫場景測試（500 bids + 2000 queries）
+  - 錯誤處理壓測（invalid bids under high concurrency）
+  - 多商品併發測試（10 auctions, 100 bids each）
+- [ ] 負載測試（Load Testing）覆蓋所有核心 API（使用 NBomber）
+  - 併發出價測試（1000 requests）
+  - 最高出價查詢測試（5000 concurrent reads）
+  - 出價歷史查詢測試（1000 concurrent paginated reads）
+  - 混合讀寫場景測試（500 bids + 2000 queries）
+  - 錯誤處理壓測（invalid bids under high concurrency）
+  - 多商品併發測試（10 auctions, 100 bids each）
 
 ### SC-006: 錯誤處理
 - [ ] 所有錯誤情境有對應的 HTTP 狀態碼

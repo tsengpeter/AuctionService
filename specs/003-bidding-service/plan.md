@@ -278,9 +278,10 @@ BiddingService/                              # 專案根目錄 (所有內容在�
 │   │   ├── BackgroundServices/
 │   │   │   └── RedisSyncWorkerTests.cs
 │   │   └── BiddingService.IntegrationTests.csproj
-│   │
-│   └── BiddingService.LoadTests/            # 負載測試 (NBomber/K6)
-│       ├── ConcurrentBiddingTests.cs        # 併發出價測試
+│
+├── loadtests/                               # 負載測試專案 (NBomber/K6)
+│   └── BiddingService.LoadTests/            # 負載測試
+│       ├── Program.cs                        # NBomber 壓測實作
 │       └── BiddingService.LoadTests.csproj
 │
 ├── scripts/                                 # 輔助建置腳本
