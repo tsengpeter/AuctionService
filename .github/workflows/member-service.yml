@@ -1,16 +1,16 @@
-name: AuctionService CI/CD
+name: Member Service CI/CD
 
 on:
   push:
     branches: [ master, develop ]
     paths:
       - 'MemberService/**'
-      - '.github/workflows/ci-cd.yml'
+      - '.github/workflows/member-service.yml'
   pull_request:
     branches: [ master, develop ]
     paths:
       - 'MemberService/**'
-      - '.github/workflows/ci-cd.yml'
+      - '.github/workflows/member-service.yml'
 
 jobs:
   build-and-test:
@@ -61,7 +61,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results
+        name: test-results-member
         path: |
           MemberService/**/TestResults/
           MemberService/**/coverage/
@@ -128,15 +128,9 @@ jobs:
         docker load -i memberservice.tar
         ```
 
-        ### 步驟 3: 驗證映像已載入
+        ### 3. 啟動服務
         ```bash
-        docker images | grep memberservice
-        ```
-
-        ### 步驟 4: 啟動服務
-        在 MemberService 目錄執行：
-        ```bash
-        docker-compose up -d
+        docker-compose up -d member-service
         ```
 
         ### 步驟 5: 檢查服務狀態
@@ -154,16 +148,12 @@ jobs:
         - **Branch**: ${{ github.ref_name }}
         - **Tag**: ${{ steps.env-tag.outputs.tag }}-latest
         - **Build Time**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-        ## 環境說明
-        - **Production (master)**: 正式環境部署
-        - **Development (develop)**: 開發測試環境
         EOF
 
     - name: Upload deployment instructions
       uses: actions/upload-artifact@v4
       with:
-        name: deployment-instructions-${{ steps.env-tag.outputs.tag }}
+        name: deployment-instructions-member-${{ steps.env-tag.outputs.tag }}
         path: /tmp/deploy-instructions.md
 
   security-scan:
