@@ -1,0 +1,185 @@
+name: Bidding Service CI/CD
+
+on:
+  push:
+    branches: [ master, develop ]
+    paths:
+      - 'BiddingService/**'
+      - '.github/workflows/bidding-service.yml'
+  pull_request:
+    branches: [ master, develop ]
+    paths:
+      - 'BiddingService/**'
+      - '.github/workflows/bidding-service.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      # Bidding Service 需要資料庫
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: biddingservice
+          POSTGRES_PASSWORD: Dev@Password123
+          POSTGRES_DB: biddingservice_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      # [新增] Bidding Service 需要 Redis 處理高頻出價
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: BiddingService
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+      working-directory: BiddingService
+
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal
+      working-directory: BiddingService
+      env:
+        # 根據 BiddingService 的 appsettings 結構調整
+        ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=biddingservice_test;Username=biddingservice;Password=Dev@Password123
+        ConnectionStrings__Redis: localhost:6379
+        # 假設測試需要 JWT 設定
+        JwtSettings__SecretKey: test-jwt-secret-key-for-bidding-service-testing-only-32-chars
+        JwtSettings__Issuer: AuctionService
+        JwtSettings__Audience: AuctionClient
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-bidding
+        path: |
+          BiddingService/**/TestResults/
+          BiddingService/**/coverage/
+
+  docker-build-and-deploy-biddingservice:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    # 只有在 push 到 master/develop 時才執行 Docker 打包
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: actions/docker/setup-buildx-action@v3
+
+    - name: Set environment tag
+      id: env-tag
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+          echo "env=production" >> $GITHUB_OUTPUT
+          echo "tag=prod" >> $GITHUB_OUTPUT
+        else
+          echo "env=development" >> $GITHUB_OUTPUT
+          echo "tag=dev" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build and export Docker image
+      uses: actions/docker/build-push-action@v5
+      with:
+        context: ./BiddingService
+        file: ./BiddingService/Dockerfile
+        # 這裡會同時打上 sha, tag-latest, tag-sha 三種標籤
+        tags: |
+          biddingservice:${{ github.sha }}
+          biddingservice:${{ steps.env-tag.outputs.tag }}-latest
+          biddingservice:${{ steps.env-tag.outputs.tag }}-${{ github.sha }}
+        # 輸出為 tar 檔而非推送到 Registry (依照您 MemberService 的範例)
+        outputs: type=docker,dest=/tmp/biddingservice.tar
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Upload Docker image as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: biddingservice-docker-image-${{ steps.env-tag.outputs.tag }}
+        path: /tmp/biddingservice.tar
+        retention-days: 7
+
+    - name: Create deployment instructions
+      run: |
+        cat > /tmp/deploy-instructions.md << EOF
+        # BiddingService 部署指南
+
+        ## 環境: ${{ steps.env-tag.outputs.env }}
+        **分支**: ${{ github.ref_name }}  
+        **標籤**: ${{ steps.env-tag.outputs.tag }}
+
+        ## 部署步驟
+
+        ### 1. 下載 Docker 映像
+        從 GitHub Actions Artifacts 下載 `biddingservice-docker-image-${{ steps.env-tag.outputs.tag }}`
+
+        ### 2. 載入映像
+        ```bash
+        docker load -i biddingservice.tar
+        ```
+
+        ### 3. 啟動服務
+        ```bash
+        docker-compose up -d bidding-service
+        ```
+        
+        ## Build Info
+        - **Commit**: ${{ github.sha }}
+        - **Time**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        EOF
+
+    - name: Upload deployment instructions
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-instructions-bidding-${{ steps.env-tag.outputs.tag }}
+        path: /tmp/deploy-instructions.md
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: './BiddingService'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
