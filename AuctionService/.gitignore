@@ -104,3 +104,11 @@ yarn-error.log*
 *.temp
 *.swp
 *.swo
+
+# Load Test Reports
+LoadTest/reports/
+LoadTest/bin/
+LoadTest/obj/
+*.html
+*.csv
+nbomber-log-*.txt

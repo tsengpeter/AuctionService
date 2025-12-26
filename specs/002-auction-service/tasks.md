@@ -487,26 +487,26 @@ All 191 tasks follow the required checklist format:
 
 ### Load Testing Infrastructure Setup
 
-- [ ] T192 [P] [US5] Expand LoadTest project with NBomber framework in LoadTest/LoadTest.csproj (add NBomber 5.0+, NBomber.Http 5.0+)
-- [ ] T193 [P] [US5] Create load test configuration file in LoadTest/config.json (baseUrl, concurrent users, duration, scenarios)
-- [ ] T194 [P] [US5] Create test data seeder in LoadTest/TestDataSeeder.cs (generate 10,000 auctions, 1,000 users, 5,000 follows)
-- [ ] T195 [P] [US5] Create performance metrics collector in LoadTest/MetricsCollector.cs (response time, RPS, error rate, resource usage)
+- [X] T192 [P] [US5] Expand LoadTest project with NBomber framework in LoadTest/LoadTest.csproj (add NBomber 5.0+, NBomber.Http 5.0+)
+- [X] T193 [P] [US5] Create load test configuration file in LoadTest/config.json (baseUrl, concurrent users, duration, scenarios)
+- [X] T194 [P] [US5] Create test data seeder in LoadTest/TestDataSeeder.cs (generate 10,000 auctions, 1,000 users, 5,000 follows)
+- [X] T195 [P] [US5] Create performance metrics collector in LoadTest/MetricsCollector.cs (response time, RPS, error rate, resource usage)
 
 ### P0 Critical Path Tests (Must Execute)
 
-- [ ] T196 [P] [US5] Implement Scenario 1: 商品列表查詢壓測 in LoadTest/Scenarios/AuctionListLoadTest.cs
+- [X] T196 [P] [US5] Implement Scenario 1: 商品列表查詢壓測 in LoadTest/Scenarios/AuctionListLoadTest.cs
   - 100 concurrent users, 60s duration
   - 70% GET /api/auctions?pageSize=20
   - 20% GET /api/auctions?categoryId=1&pageSize=20
   - 10% GET /api/auctions?search=iPhone&pageSize=20
   - Assert: P95 ≤ 200ms, RPS ≥ 100, Success Rate ≥ 99.5%
 
-- [ ] T197 [US5] Implement Scenario 2: 單一商品詳情查詢 in LoadTest/Scenarios/AuctionDetailLoadTest.cs
+- [X] T197 [US5] Implement Scenario 2: 單一商品詳情查詢 in LoadTest/Scenarios/AuctionDetailLoadTest.cs
   - 200 concurrent users, 60s duration
   - GET /api/auctions/{randomId}
   - Assert: P95 ≤ 150ms, RPS ≥ 150, Success Rate ≥ 99.9%
 
-- [ ] T198 [US5] Implement Scenario 3: 即時出價查詢壓測 in LoadTest/Scenarios/CurrentBidLoadTest.cs
+- [X] T198 [US5] Implement Scenario 3: 即時出價查詢壓測 in LoadTest/Scenarios/CurrentBidLoadTest.cs
   - 500 concurrent users, 120s duration, poll every 2 seconds
   - GET /api/auctions/{hotAuctionId}/current-bid
   - Assert: P95 ≤ 300ms, RPS ≥ 200, Success Rate ≥ 99%
@@ -514,20 +514,20 @@ All 191 tasks follow the required checklist format:
 
 ### P1 High-Frequency Operations Tests
 
-- [ ] T199 [US5] Implement Scenario 4: 商品追蹤功能壓測 in LoadTest/Scenarios/FollowLoadTest.cs
+- [X] T199 [US5] Implement Scenario 4: 商品追蹤功能壓測 in LoadTest/Scenarios/FollowLoadTest.cs
   - 100 concurrent users, 60s duration
   - 60% POST /api/follows (authenticated)
   - 30% GET /api/follows?pageSize=20 (authenticated)
   - 10% DELETE /api/follows/{auctionId} (authenticated)
   - Assert: P95 ≤ 300ms, Success Rate ≥ 99%, No duplicate follows, JWT validation performance normal
 
-- [ ] T200 [US5] Implement Scenario 5: 熱門商品壓力測試 in LoadTest/Scenarios/HotAuctionLoadTest.cs
+- [X] T200 [US5] Implement Scenario 5: 熱門商品壓力測試 in LoadTest/Scenarios/HotAuctionLoadTest.cs
   - 1000 concurrent users, 60s duration
   - 70% GET /api/auctions/{sameHotId}
   - 30% GET /api/auctions/{sameHotId}/current-bid
   - Assert: P95 ≤ 250ms, RPS ≥ 300, No N+1 queries
 
-- [ ] T201 [US5] Implement Scenario 6: 使用者商品查詢 in LoadTest/Scenarios/UserAuctionsLoadTest.cs
+- [X] T201 [US5] Implement Scenario 6: 使用者商品查詢 in LoadTest/Scenarios/UserAuctionsLoadTest.cs
   - 50 concurrent users, 60s duration
   - GET /api/auctions/user/{randomUserId}?pageSize=20 (authenticated)
   - Assert: P95 ≤ 200ms, Success Rate ≥ 99.9%, Composite index (UserId, CreatedAt) used

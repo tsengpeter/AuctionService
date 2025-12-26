@@ -125,7 +125,13 @@ else
 // 安全標頭
 app.UseSecurityHeaders();
 
-app.UseHttpsRedirection();
+// HTTPS 重定向 (可通過環境變數 DisableHttpsRedirection 禁用)
+var disableHttpsRedirection = builder.Configuration.GetValue<bool>("DisableHttpsRedirection");
+if (!disableHttpsRedirection)
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
