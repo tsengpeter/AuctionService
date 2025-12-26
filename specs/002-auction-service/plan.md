@@ -21,7 +21,11 @@
 - 商品清單查詢 <200ms (p95)
 - 商品詳細資訊查詢 <300ms (p95)
 - 支援 100+ requests/second
-- 支援 1000+ 同時進行的商品  
+- 支援 1000+ 同時進行的商品
+- 系統回應時間目標: P50 ≤ 100ms, P95 ≤ 200ms, P99 ≤ 500ms
+- 成功率: ≥ 99.5%
+- 記憶體使用: ≤ 512MB (穩態)
+- CPU 使用率: ≤ 70% (平均)
 
 **Constraints**: 
 - 不使用 AutoMapper，採用 POCO 直接映射 DTO
@@ -485,6 +489,196 @@ AuctionService/                              # 服務根目錄（所有內容集
 - 文件完善
 
 **命令**: `@workspace /speckit.tasks` (在完成 Phase 1 後執行)
+
+---
+
+## Phase 3: Load Testing & Performance Validation
+
+**Status**: PENDING (在核心功能完成後執行)
+
+### 負載測試策略
+
+**測試環境要求**:
+- **API Server**: 2 vCPU, 4GB RAM
+- **Database**: PostgreSQL 16, 2 vCPU, 8GB RAM
+- **Load Generator**: 獨立機器（避免資源競爭）
+- **測試資料**: 10,000+ 商品, 1,000+ 使用者, 20 分類, 5,000+ 追蹤記錄
+
+**效能驗收標準**:
+- P50 回應時間 ≤ 100ms
+- P95 回應時間 ≤ 200ms
+- P99 回應時間 ≤ 500ms
+- 吞吐量 ≥ 100 RPS (目標), ≥ 200 RPS (尖峰)
+- 成功率 ≥ 99.5%
+
+### P0 關鍵路徑測試（必須執行）
+
+#### 情境 1: 商品列表查詢壓測 ✅
+**目標**: 驗證首頁商品列表的負載能力  
+**配置**: 100 並發使用者, 60 秒持續時間  
+**請求組合**:
+- `GET /api/auctions?pageSize=20` (70%)
+- `GET /api/auctions?categoryId=1&pageSize=20` (20%)
+- `GET /api/auctions?search=iPhone&pageSize=20` (10%)
+
+**驗收**: P95 ≤ 200ms, RPS ≥ 100, 成功率 ≥ 99.5%  
+**實作狀態**: ✅ 已實作 (`LoadTest/Program.cs`)
+
+#### 情境 2: 單一商品詳情查詢 🔴
+**目標**: 驗證商品詳情頁面效能  
+**配置**: 200 並發使用者, 60 秒  
+**請求**: `GET /api/auctions/{randomId}`  
+**驗收**: P95 ≤ 150ms, RPS ≥ 150, 成功率 ≥ 99.9%  
+**實作狀態**: 🔴 待實作
+
+#### 情境 3: 即時出價查詢壓測（核心功能）🔴
+**目標**: 模擬競標期間的高頻輪詢壓力  
+**配置**: 500 並發使用者, 120 秒, 每 2 秒輪詢一次  
+**請求**: `GET /api/auctions/{hotAuctionId}/current-bid`  
+**驗收**: P95 ≤ 300ms（含外部服務），RPS ≥ 200, 成功率 ≥ 99%  
+**特殊考量**: 
+- 測試 BiddingService 不可用時的降級邏輯
+- 驗證 Polly Circuit Breaker 機制
+- 評估快取策略需求（考慮 5 秒 TTL）
+
+**實作狀態**: 🔴 待實作
+
+### P1 高頻操作測試
+
+#### 情境 4: 商品追蹤功能壓測 🔴
+**配置**: 100 並發使用者, 60 秒  
+**請求組合**: `POST /api/follows` (60%), `GET /api/follows` (30%), `DELETE /api/follows/{id}` (10%) - 需認證  
+**驗收**: P95 ≤ 300ms, 成功率 ≥ 99%, 無重複追蹤記錄, JWT 驗證效能正常
+
+#### 情境 5: 熱門商品壓力測試 🔴
+**目標**: 所有使用者查詢同一熱門商品  
+**配置**: 1000 並發使用者, 60 秒  
+**請求**: `GET /api/auctions/{sameHotId}` (70%), `GET /api/auctions/{sameHotId}/current-bid` (30%)  
+**驗收**: P95 ≤ 250ms, RPS ≥ 300, 無 N+1 查詢問題
+
+#### 情境 6: 使用者商品查詢 🔴
+**配置**: 50 並發使用者, 60 秒  
+**請求**: `GET /api/auctions/user/{randomUserId}?pageSize=20` - 需認證  
+**驗收**: P95 ≤ 200ms, 成功率 ≥ 99.9%, 複合索引 (UserId, CreatedAt) 生效
+
+### P2 混合業務流程測試
+
+#### 情境 7: 真實流量模擬（90% 讀 + 10% 寫）🔴
+**目標**: 模擬生產環境真實流量組合  
+**配置**: 300 並發使用者, 300 秒（5 分鐘）  
+**請求組合**:
+- `GET /api/auctions` (40%)
+- `GET /api/auctions/{id}` (25%)
+- `GET /api/auctions/{id}/current-bid` (15%)
+- `GET /api/follows` (5%) - 認證
+- `POST /api/follows` (5%) - 認證
+- `POST /api/auctions` (5%) - 認證
+- `PUT /api/auctions/{id}` (3%) - 認證
+- `DELETE /api/auctions/{id}` (2%) - 認證
+
+**驗收**: P95 ≤ 300ms, RPS ≥ 150, 成功率 ≥ 99%, 資源使用穩定, 無記憶體洩漏
+
+#### 情境 8: 商品建立壓測 🔴
+**配置**: 50 並發使用者, 60 秒  
+**請求**: `POST /api/auctions` - 需認證（隨機商品資料含 FluentValidation 驗證）  
+**驗收**: P95 ≤ 400ms, 成功率 ≥ 99.5%, 無重複商品 ID, 外鍵約束正確
+
+### P3 容錯與邊界測試
+
+#### 情境 9: BiddingService 不可用情境 🔴
+**目標**: 驗證外部服務斷線時的容錯能力  
+**配置**: 100 並發使用者, 120 秒  
+**模擬**: BiddingService 返回 500 或超時  
+**驗收**: 降級回應正常（返回 StartingPrice），P95 ≤ 500ms（含 Polly 重試），Circuit Breaker 在 5 次失敗後打開
+
+#### 情境 10: 大分頁查詢防護 🔴
+**配置**: 50 並發使用者, 30 秒  
+**請求**: `GET /api/auctions?pageNumber=10000&pageSize=100`  
+**驗收**: 回應時間 ≤ 1000ms 或返回 400 Bad Request, 無全表掃描, 記憶體無異常飆升
+
+#### 情境 11: 無效 GUID 攻擊 🔴
+**配置**: 100 並發使用者, 30 秒  
+**請求**: `GET /api/auctions/invalid-guid-format`  
+**驗收**: 返回 400 Bad Request, P95 ≤ 50ms（快速失敗）, 無資料庫查詢執行
+
+#### 情境 12: 並發更新衝突 🔴
+**配置**: 20 並發使用者, 30 秒  
+**請求**: 同時更新同一 auctionId (`PUT /api/auctions/{sameId}` - 認證)  
+**驗收**: 只有一個請求成功, 其他返回 409 Conflict, 資料一致性保持  
+**注意**: 可能需要添加並發控制機制（樂觀鎖）
+
+### P4 資料庫與基礎設施測試
+
+#### 情境 13: 資料庫連線池耗盡測試 🔴
+**配置**: 150 並發使用者（超過連線池上限）, 60 秒  
+**請求**: 複雜查詢（長時間持有連線）  
+**驗收**: 連線池滿時返回 503, 連線正常釋放無洩漏, 恢復後服務正常
+
+#### 情境 14: 複雜查詢效能測試 🔴
+**配置**: 100 並發使用者, 60 秒  
+**請求**: `GET /api/auctions?search=keyword&categoryId=1&minPrice=1000&maxPrice=50000&sortBy=EndTime&sortDirection=asc&pageSize=50`  
+**驗收**: P95 ≤ 300ms, 所有查詢使用索引, 無全表掃描
+
+#### 情境 15: JWT 認證效能測試 🔴
+**配置**: 200 並發使用者, 60 秒  
+**請求**: 需認證端點（隨機組合），每個請求帶不同 JWT  
+**驗收**: 認證開銷 ≤ 10ms, P95 ≤ 250ms, 無記憶體洩漏
+
+### 測試實作工具
+
+**推薦測試框架**: NBomber (.NET 原生)  
+**替代方案**: Apache JMeter, k6, Gatling
+
+**監控工具**:
+- Application Insights (Azure) / Prometheus + Grafana
+- Seq (結構化日誌)
+- dotnet-counters (效能計數器)
+
+### 效能優化檢查清單
+
+**資料庫優化**:
+- [ ] 所有查詢條件欄位都有索引（EndTime, CategoryId, UserId, Status）
+- [ ] 複合索引順序正確（UserId + CreatedAt）
+- [ ] 使用 `AsNoTracking()` 於唯讀查詢
+- [ ] 避免 N+1 查詢（使用 Include/ThenInclude）
+- [ ] 分頁查詢使用 Keyset Pagination（大資料量時）
+
+**應用層優化**:
+- [ ] 實作回應快取（分類資料、熱門商品）
+- [ ] 使用記憶體快取減少資料庫查詢
+- [ ] 非同步處理所有 I/O 操作
+- [ ] 連線池正確配置（MinPoolSize=5, MaxPoolSize=100）
+- [ ] 適當的 HTTP Client 逾時設定
+
+**API 設計優化**:
+- [ ] 實作 Conditional Requests (ETag)
+- [ ] 壓縮回應內容 (Gzip)
+- [ ] 適當的 Rate Limiting
+- [ ] 批次 API 支援（減少請求次數）
+
+### 測試執行計畫
+
+**階段 1: 基礎驗證（Week 1）**
+- ✅ 情境 1: 商品列表查詢（已實作）
+- 🔴 情境 2: 單一商品詳情
+- 🔴 情境 3: 即時出價查詢（關鍵）
+
+**階段 2: 高頻操作（Week 2）**
+- 情境 4-6: 追蹤、熱門商品、使用者查詢
+
+**階段 3: 混合流程（Week 3）**
+- 情境 7-8: 真實流量模擬、商品建立
+
+**階段 4: 容錯與優化（Week 4）**
+- 情境 9-15: 容錯測試、基礎設施測試
+
+**Deliverables**:
+- 負載測試腳本 (`LoadTest/` 專案擴充)
+- 效能測試報告（含指標與瓶頸分析）
+- 優化建議清單
+- CI/CD 整合設定
+
+**Constitution Re-check**: ✅ PASS - 測試策略符合效能與可觀測性要求
 
 ---
 

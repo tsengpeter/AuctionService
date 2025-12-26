@@ -11,9 +11,9 @@
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational + ✅ User Story 1 + ✅ User Story 2 + ✅ User Story 3 + ✅ User Story 4 (T152-T161 completed) = **Status Validation Complete**
+**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational + ✅ User Story 1 + ✅ User Story 2 + ✅ User Story 3 + ✅ User Story 4 + 🔄 User Story 5 (Load Testing) = **Core Features Complete, Load Testing Pending**
 
-**Next Steps**: User Stories 1-4 are all fully functional - Complete auction management system with passive status calculation
+**Next Steps**: Implement User Story 5 (Load Testing) to validate system performance under high concurrency
 
 **Changes from v2.3**:
 - Updated task completion status for User Story 3 implementation
@@ -457,9 +457,11 @@ Once US4 completes, team can validate full enhanced UX (US1 + US2 + US3 + US4) b
 
 **Completed Tasks**: 21 (Setup) + 27 (Foundational) + 32 (User Story 1) + 48 (User Story 2) + 23 (User Story 3) + 10 (User Story 4) + 30 (Polish Phase) = **191 tasks completed**
 
+**Load Testing Tasks**: 0 (User Story 5) = **50 tasks pending** (see Phase 5 below)
+
 **Enhanced UX Status**: ✅ FULLY ACHIEVED - User Stories 1, 2, 3 & 4 are complete with comprehensive browse + manage + tracking + status validation functionality
 
-**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational + ✅ User Story 1 + ✅ User Story 2 + ✅ User Story 3 + ✅ User Story 4 + 🔄 Polish Phase (27/30 completed) = **PRODUCTION READY**
+**Current Status**: ✅ Phase 1 Setup + ✅ Phase 2 Foundational + ✅ User Story 1 + ✅ User Story 2 + ✅ User Story 3 + ✅ User Story 4 + ✅ Polish Phase + 🔴 User Story 5 (Load Testing) = **CORE COMPLETE, PERFORMANCE VALIDATION PENDING**
 
 ---
 
@@ -472,5 +474,229 @@ All 191 tasks follow the required checklist format:
 - ✅ [Story] label on user story tasks (US1, US2, US3, US4)
 - ✅ File paths included in descriptions
 - ✅ Clear action verbs (Create, Implement, Configure, etc.)
+
+**Ready for execution**: Each task is specific enough for LLM completion without additional context.
+
+---
+
+## Phase 5: User Story 5 - 系統負載測試與效能驗證 (Priority: P3)
+
+**Goal**: 驗證系統在高並發負載下的穩定性與效能，確保核心功能在壓力情境下正常運作。
+
+**Independent Test**: 透過負載測試工具模擬真實流量，監控系統指標，驗證效能目標達成。
+
+### Load Testing Infrastructure Setup
+
+- [ ] T192 [P] [US5] Expand LoadTest project with NBomber framework in LoadTest/LoadTest.csproj (add NBomber 5.0+, NBomber.Http 5.0+)
+- [ ] T193 [P] [US5] Create load test configuration file in LoadTest/config.json (baseUrl, concurrent users, duration, scenarios)
+- [ ] T194 [P] [US5] Create test data seeder in LoadTest/TestDataSeeder.cs (generate 10,000 auctions, 1,000 users, 5,000 follows)
+- [ ] T195 [P] [US5] Create performance metrics collector in LoadTest/MetricsCollector.cs (response time, RPS, error rate, resource usage)
+
+### P0 Critical Path Tests (Must Execute)
+
+- [ ] T196 [P] [US5] Implement Scenario 1: 商品列表查詢壓測 in LoadTest/Scenarios/AuctionListLoadTest.cs
+  - 100 concurrent users, 60s duration
+  - 70% GET /api/auctions?pageSize=20
+  - 20% GET /api/auctions?categoryId=1&pageSize=20
+  - 10% GET /api/auctions?search=iPhone&pageSize=20
+  - Assert: P95 ≤ 200ms, RPS ≥ 100, Success Rate ≥ 99.5%
+
+- [ ] T197 [US5] Implement Scenario 2: 單一商品詳情查詢 in LoadTest/Scenarios/AuctionDetailLoadTest.cs
+  - 200 concurrent users, 60s duration
+  - GET /api/auctions/{randomId}
+  - Assert: P95 ≤ 150ms, RPS ≥ 150, Success Rate ≥ 99.9%
+
+- [ ] T198 [US5] Implement Scenario 3: 即時出價查詢壓測 in LoadTest/Scenarios/CurrentBidLoadTest.cs
+  - 500 concurrent users, 120s duration, poll every 2 seconds
+  - GET /api/auctions/{hotAuctionId}/current-bid
+  - Assert: P95 ≤ 300ms, RPS ≥ 200, Success Rate ≥ 99%
+  - Verify: Circuit Breaker opens after 5 failures, fallback response works
+
+### P1 High-Frequency Operations Tests
+
+- [ ] T199 [US5] Implement Scenario 4: 商品追蹤功能壓測 in LoadTest/Scenarios/FollowLoadTest.cs
+  - 100 concurrent users, 60s duration
+  - 60% POST /api/follows (authenticated)
+  - 30% GET /api/follows?pageSize=20 (authenticated)
+  - 10% DELETE /api/follows/{auctionId} (authenticated)
+  - Assert: P95 ≤ 300ms, Success Rate ≥ 99%, No duplicate follows, JWT validation performance normal
+
+- [ ] T200 [US5] Implement Scenario 5: 熱門商品壓力測試 in LoadTest/Scenarios/HotAuctionLoadTest.cs
+  - 1000 concurrent users, 60s duration
+  - 70% GET /api/auctions/{sameHotId}
+  - 30% GET /api/auctions/{sameHotId}/current-bid
+  - Assert: P95 ≤ 250ms, RPS ≥ 300, No N+1 queries
+
+- [ ] T201 [US5] Implement Scenario 6: 使用者商品查詢 in LoadTest/Scenarios/UserAuctionsLoadTest.cs
+  - 50 concurrent users, 60s duration
+  - GET /api/auctions/user/{randomUserId}?pageSize=20 (authenticated)
+  - Assert: P95 ≤ 200ms, Success Rate ≥ 99.9%, Composite index (UserId, CreatedAt) used
+
+### P2 Mixed Workflow Tests
+
+- [ ] T202 [US5] Implement Scenario 7: 真實流量模擬 (90% Read + 10% Write) in LoadTest/Scenarios/MixedWorkloadTest.cs
+  - 300 concurrent users, 300s duration (5 minutes)
+  - Request mix: 40% auctions list, 25% auction detail, 15% current-bid, 5% follows list, 5% create follow, 5% create auction, 3% update auction, 2% delete auction
+  - Assert: P95 ≤ 300ms, RPS ≥ 150, Success Rate ≥ 99%, Stable resource usage, No memory leaks
+
+- [ ] T203 [US5] Implement Scenario 8: 商品建立壓測 in LoadTest/Scenarios/CreateAuctionLoadTest.cs
+  - 50 concurrent users, 60s duration
+  - POST /api/auctions with random data (FluentValidation enabled, authenticated)
+  - Assert: P95 ≤ 400ms, Success Rate ≥ 99.5%, No duplicate auction IDs, Foreign key constraints valid
+
+### P3 Fault Tolerance & Edge Case Tests
+
+- [ ] T204 [US5] Implement Scenario 9: BiddingService 不可用情境 in LoadTest/Scenarios/BiddingServiceDownTest.cs
+  - 100 concurrent users, 120s duration
+  - Mock BiddingService to return 500 or timeout
+  - GET /api/auctions/{id}/current-bid
+  - Assert: Fallback response (StartingPrice) works, P95 ≤ 500ms (with Polly retry), Circuit Breaker opens after 5 failures, Complete logging
+
+- [ ] T205 [US5] Implement Scenario 10: 大分頁查詢防護 in LoadTest/Scenarios/LargePaginationTest.cs
+  - 50 concurrent users, 30s duration
+  - GET /api/auctions?pageNumber=10000&pageSize=100
+  - Assert: Response time ≤ 1000ms OR 400 Bad Request, No full table scan, No memory spike
+
+- [ ] T206 [US5] Implement Scenario 11: 無效 GUID 攻擊 in LoadTest/Scenarios/InvalidGuidTest.cs
+  - 100 concurrent users, 30s duration
+  - GET /api/auctions/invalid-guid-format
+  - Assert: Returns 400 Bad Request, P95 ≤ 50ms (fast fail), No database query executed
+
+- [ ] T207 [US5] Implement Scenario 12: 並發更新衝突 in LoadTest/Scenarios/ConcurrentUpdateTest.cs
+  - 20 concurrent users, 30s duration
+  - PUT /api/auctions/{sameId} (all update same auction, authenticated)
+  - Assert: Only one request succeeds, Others return 409 Conflict, Data consistency maintained
+  - Note: May need to add optimistic locking mechanism
+
+### P4 Database & Infrastructure Tests
+
+- [ ] T208 [US5] Implement Scenario 13: 資料庫連線池耗盡測試 in LoadTest/Scenarios/ConnectionPoolTest.cs
+  - 150 concurrent users (exceed pool limit), 60s duration
+  - Complex queries (long-running connections)
+  - Assert: Returns 503 when pool exhausted, Connections released properly (no leaks), Service recovers after load decreases
+
+- [ ] T209 [US5] Implement Scenario 14: 複雜查詢效能測試 in LoadTest/Scenarios/ComplexQueryTest.cs
+  - 100 concurrent users, 60s duration
+  - GET /api/auctions?search=keyword&categoryId=1&minPrice=1000&maxPrice=50000&sortBy=EndTime&sortDirection=asc&pageSize=50
+  - Assert: P95 ≤ 300ms, All queries use indexes, No full table scans
+
+- [ ] T210 [US5] Implement Scenario 15: JWT 認證效能測試 in LoadTest/Scenarios/JwtAuthLoadTest.cs
+  - 200 concurrent users, 60s duration
+  - Random authenticated endpoints, each request with different JWT
+  - Assert: Auth overhead ≤ 10ms, P95 ≤ 250ms, No memory leaks
+
+### Test Execution & Reporting
+
+- [ ] T211 [US5] Create test execution orchestrator in LoadTest/TestOrchestrator.cs (run scenarios in sequence or parallel)
+- [ ] T212 [US5] Create performance report generator in LoadTest/ReportGenerator.cs (HTML/JSON reports with charts)
+- [ ] T213 [US5] Create database performance profiler in LoadTest/DbProfiler.cs (slow query log, index usage analysis)
+- [ ] T214 [US5] Create baseline metrics file in LoadTest/baselines.json (P50/P95/P99 targets for regression detection)
+
+### Monitoring & Observability
+
+- [ ] T215 [P] [US5] Add performance counters in src/AuctionService.Api/Metrics/PerformanceMetrics.cs (request count, response time, error rate)
+- [ ] T216 [P] [US5] Add database metrics logging in src/AuctionService.Infrastructure/Data/DbMetrics.cs (query time, connection pool usage)
+- [ ] T217 [P] [US5] Add BiddingService call metrics in BiddingServiceClient (success rate, latency, circuit breaker state)
+- [ ] T218 [US5] Create real-time metrics dashboard configuration for Grafana/Application Insights
+
+### Performance Optimization Tasks
+
+- [ ] T219 [P] [US5] Verify all query indexes exist and are used (EndTime, CategoryId, UserId+CreatedAt, Follow composite index)
+- [ ] T220 [P] [US5] Review and add AsNoTracking() to all read-only queries
+- [ ] T221 [P] [US5] Implement response caching for categories (MemoryCache with 1 hour TTL)
+- [ ] T222 [US5] Evaluate hot auction caching strategy (5 second TTL for current-bid endpoint)
+- [ ] T223 [P] [US5] Review EF Core queries for N+1 problems and add Include/ThenInclude where needed
+- [ ] T224 [P] [US5] Configure connection pool settings (MinPoolSize=5, MaxPoolSize=100) in appsettings
+- [ ] T225 [P] [US5] Add response compression (Gzip) middleware in Program.cs
+- [ ] T226 [US5] Implement rate limiting middleware (100 requests/minute per IP) if needed
+
+### CI/CD Integration
+
+- [ ] T227 [P] [US5] Create GitHub Actions workflow for load testing in .github/workflows/load-test.yml
+- [ ] T228 [P] [US5] Create performance regression check script in scripts/check-performance.ps1
+- [ ] T229 [US5] Add load test to weekly scheduled CI/CD pipeline (every Monday 2 AM)
+- [ ] T230 [US5] Create performance test documentation in docs/load-testing-results.md
+
+### Documentation & Training
+
+- [ ] T231 [P] [US5] Document load testing setup guide in LoadTest/README.md
+- [ ] T232 [P] [US5] Create performance tuning guide in docs/performance-tuning.md
+- [ ] T233 [P] [US5] Document monitoring setup in docs/monitoring-setup.md
+- [ ] T234 [US5] Create load testing workshop materials for team
+
+### Validation & Sign-off
+
+- [ ] T235 [US5] Execute all P0 critical path tests and collect baseline metrics
+- [ ] T236 [US5] Execute P1-P4 tests and identify performance bottlenecks
+- [ ] T237 [US5] Implement performance optimizations based on test results
+- [ ] T238 [US5] Re-run all tests to verify optimizations
+- [ ] T239 [US5] Generate final performance test report for stakeholder review
+- [ ] T240 [US5] Obtain performance validation sign-off from technical lead
+- [ ] T241 [US5] Update system documentation with final performance metrics
+
+**Checkpoint**: All load testing scenarios executed, performance metrics meet targets, system validated for production deployment
+
+---
+
+## Updated Task Summary
+
+- **Total Tasks**: 241 (191 core + 50 load testing)
+- **Setup Phase**: 21 tasks ✅ **COMPLETED**
+- **Foundational Phase**: 27 tasks ✅ **COMPLETED**
+- **User Story 1** (P1): 32 tasks ✅ **COMPLETED**
+- **User Story 2** (P1): 48 tasks ✅ **COMPLETED**
+- **User Story 3** (P2): 23 tasks ✅ **COMPLETED**
+- **User Story 4** (P3): 10 tasks ✅ **COMPLETED**
+- **Polish Phase**: 30 tasks ✅ **COMPLETED**
+- **User Story 5 - Load Testing** (P3): 50 tasks 🔴 **PENDING**
+
+**Parallel Opportunities**: 119 tasks marked [P] can run in parallel (89 core + 30 load testing)
+
+**Performance Validation Scope**: Phase 5 (T192-T241) = 50 tasks for comprehensive load testing
+
+**Completed**: 191/241 = **79% complete**
+
+**Status**: ✅ Core features production-ready, 🔴 Performance validation pending
+
+---
+
+## Updated Implementation Strategy
+
+### Incremental Delivery (Revised)
+
+1. ✅ Setup + Foundational → Foundation ready (T001-T048) - **COMPLETED**
+2. ✅ User Story 2 → MVP Core ready (T081-T128) - **COMPLETED**
+3. ✅ User Story 1 → Full MVP achieved (T049-T080) - **COMPLETED**
+4. ✅ User Story 3 → Enhanced UX with tracking (T129-T151) - **COMPLETED**
+5. ✅ User Story 4 → Status validation (T152-T161) - **COMPLETED**
+6. ✅ Polish phase → Production-ready (T162-T191) - **COMPLETED**
+7. 🔴 User Story 5 → Performance validation (T192-T241) - **PENDING**
+
+### Parallel Team Strategy for US5
+
+With 2-3 developers:
+
+- **Developer A**: P0 Critical Tests (T196-T198) + P1 Tests (T199-T201)
+- **Developer B**: Infrastructure Setup (T192-T195) + P2-P4 Tests (T202-T210)
+- **Developer C**: Monitoring (T215-T218) + Optimization (T219-T226) + Documentation (T231-T234)
+
+All developers collaborate on final validation (T235-T241)
+
+**Estimated Effort**: 2-3 weeks for complete load testing implementation
+
+---
+
+## Updated Format Validation ✅
+
+All 241 tasks follow the required checklist format:
+- ✅ Checkbox `- [ ]` present
+- ✅ Task ID (T001-T241) sequential
+- ✅ [P] marker on parallelizable tasks (119 tasks total)
+- ✅ [Story] label on user story tasks (US1, US2, US3, US4, US5)
+- ✅ File paths included in descriptions
+- ✅ Clear action verbs (Create, Implement, Configure, etc.)
+
+**Ready for execution**: Each task is specific enough for LLM completion without additional context.
+
 
 **Ready for execution**: Each task is specific enough for LLM completion without additional context.
