@@ -9,7 +9,7 @@
     - **同步**: RESTful API (HTTP) / gRPC
     - **非同步**: Message Queue (e.g., RabbitMQ, Kafka)
 - **API 閘道器 (API Gateway)**: [YARP](https://microsoft.github.io/reverse-proxy/) 或 [Ocelot](https://github.com/ThreeMammals/Ocelot)
-- **開發框架**: ASP.NET Core 9 (C#)
+- **開發框架**: ASP.NET Core 10 (C#)
 - **資料庫**: PostgreSQL (採用 **Database-per-Service** 模式)
 - **ORM**: Entity Framework Core (Code-First)
 - **容器化**: Docker
