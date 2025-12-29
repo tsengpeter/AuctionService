@@ -65,7 +65,7 @@
 
 ### 3.3 後端
   
-- 採用 ASP.NET Core 9（C#）開發 RESTful API，處理商品、使用者、出價等資料。
+- 採用 ASP.NET Core 10（C#）開發 RESTful API，處理商品、使用者、出價等資料。
 - API 提供標準 CRUD、驗證（JWT）、權限控管。
 - 日誌與錯誤監控（如 Sentry）。
 
@@ -93,7 +93,7 @@
 ### 5.2 後端
   
 - 程式語言：C#
-- 框架：ASP.NET Core 9
+- 框架：ASP.NET Core 10
 - 資料庫：PostgreSQL
 - 測試：xUnit
 
