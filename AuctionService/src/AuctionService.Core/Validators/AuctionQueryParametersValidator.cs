@@ -43,9 +43,8 @@ public class AuctionQueryParametersValidator : AbstractValidator<AuctionQueryPar
             .WithMessage("最高價格不能小於 0")
             .When(x => x.MaxPrice.HasValue);
 
-        RuleFor(x => x)
-            .Must(x => !x.MinPrice.HasValue || !x.MaxPrice.HasValue || x.MinPrice.Value <= x.MaxPrice.Value)
-            .WithMessage("最低價格不能大於最高價格")
-            .When(x => x.MinPrice.HasValue && x.MaxPrice.HasValue);
+        RuleFor(x => x.MaxPrice)
+            .Must((parameters, maxPrice) => !parameters.MinPrice.HasValue || !maxPrice.HasValue || parameters.MinPrice.Value <= maxPrice.Value)
+            .WithMessage("最低價格不能大於最高價格");
     }
 }
