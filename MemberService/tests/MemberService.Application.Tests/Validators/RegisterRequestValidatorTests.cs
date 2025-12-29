@@ -259,9 +259,10 @@ public class RegisterRequestValidatorTests
     }
 
     [Theory]
-    [InlineData("user name")]
     [InlineData("user@name")]
     [InlineData("user.name")]
+    [InlineData("user123")]
+    [InlineData("user_name")]
     public void Validate_UsernameContainsInvalidCharacters_ShouldFail(string username)
     {
         // Arrange
@@ -277,6 +278,24 @@ public class RegisterRequestValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Username)
-              .WithErrorMessage("Username can only contain letters, numbers, and underscores");
+              .WithErrorMessage("Username can only contain letters and spaces");
+    }
+
+    [Fact]
+    public void Validate_UsernameWithSpaces_ShouldPass()
+    {
+        // Arrange
+        var request = new RegisterRequest
+        {
+            Email = "test@example.com",
+            Password = "ValidPassword123!",
+            Username = "user name"
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
     }
 }

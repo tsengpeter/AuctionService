@@ -16,8 +16,8 @@ public class ChangePasswordRequestValidatorTests
         // Arrange
         var request = new ChangePasswordRequest
         {
-            OldPassword = "OldPassword123",
-            NewPassword = "NewSecurePassword456"
+            OldPassword = "OldPassword123!",
+            NewPassword = "NewSecurePassword456!"
         };
 
         // Act
@@ -37,7 +37,7 @@ public class ChangePasswordRequestValidatorTests
         var request = new ChangePasswordRequest
         {
             OldPassword = oldPassword,
-            NewPassword = "NewSecurePassword456"
+            NewPassword = "NewSecurePassword456!"
         };
 
         // Act
@@ -57,7 +57,7 @@ public class ChangePasswordRequestValidatorTests
         // Arrange
         var request = new ChangePasswordRequest
         {
-            OldPassword = "OldPassword123",
+            OldPassword = "OldPassword123!",
             NewPassword = newPassword
         };
 
@@ -75,8 +75,8 @@ public class ChangePasswordRequestValidatorTests
         // Arrange
         var request = new ChangePasswordRequest
         {
-            OldPassword = "OldPassword123",
-            NewPassword = "Short"
+            OldPassword = "OldPassword123!",
+            NewPassword = "Short1!"
         };
 
         // Act
@@ -93,7 +93,7 @@ public class ChangePasswordRequestValidatorTests
         // Arrange
         var request = new ChangePasswordRequest
         {
-            OldPassword = "OldPassword123",
+            OldPassword = "OldPassword123!",
             NewPassword = new string('a', 129)
         };
 
@@ -103,5 +103,77 @@ public class ChangePasswordRequestValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.NewPassword)
             .WithErrorMessage("New password must not exceed 128 characters.");
+    }
+
+    [Fact]
+    public void Should_Fail_When_NewPassword_Missing_UpperCase()
+    {
+        // Arrange
+        var request = new ChangePasswordRequest
+        {
+            OldPassword = "OldPassword123!",
+            NewPassword = "password123!"
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.NewPassword)
+            .WithErrorMessage("New password must contain at least one uppercase letter.");
+    }
+
+    [Fact]
+    public void Should_Fail_When_NewPassword_Missing_LowerCase()
+    {
+        // Arrange
+        var request = new ChangePasswordRequest
+        {
+            OldPassword = "OldPassword123!",
+            NewPassword = "PASSWORD123!"
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.NewPassword)
+            .WithErrorMessage("New password must contain at least one lowercase letter.");
+    }
+
+    [Fact]
+    public void Should_Fail_When_NewPassword_Missing_Digit()
+    {
+        // Arrange
+        var request = new ChangePasswordRequest
+        {
+            OldPassword = "OldPassword123!",
+            NewPassword = "Password!!!!"
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.NewPassword)
+            .WithErrorMessage("New password must contain at least one digit.");
+    }
+
+    [Fact]
+    public void Should_Fail_When_NewPassword_Missing_SpecialChar()
+    {
+        // Arrange
+        var request = new ChangePasswordRequest
+        {
+            OldPassword = "OldPassword123!",
+            NewPassword = "Password1234"
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.NewPassword)
+            .WithErrorMessage("New password must contain at least one special character.");
     }
 }

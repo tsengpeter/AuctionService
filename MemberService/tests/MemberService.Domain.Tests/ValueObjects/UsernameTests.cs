@@ -93,22 +93,21 @@ public class UsernameTests
 
         // Assert
         result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Be("Username can only contain letters, numbers, underscores, and spaces");
+        result.Error.Should().Be("Username can only contain letters and spaces");
     }
 
     [Fact]
-    public void Create_WithNumbersAndUnderscores_ReturnsSuccess()
+    public void Create_WithNumbersAndUnderscores_ReturnsFailure()
     {
         // Arrange
-        var validUsername = "John123_Doe";
+        var invalidUsername = "John123_Doe";
 
         // Act
-        var result = Username.Create(validUsername);
+        var result = Username.Create(invalidUsername);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().NotBeNull();
-        result.Value!.Value.Should().Be(validUsername);
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("Username can only contain letters and spaces");
     }
 
     [Fact]

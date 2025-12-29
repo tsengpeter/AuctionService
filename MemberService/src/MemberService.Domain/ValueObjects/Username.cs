@@ -29,14 +29,14 @@ public class Username : IEquatable<Username>
             return Result<Username>.Failure("使用者名稱長度不可超過 50 字元");
 
         if (!IsValidUsernameFormat(value))
-            return Result<Username>.Failure("Username can only contain letters, numbers, underscores, and spaces");
+            return Result<Username>.Failure("Username can only contain letters and spaces");
 
         return Result<Username>.Success(new Username(value.Trim()));
     }
 
     private static bool IsValidUsernameFormat(string username)
     {
-        return username.All(c => char.IsLetterOrDigit(c) || c == '_' || char.IsWhiteSpace(c));
+        return username.All(c => char.IsLetter(c) || char.IsWhiteSpace(c));
     }
 
     public bool Equals(Username? other)

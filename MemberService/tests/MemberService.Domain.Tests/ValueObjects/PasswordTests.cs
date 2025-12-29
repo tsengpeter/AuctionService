@@ -10,7 +10,7 @@ public class PasswordTests
     public void Create_WithValidPassword_ReturnsSuccess()
     {
         // Arrange
-        var validPassword = "SecurePassword123";
+        var validPassword = "SecurePassword123!";
 
         // Act
         var result = Password.Create(validPassword);
@@ -58,7 +58,7 @@ public class PasswordTests
     public void Create_WithTooShortPassword_ReturnsFailure()
     {
         // Arrange
-        var shortPassword = "1234567";
+        var shortPassword = "Short1!";
 
         // Act
         var result = Password.Create(shortPassword);
@@ -83,10 +83,66 @@ public class PasswordTests
     }
 
     [Fact]
+    public void Create_WithNoUpperCase_ReturnsFailure()
+    {
+        // Arrange
+        var noUpper = "password123!";
+
+        // Act
+        var result = Password.Create(noUpper);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("密碼必須包含至少一個大寫字母");
+    }
+
+    [Fact]
+    public void Create_WithNoLowerCase_ReturnsFailure()
+    {
+        // Arrange
+        var noLower = "PASSWORD123!";
+
+        // Act
+        var result = Password.Create(noLower);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("密碼必須包含至少一個小寫字母");
+    }
+
+    [Fact]
+    public void Create_WithNoDigit_ReturnsFailure()
+    {
+        // Arrange
+        var noDigit = "Password!";
+
+        // Act
+        var result = Password.Create(noDigit);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("密碼必須包含至少一個數字");
+    }
+
+    [Fact]
+    public void Create_WithNoSpecialChar_ReturnsFailure()
+    {
+        // Arrange
+        var noSpecial = "Password123";
+
+        // Act
+        var result = Password.Create(noSpecial);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("密碼必須包含至少一個特殊符號");
+    }
+
+    [Fact]
     public void Create_WithMinimumLengthPassword_ReturnsSuccess()
     {
         // Arrange
-        var minPassword = "12345678";
+        var minPassword = "Pass123!";
 
         // Act
         var result = Password.Create(minPassword);
@@ -100,7 +156,8 @@ public class PasswordTests
     public void Create_WithMaximumLengthPassword_ReturnsSuccess()
     {
         // Arrange
-        var maxPassword = new string('a', 128);
+        // Create a long password that satisfies all conditions
+        var maxPassword = new string('a', 125) + "A1!";
 
         // Act
         var result = Password.Create(maxPassword);
@@ -114,8 +171,8 @@ public class PasswordTests
     public void Equals_WithSamePassword_ReturnsTrue()
     {
         // Arrange
-        var password1 = Password.Create("password123").Value!;
-        var password2 = Password.Create("password123").Value!;
+        var password1 = Password.Create("Password123!").Value!;
+        var password2 = Password.Create("Password123!").Value!;
 
         // Act & Assert
         password1.Equals(password2).Should().BeTrue();
@@ -126,8 +183,8 @@ public class PasswordTests
     public void Equals_WithDifferentPassword_ReturnsFalse()
     {
         // Arrange
-        var password1 = Password.Create("password123").Value!;
-        var password2 = Password.Create("different123").Value!;
+        var password1 = Password.Create("Password123!").Value!;
+        var password2 = Password.Create("Different123!").Value!;
 
         // Act & Assert
         password1.Equals(password2).Should().BeFalse();
@@ -138,12 +195,12 @@ public class PasswordTests
     public void ToString_ReturnsMaskedPassword()
     {
         // Arrange
-        var password = Password.Create("mypassword").Value!;
+        var password = Password.Create("MyPassword1!").Value!;
 
         // Act
         var result = password.ToString();
 
         // Assert
-        result.Should().Be("**********");
+        result.Should().Be("************");
     }
 }
