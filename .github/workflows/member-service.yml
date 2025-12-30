@@ -1,0 +1,163 @@
+name: Member Service CI/CD
+
+on:
+  push:
+    branches: [ master, develop ]
+    paths:
+      - 'MemberService/**'
+      - '.github/workflows/member-service.yml'
+  pull_request:
+    branches: [ master, develop ]
+    paths:
+      - 'MemberService/**'
+      - '.github/workflows/member-service.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: MemberService
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+      working-directory: MemberService
+
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal
+      working-directory: MemberService
+      env:
+        JWT_SECRET_KEY: test-jwt-secret-key-for-ci-cd-pipeline-testing-only-32-chars-minimum
+        SNOWFLAKE_WORKER_ID: 1
+        SNOWFLAKE_DATACENTER_ID: 1
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-member
+        path: |
+          MemberService/**/TestResults/
+          MemberService/**/coverage/
+
+  docker-build-and-deploy-memberservice:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: actions/docker/setup-buildx-action@v3
+
+    - name: Set environment tag
+      id: env-tag
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+          echo "env=production" >> $GITHUB_OUTPUT
+          echo "tag=prod" >> $GITHUB_OUTPUT
+        else
+          echo "env=development" >> $GITHUB_OUTPUT
+          echo "tag=dev" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build and export Docker image
+      uses: actions/docker/build-push-action@v5
+      with:
+        context: ./MemberService
+        file: ./MemberService/Dockerfile
+        tags: |
+          memberservice:${{ github.sha }}
+          memberservice:${{ steps.env-tag.outputs.tag }}-latest
+          memberservice:${{ steps.env-tag.outputs.tag }}-${{ github.sha }}
+        outputs: type=docker,dest=/tmp/memberservice.tar
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Upload Docker image as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: memberservice-docker-image-${{ steps.env-tag.outputs.tag }}
+        path: /tmp/memberservice.tar
+        retention-days: 7
+
+    - name: Create deployment instructions
+      run: |
+        cat > /tmp/deploy-instructions.md << EOF
+        # MemberService 部署指南
+
+        ## 環境: ${{ steps.env-tag.outputs.env }}
+        **分支**: ${{ github.ref_name }}  
+        **標籤**: ${{ steps.env-tag.outputs.tag }}
+
+        ## 下載並部署 MemberService Docker 映像
+
+        ### 步驟 1: 下載 Docker 映像
+        從 GitHub Actions Artifacts 下載 \`memberservice-docker-image-${{ steps.env-tag.outputs.tag }}\` 文件
+
+        ### 步驟 2: 載入映像到本機 Docker
+        ```bash
+        docker load -i memberservice.tar
+        ```
+
+        ### 3. 啟動服務
+        ```bash
+        docker-compose up -d member-service
+        ```
+
+        ### 步驟 5: 檢查服務狀態
+        ```bash
+        docker-compose ps
+        docker logs memberservice-memberservice-api-1
+        ```
+
+        ### 步驟 6: 訪問 Swagger UI
+        開啟瀏覽器：http://localhost:5001
+
+        ## 映像資訊
+        - **Environment**: ${{ steps.env-tag.outputs.env }}
+        - **Commit SHA**: ${{ github.sha }}
+        - **Branch**: ${{ github.ref_name }}
+        - **Tag**: ${{ steps.env-tag.outputs.tag }}-latest
+        - **Build Time**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        EOF
+
+    - name: Upload deployment instructions
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-instructions-member-${{ steps.env-tag.outputs.tag }}
+        path: /tmp/deploy-instructions.md
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: './MemberService'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

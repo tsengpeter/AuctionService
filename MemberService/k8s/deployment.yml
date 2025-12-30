@@ -1,0 +1,162 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memberservice-config
+  namespace: default
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:80"
+  JWT_ISSUER: "MemberService"
+  JWT_AUDIENCE: "MemberService"
+  JWT_EXPIRY_IN_MINUTES: "15"
+  REFRESH_TOKEN_EXPIRY_IN_DAYS: "7"
+  SNOWFLAKE_WORKER_ID: "1"
+  SNOWFLAKE_DATACENTER_ID: "1"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: memberservice-secrets
+  namespace: default
+type: Opaque
+data:
+  # Base64 encoded values - these should be changed in production
+  jwt-secret-key: eW91ci1zdXBlci1zZWNyZXQtand0LWtleS1taW4tMzItY2hhcnMtbG9uZy1mb3ItaHMyNTYtYWxnb3JpdGht  # your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm
+  db-password: RGV2QFBhc3N3b3JkMTIz  # Dev@Password123
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memberservice
+  namespace: default
+  labels:
+    app: memberservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: memberservice
+  template:
+    metadata:
+      labels:
+        app: memberservice
+    spec:
+      containers:
+      - name: memberservice-api
+        image: memberservice:latest
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        env:
+        - name: DB_CONNECTION_STRING
+          value: "Host=memberservice-db;Port=5432;Database=memberservice_prod;Username=memberservice;Password=$(DB_PASSWORD)"
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: memberservice-secrets
+              key: jwt-secret-key
+        - name: ASPNETCORE_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: ASPNETCORE_ENVIRONMENT
+        - name: ASPNETCORE_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: ASPNETCORE_URLS
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: JWT_AUDIENCE
+        - name: JWT_EXPIRY_IN_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: JWT_EXPIRY_IN_MINUTES
+        - name: REFRESH_TOKEN_EXPIRY_IN_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: REFRESH_TOKEN_EXPIRY_IN_DAYS
+        - name: SNOWFLAKE_WORKER_ID
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: SNOWFLAKE_WORKER_ID
+        - name: SNOWFLAKE_DATACENTER_ID
+          valueFrom:
+            configMapKeyRef:
+              name: memberservice-config
+              key: SNOWFLAKE_DATACENTER_ID
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: memberservice-secrets
+              key: db-password
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memberservice
+  namespace: default
+  labels:
+    app: memberservice
+spec:
+  selector:
+    app: memberservice
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memberservice-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: memberservice.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: memberservice
+            port:
+              number: 80

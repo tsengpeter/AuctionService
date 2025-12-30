@@ -1,0 +1,699 @@
+openapi: 3.0.3
+info:
+  title: Member Service API
+  description: 會員服務 API - 負責使用者註冊、登入、身份驗證與個人資料管理
+  version: 1.0.0
+  contact:
+    name: AuctionService Development Team
+servers:
+  - url: http://localhost:5001
+    description: 本機開發環境
+  - url: https://api.auction-service.com/members
+    description: 正式環境
+
+tags:
+  - name: Authentication
+    description: 身份驗證相關端點（註冊、登入、權杖更新）
+  - name: Users
+    description: 使用者資料管理相關端點
+
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: 使用者註冊
+      description: 建立新的使用者帳號，註冊成功後自動登入並回傳 JWT
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              validRequest:
+                summary: 有效的註冊請求
+                value:
+                  email: user@example.com
+                  password: SecurePassword123
+                  username: 張三
+      responses:
+        '201':
+          description: 註冊成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+              examples:
+                success:
+                  summary: 註冊成功範例
+                  value:
+                    success: true
+                    data:
+                      userId: 1234567890123456
+                      email: user@example.com
+                      username: 張三
+                      accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4...
+        '400':
+          description: 驗證失敗或電子郵件已被使用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emailExists:
+                  summary: 電子郵件已存在
+                  value:
+                    success: false
+                    error:
+                      code: EMAIL_ALREADY_EXISTS
+                      message: 此電子郵件已被使用
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/auth/register
+                validationError:
+                  summary: 驗證錯誤
+                  value:
+                    success: false
+                    error:
+                      code: VALIDATION_ERROR
+                      message: 密碼必須至少 8 個字元
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/auth/register
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: 使用者登入
+      description: 使用電子郵件與密碼進行身份驗證
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              validRequest:
+                summary: 有效的登入請求
+                value:
+                  email: user@example.com
+                  password: SecurePassword123
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: 登入失敗（電子郵件或密碼錯誤）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCredentials:
+                  summary: 登入失敗
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_CREDENTIALS
+                      message: 電子郵件或密碼錯誤
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/auth/login
+
+  /api/auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: 更新存取權杖
+      description: 使用 Refresh Token 換取新的 JWT Access Token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            examples:
+              validRequest:
+                summary: 有效的更新請求
+                value:
+                  refreshToken: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4...
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+              examples:
+                success:
+                  summary: 更新成功範例
+                  value:
+                    success: true
+                    data:
+                      accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Refresh Token 無效、過期或已撤銷
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                tokenExpired:
+                  summary: Token 已過期
+                  value:
+                    success: false
+                    error:
+                      code: REFRESH_TOKEN_EXPIRED
+                      message: Refresh Token 已過期，請重新登入
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/auth/refresh-token
+                tokenRevoked:
+                  summary: Token 已撤銷
+                  value:
+                    success: false
+                    error:
+                      code: REFRESH_TOKEN_REVOKED
+                      message: 權杖無效，請重新登入
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/auth/refresh-token
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: 使用者登出
+      description: 撤銷指定的 Refresh Token
+      operationId: logout
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+            examples:
+              validRequest:
+                summary: 有效的登出請求
+                value:
+                  refreshToken: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4...
+      responses:
+        '204':
+          description: 登出成功（無回應內容）
+        '401':
+          description: 未授權（JWT 無效或過期）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/me:
+    get:
+      tags:
+        - Users
+      summary: 查詢自己的完整個人資料
+      description: 取得當前登入使用者的完整資料（包含電子郵件）
+      operationId: getMyProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+              examples:
+                success:
+                  summary: 查詢成功範例
+                  value:
+                    success: true
+                    data:
+                      userId: 1234567890123456
+                      email: user@example.com
+                      username: 張三
+                      createdAt: '2025-11-01T10:00:00Z'
+                      updatedAt: '2025-11-18T10:30:00Z'
+        '401':
+          description: 未授權（JWT 無效或過期）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      tags:
+        - Users
+      summary: 更新個人資料
+      description: 更新當前登入使用者的使用者名稱或電子郵件
+      operationId: updateMyProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            examples:
+              updateUsername:
+                summary: 僅更新使用者名稱
+                value:
+                  username: 李四
+              updateEmail:
+                summary: 僅更新電子郵件
+                value:
+                  email: newemail@example.com
+              updateBoth:
+                summary: 同時更新兩者
+                value:
+                  username: 李四
+                  email: newemail@example.com
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          description: 驗證失敗或電子郵件已被使用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emailExists:
+                  summary: 電子郵件已存在
+                  value:
+                    success: false
+                    error:
+                      code: EMAIL_ALREADY_EXISTS
+                      message: 此電子郵件已被使用
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/users/me
+        '401':
+          description: 未授權（JWT 無效或過期）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/me/password:
+    put:
+      tags:
+        - Users
+      summary: 變更密碼
+      description: 變更當前登入使用者的密碼，需提供舊密碼驗證。變更成功後撤銷所有 Refresh Token，強制所有裝置重新登入。
+      operationId: changePassword
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            examples:
+              validRequest:
+                summary: 有效的變更密碼請求
+                value:
+                  oldPassword: OldPassword123
+                  newPassword: NewSecurePassword456
+      responses:
+        '204':
+          description: 變更成功（無回應內容）
+        '400':
+          description: 舊密碼錯誤或驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                wrongOldPassword:
+                  summary: 舊密碼錯誤
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_OLD_PASSWORD
+                      message: 舊密碼錯誤
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/users/me/password
+        '401':
+          description: 未授權（JWT 無效或過期）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: 查詢其他使用者的公開資料
+      description: 取得指定使用者的公開資料（僅包含使用者名稱與建立時間，不包含電子郵件）
+      operationId: getUserProfile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 使用者的雪花ID
+          schema:
+            type: integer
+            format: int64
+          example: 1234567890123456
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfileResponse'
+              examples:
+                success:
+                  summary: 查詢成功範例
+                  value:
+                    success: true
+                    data:
+                      userId: 1234567890123456
+                      username: 張三
+                      createdAt: '2025-11-01T10:00:00Z'
+        '404':
+          description: 使用者不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: 使用者不存在
+                  value:
+                    success: false
+                    error:
+                      code: USER_NOT_FOUND
+                      message: 使用者不存在
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/users/1234567890123456
+        '401':
+          description: 未授權（JWT 無效或過期）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Access Token (有效期限 15 分鐘)
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - username
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: 電子郵件地址（唯一）
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: 密碼（至少 8 個字元）
+          example: SecurePassword123
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[\p{L}\s]+$'
+          description: 使用者名稱（僅允許字母與空格）
+          example: 張三
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: 電子郵件地址
+          example: user@example.com
+        password:
+          type: string
+          description: 密碼
+          example: SecurePassword123
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh Token 字串
+          example: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: 要撤銷的 Refresh Token
+          example: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[\p{L}\s]+$'
+          description: 新的使用者名稱（選填）
+          example: 李四
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: 新的電子郵件地址（選填）
+          example: newemail@example.com
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+          description: 舊密碼
+          example: OldPassword123
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: 新密碼（至少 8 個字元）
+          example: NewSecurePassword456
+
+    AuthSuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - userId
+            - email
+            - username
+            - accessToken
+            - refreshToken
+          properties:
+            userId:
+              type: integer
+              format: int64
+              description: 使用者的雪花ID
+              example: 1234567890123456
+            email:
+              type: string
+              format: email
+              description: 電子郵件地址
+              example: user@example.com
+            username:
+              type: string
+              description: 使用者名稱
+              example: 張三
+            accessToken:
+              type: string
+              description: JWT Access Token（有效期限 15 分鐘）
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            refreshToken:
+              type: string
+              description: Refresh Token（有效期限 7 天）
+              example: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9
+
+    RefreshTokenResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - accessToken
+          properties:
+            accessToken:
+              type: string
+              description: 新的 JWT Access Token
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    UserProfileResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - userId
+            - email
+            - username
+            - createdAt
+            - updatedAt
+          properties:
+            userId:
+              type: integer
+              format: int64
+              description: 使用者的雪花ID
+              example: 1234567890123456
+            email:
+              type: string
+              format: email
+              description: 電子郵件地址
+              example: user@example.com
+            username:
+              type: string
+              description: 使用者名稱
+              example: 張三
+            createdAt:
+              type: string
+              format: date-time
+              description: 帳號建立時間（UTC）
+              example: '2025-11-01T10:00:00Z'
+            updatedAt:
+              type: string
+              format: date-time
+              description: 最後更新時間（UTC）
+              example: '2025-11-18T10:30:00Z'
+
+    PublicUserProfileResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - userId
+            - username
+            - createdAt
+          properties:
+            userId:
+              type: integer
+              format: int64
+              description: 使用者的雪花ID
+              example: 1234567890123456
+            username:
+              type: string
+              description: 使用者名稱
+              example: 張三
+            createdAt:
+              type: string
+              format: date-time
+              description: 帳號建立時間（UTC）
+              example: '2025-11-01T10:00:00Z'
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - timestamp
+            - path
+          properties:
+            code:
+              type: string
+              description: 錯誤代碼
+              enum:
+                - EMAIL_ALREADY_EXISTS
+                - INVALID_CREDENTIALS
+                - INVALID_TOKEN
+                - REFRESH_TOKEN_EXPIRED
+                - REFRESH_TOKEN_REVOKED
+                - VALIDATION_ERROR
+                - USER_NOT_FOUND
+                - INVALID_OLD_PASSWORD
+              example: EMAIL_ALREADY_EXISTS
+            message:
+              type: string
+              description: 使用者友善的錯誤訊息
+              example: 此電子郵件已被使用
+            details:
+              type: string
+              nullable: true
+              description: 額外的錯誤詳細資訊（選填）
+              example: null
+            timestamp:
+              type: string
+              format: date-time
+              description: 錯誤發生時間（UTC）
+              example: '2025-11-18T10:30:00Z'
+            path:
+              type: string
+              description: 發生錯誤的 API 路徑
+              example: /api/auth/register
