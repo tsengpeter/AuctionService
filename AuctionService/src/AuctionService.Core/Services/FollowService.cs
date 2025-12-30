@@ -54,8 +54,8 @@ public class FollowService : IFollowService
         }
 
         // 檢查追蹤數量限制 (最多 500 個)
-        var (follows, _) = await _followRepository.GetByUserIdAsync(userId, new AuctionQueryParameters { PageNumber = 1, PageSize = 1000 });
-        if (follows.Count() >= 500)
+        var followCount = await _followRepository.CountByUserIdAsync(userId);
+        if (followCount >= 500)
         {
             throw new ValidationException("Maximum follow limit (500) exceeded");
         }

@@ -79,4 +79,9 @@ public class FollowRepository : Repository<Follow>, IFollowRepository
         return await _context.Auctions
             .AnyAsync(a => a.Id == auctionId && a.UserId == userId);
     }
+
+    public async Task<int> CountByUserIdAsync(string userId)
+    {
+        return await _dbSet.CountAsync(f => f.UserId == userId);
+    }
 }

@@ -60,8 +60,8 @@ public class FollowServiceTests
             .ReturnsAsync(false);
 
         _followRepositoryMock
-            .Setup(x => x.GetByUserIdAsync(userId, It.IsAny<AuctionQueryParameters>()))
-            .ReturnsAsync((new List<Follow>().AsEnumerable(), 0));
+            .Setup(x => x.CountByUserIdAsync(userId))
+            .ReturnsAsync(0);
 
         _biddingServiceClientMock
             .Setup(x => x.GetCurrentBidAsync(auctionId))

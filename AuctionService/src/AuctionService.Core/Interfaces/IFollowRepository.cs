@@ -27,4 +27,9 @@ public interface IFollowRepository : IRepository<Follow>
     /// 檢查是否正在追蹤自己的商品
     /// </summary>
     Task<bool> IsFollowingOwnAuctionAsync(string userId, Guid auctionId);
+
+    /// <summary>
+    /// 計算使用者的追蹤數量
+    /// </summary>
+    Task<int> CountByUserIdAsync(string userId);
 }
