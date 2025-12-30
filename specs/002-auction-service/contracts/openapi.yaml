@@ -1,0 +1,878 @@
+openapi: 3.0.3
+info:
+  title: 商品拍賣服務 API
+  description: |
+    商品拍賣服務的 REST API 規格，提供商品的建立、查詢、管理與使用者追蹤功能。
+    
+    ## 功能特性
+    - 商品 CRUD 操作
+    - 商品瀏覽、搜尋與篩選
+    - 商品追蹤管理
+    - 標準化 API 回應格式
+    - 多語系支援 (繁體中文 / 英文)
+    
+    ## 技術棧
+    - ASP.NET Core 10 Web API
+    - PostgreSQL 16+
+    - Entity Framework Core 10
+  version: 1.0.0
+  contact:
+    name: AuctionService Team
+    email: support@auctionservice.com
+
+servers:
+  - url: http://localhost:5000
+    description: 本地開發環境
+  - url: https://api-dev.auctionservice.com
+    description: 開發環境
+  - url: https://api.auctionservice.com
+    description: 生產環境
+
+tags:
+  - name: Auctions
+    description: 商品管理相關操作
+  - name: Follows
+    description: 商品追蹤相關操作
+  - name: Categories
+    description: 商品分類查詢
+
+paths:
+  # ========================================
+  # Auctions API
+  # ========================================
+  
+  /api/auctions:
+    get:
+      tags:
+        - Auctions
+      summary: 查詢商品清單
+      description: |
+        查詢所有進行中的拍賣商品清單，支援分頁、篩選、搜尋與排序。
+        預設僅顯示狀態為 Active 的商品。
+      operationId: getAuctions
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+        - name: categoryId
+          in: query
+          description: 分類 ID 篩選
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: keyword
+          in: query
+          description: 關鍵字搜尋 (商品名稱或描述)
+          required: false
+          schema:
+            type: string
+            example: "iPhone"
+        - name: sortBy
+          in: query
+          description: 排序欄位
+          required: false
+          schema:
+            type: string
+            enum: [endTime, startingPrice, createdAt]
+            default: endTime
+        - name: sortOrder
+          in: query
+          description: 排序方向
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: status
+          in: query
+          description: 商品狀態篩選
+          required: false
+          schema:
+            type: string
+            enum: [Pending, Active, Ended]
+            default: Active
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/AuctionListItemDto'
+                          pagination:
+                            $ref: '#/components/schemas/PaginationMetadata'
+    
+    post:
+      tags:
+        - Auctions
+      summary: 建立商品
+      description: 建立新的拍賣商品 (需要登入)
+      operationId: createAuction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuctionRequest'
+      responses:
+        '201':
+          description: 建立成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuctionDetailDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auctions/{id}:
+    get:
+      tags:
+        - Auctions
+      summary: 查詢商品詳細資訊
+      description: 查詢單一商品的完整資訊
+      operationId: getAuctionById
+      parameters:
+        - $ref: '#/components/parameters/AuctionId'
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuctionDetailDto'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - Auctions
+      summary: 更新商品資訊
+      description: 更新商品資訊 (僅限建立者且商品尚未有出價)
+      operationId: updateAuction
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuctionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAuctionRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuctionDetailDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - Auctions
+      summary: 刪除商品
+      description: 刪除商品 (僅限建立者且商品尚未有出價)
+      operationId: deleteAuction
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuctionId'
+      responses:
+        '200':
+          description: 刪除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/auctions/{id}/current-bid:
+    get:
+      tags:
+        - Auctions
+      summary: 查詢商品目前競標價格
+      description: |
+        查詢商品的目前最高出價資訊 (輕量化查詢，適合高頻輪詢)。
+        此 API 會呼叫 Bidding Service 取得最新競標資訊。
+      operationId: getCurrentBid
+      parameters:
+        - $ref: '#/components/parameters/AuctionId'
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CurrentBidDto'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          description: Bidding Service 無法使用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                metadata:
+                  statusCode: "BIDDING_SERVICE_UNAVAILABLE"
+                  statusName: "競標服務無法使用"
+                  message: "競標服務暫時無法使用"
+                  timestamp: "2025-12-02T10:30:00Z"
+
+  /api/auctions/user/{userId}:
+    get:
+      tags:
+        - Auctions
+      summary: 查詢特定使用者的所有商品
+      description: 查詢特定使用者建立的所有商品
+      operationId: getAuctionsByUserId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 使用者 ID
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/AuctionListItemDto'
+                          pagination:
+                            $ref: '#/components/schemas/PaginationMetadata'
+
+  # ========================================
+  # Follows API
+  # ========================================
+
+  /api/follows:
+    get:
+      tags:
+        - Follows
+      summary: 查詢追蹤清單
+      description: 查詢目前使用者的追蹤商品清單 (需要登入)
+      operationId: getFollows
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/FollowDto'
+                          pagination:
+                            $ref: '#/components/schemas/PaginationMetadata'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - Follows
+      summary: 追蹤商品
+      description: 將商品加入追蹤清單 (需要登入)
+      operationId: followAuction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FollowAuctionRequest'
+      responses:
+        '201':
+          description: 追蹤成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FollowDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 已追蹤或追蹤數量超過限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/follows/{auctionId}:
+    delete:
+      tags:
+        - Follows
+      summary: 取消追蹤商品
+      description: 從追蹤清單移除商品 (需要登入)
+      operationId: unfollowAuction
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuctionId'
+      responses:
+        '200':
+          description: 取消追蹤成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ========================================
+  # Categories API
+  # ========================================
+
+  /api/categories:
+    get:
+      tags:
+        - Categories
+      summary: 查詢商品分類清單
+      description: 查詢所有啟用的商品分類
+      operationId: getCategories
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CategoryDto'
+
+# ========================================
+# Components
+# ========================================
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Token (由 Auth Service 提供)
+
+  parameters:
+    AuctionId:
+      name: id
+      in: path
+      required: true
+      description: 商品 ID
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    
+    PageNumber:
+      name: pageNumber
+      in: query
+      description: 頁碼 (從 1 開始)
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    
+    PageSize:
+      name: pageSize
+      in: query
+      description: 每頁筆數 (預設 20，最大 100)
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    # ========================================
+    # 標準 API 回應包裝器
+    # ========================================
+    
+    ApiResponse:
+      type: object
+      required:
+        - metadata
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+        data:
+          type: object
+          description: 實際回應資料 (依不同 API 而異)
+    
+    ResponseMetadata:
+      type: object
+      required:
+        - statusCode
+        - statusName
+        - message
+        - timestamp
+      properties:
+        statusCode:
+          type: string
+          description: 狀態代碼 (對應 ResponseCode.Code)
+          example: "AUCTION_CREATED"
+        statusName:
+          type: string
+          description: 狀態名稱 (對應 ResponseCode.Name)
+          example: "商品已建立"
+        message:
+          type: string
+          description: 訊息內容 (依語系從 MessageZhTw 或 MessageEn 取得)
+          example: "商品建立成功"
+        timestamp:
+          type: string
+          format: date-time
+          description: 回應時間 (UTC)
+          example: "2025-12-02T10:30:00Z"
+
+    PaginationMetadata:
+      type: object
+      required:
+        - currentPage
+        - pageSize
+        - totalCount
+        - totalPages
+      properties:
+        currentPage:
+          type: integer
+          description: 目前頁碼
+          example: 1
+        pageSize:
+          type: integer
+          description: 每頁筆數
+          example: 20
+        totalCount:
+          type: integer
+          description: 總筆數
+          example: 150
+        totalPages:
+          type: integer
+          description: 總頁數
+          example: 8
+        hasNextPage:
+          type: boolean
+          description: 是否有下一頁
+          example: true
+        hasPreviousPage:
+          type: boolean
+          description: 是否有上一頁
+          example: false
+
+    # ========================================
+    # Auction DTOs
+    # ========================================
+    
+    AuctionListItemDto:
+      type: object
+      required:
+        - id
+        - name
+        - startingPrice
+        - categoryId
+        - categoryName
+        - startTime
+        - endTime
+        - status
+        - userId
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 商品 ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: 商品名稱
+          example: "iPhone 15 Pro Max"
+        startingPrice:
+          type: number
+          format: decimal
+          description: 起標價
+          example: 15000.00
+        categoryId:
+          type: integer
+          description: 分類 ID
+          example: 1
+        categoryName:
+          type: string
+          description: 分類名稱
+          example: "電子產品"
+        startTime:
+          type: string
+          format: date-time
+          description: 開始時間 (UTC)
+          example: "2025-12-02T10:00:00Z"
+        endTime:
+          type: string
+          format: date-time
+          description: 結束時間 (UTC)
+          example: "2025-12-05T10:00:00Z"
+        status:
+          type: string
+          enum: [Pending, Active, Ended]
+          description: 商品狀態 (計算欄位)
+          example: "Active"
+        userId:
+          type: string
+          format: uuid
+          description: 建立者使用者 ID
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        createdAt:
+          type: string
+          format: date-time
+          description: 建立時間 (UTC)
+          example: "2025-12-01T15:00:00Z"
+
+    AuctionDetailDto:
+      allOf:
+        - $ref: '#/components/schemas/AuctionListItemDto'
+        - type: object
+          properties:
+            description:
+              type: string
+              description: 商品描述
+              example: "全新未拆封 iPhone 15 Pro Max 256GB 鈦藍色"
+            updatedAt:
+              type: string
+              format: date-time
+              description: 更新時間 (UTC)
+              example: "2025-12-01T15:30:00Z"
+
+    CreateAuctionRequest:
+      type: object
+      required:
+        - name
+        - description
+        - startingPrice
+        - categoryId
+        - endTime
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 200
+          description: 商品名稱
+          example: "iPhone 15 Pro Max"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: 商品描述
+          example: "全新未拆封 iPhone 15 Pro Max 256GB 鈦藍色"
+        startingPrice:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 10000000
+          description: 起標價
+          example: 15000.00
+        categoryId:
+          type: integer
+          description: 分類 ID
+          example: 1
+        endTime:
+          type: string
+          format: date-time
+          description: 結束時間 (UTC，至少當前時間 + 1 小時)
+          example: "2025-12-05T10:00:00Z"
+
+    UpdateAuctionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 200
+          description: 商品名稱
+          example: "iPhone 15 Pro Max (已更新)"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: 商品描述
+          example: "全新未拆封 iPhone 15 Pro Max 256GB 鈦藍色 (含原廠保護殼)"
+        startingPrice:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 10000000
+          description: 起標價
+          example: 16000.00
+        categoryId:
+          type: integer
+          description: 分類 ID
+          example: 1
+        endTime:
+          type: string
+          format: date-time
+          description: 結束時間 (UTC，至少當前時間 + 1 小時)
+          example: "2025-12-06T10:00:00Z"
+
+    CurrentBidDto:
+      type: object
+      required:
+        - auctionId
+        - currentPrice
+        - bidCount
+      properties:
+        auctionId:
+          type: string
+          format: uuid
+          description: 商品 ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        currentPrice:
+          type: number
+          format: decimal
+          description: 目前最高出價 (無出價時為起標價)
+          example: 18000.00
+        bidCount:
+          type: integer
+          description: 總出價次數
+          example: 5
+        lastBidTime:
+          type: string
+          format: date-time
+          description: 最後出價時間 (UTC)
+          example: "2025-12-03T14:30:00Z"
+          nullable: true
+
+    # ========================================
+    # Follow DTOs
+    # ========================================
+
+    FollowDto:
+      type: object
+      required:
+        - id
+        - userId
+        - auctionId
+        - auction
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 追蹤記錄 ID
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        userId:
+          type: string
+          format: uuid
+          description: 使用者 ID
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        auctionId:
+          type: string
+          format: uuid
+          description: 商品 ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        auction:
+          $ref: '#/components/schemas/AuctionListItemDto'
+        createdAt:
+          type: string
+          format: date-time
+          description: 追蹤時間 (UTC)
+          example: "2025-12-02T08:00:00Z"
+
+    FollowAuctionRequest:
+      type: object
+      required:
+        - auctionId
+      properties:
+        auctionId:
+          type: string
+          format: uuid
+          description: 要追蹤的商品 ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+
+    # ========================================
+    # Category DTOs
+    # ========================================
+
+    CategoryDto:
+      type: object
+      required:
+        - id
+        - name
+        - displayOrder
+      properties:
+        id:
+          type: integer
+          description: 分類 ID
+          example: 1
+        name:
+          type: string
+          description: 分類名稱
+          example: "電子產品"
+        displayOrder:
+          type: integer
+          description: 顯示順序
+          example: 1
+
+    # ========================================
+    # Error Response
+    # ========================================
+
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+          description: 發生錯誤的欄位名稱
+          example: "endTime"
+        message:
+          type: string
+          description: 錯誤訊息
+          example: "結束時間必須至少在 1 小時之後"
+
+  responses:
+    BadRequest:
+      description: 請求參數錯誤
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      errors:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ErrorDetail'
+          example:
+            metadata:
+              statusCode: "VALIDATION_ERROR"
+              statusName: "驗證錯誤"
+              message: "請求參數驗證失敗"
+              timestamp: "2025-12-02T10:30:00Z"
+            data:
+              errors:
+                - field: "endTime"
+                  message: "結束時間必須至少在 1 小時之後"
+    
+    Unauthorized:
+      description: 未授權 (需要登入)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            metadata:
+              statusCode: "UNAUTHORIZED"
+              statusName: "未授權"
+              message: "需要登入"
+              timestamp: "2025-12-02T10:30:00Z"
+    
+    Forbidden:
+      description: 無權限操作
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            metadata:
+              statusCode: "AUCTION_UNAUTHORIZED"
+              statusName: "無權限操作"
+              message: "無權限操作此商品"
+              timestamp: "2025-12-02T10:30:00Z"
+    
+    NotFound:
+      description: 資源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            metadata:
+              statusCode: "AUCTION_NOT_FOUND"
+              statusName: "商品不存在"
+              message: "查無此商品"
+              timestamp: "2025-12-02T10:30:00Z"
