@@ -91,12 +91,12 @@ public class AuctionsContractTests : IClassFixture<WebApplicationFactoryFixture>
         var jsonDocument = JsonDocument.Parse(content);
 
         // The response is wrapped in ASP.NET Core's ObjectResult format
-        jsonDocument.RootElement.TryGetProperty("value", out var value).Should().BeTrue();
+        // jsonDocument.RootElement.TryGetProperty("value", out var value).Should().BeTrue();
 
         // Assert - 验证实际的响应结构 (success/message/data)
-        value.TryGetProperty("success", out var success).Should().BeTrue();
-        value.TryGetProperty("message", out var message).Should().BeTrue();
-        value.TryGetProperty("data", out var data).Should().BeTrue();
+        jsonDocument.RootElement.TryGetProperty("success", out var success).Should().BeTrue();
+        jsonDocument.RootElement.TryGetProperty("message", out var message).Should().BeTrue();
+        jsonDocument.RootElement.TryGetProperty("data", out var data).Should().BeTrue();
 
         // Assert - 验证 success 为 true
         success.ValueKind.Should().Be(JsonValueKind.True);
@@ -137,7 +137,7 @@ public class AuctionsContractTests : IClassFixture<WebApplicationFactoryFixture>
 
         var createContent = await createResponse.Content.ReadAsStringAsync();
         var createJson = JsonDocument.Parse(createContent);
-        var auctionId = createJson.RootElement.GetProperty("value").GetProperty("data").GetProperty("id").GetString();
+        var auctionId = createJson.RootElement.GetProperty("data").GetProperty("id").GetString();
 
         // Act
         var response = await _client.GetAsync($"/api/auctions/{auctionId}");
