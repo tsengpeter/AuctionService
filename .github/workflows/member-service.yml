@@ -16,21 +16,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: memberservice
-          POSTGRES_PASSWORD: Dev@Password123
-          POSTGRES_DB: memberservice_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -52,7 +37,6 @@ jobs:
       run: dotnet test --no-build --configuration Release --verbosity normal
       working-directory: MemberService
       env:
-        DB_CONNECTION_STRING: Host=localhost;Port=5432;Database=memberservice_test;Username=memberservice;Password=Dev@Password123
         JWT_SECRET_KEY: test-jwt-secret-key-for-ci-cd-pipeline-testing-only-32-chars-minimum
         SNOWFLAKE_WORKER_ID: 1
         SNOWFLAKE_DATACENTER_ID: 1
