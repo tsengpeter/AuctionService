@@ -162,12 +162,8 @@ public class BiddingServiceTests
             .Setup(x => x.Encrypt(bidderId))
             .Returns("encrypted_bidder");
 
-        _encryptionServiceMock
-            .Setup(x => x.Encrypt(request.Amount.ToString()))
-            .Returns("encrypted_amount");
-
         _redisRepositoryMock
-            .Setup(x => x.PlaceBidAsync(It.IsAny<Bid>()))
+            .Setup(x => x.PlaceBidAsync(It.IsAny<Bid>(), It.IsAny<TimeSpan>()))
             .ReturnsAsync(false); // Redis placement fails
 
         // Act

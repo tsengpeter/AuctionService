@@ -1,11 +1,13 @@
 using BiddingService.Core.Entities;
 using BiddingService.Core.ValueObjects;
+using BiddingService.Core.Interfaces;
 using BiddingService.Infrastructure.Data;
 using BiddingService.Infrastructure.Repositories;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Npgsql;
 using Xunit;
 
@@ -16,9 +18,12 @@ public class BidRepositoryTests : IAsyncLifetime
     private IContainer _postgresContainer;
     private BiddingDbContext _dbContext;
     private BidRepository _repository;
+    private Mock<IEncryptionService> _encryptionServiceMock;
 
     public BidRepositoryTests()
     {
+        _encryptionServiceMock = new Mock<IEncryptionService>();
+
         // Create PostgreSQL container (don't start yet)
         _postgresContainer = new ContainerBuilder()
             .WithImage("postgres:16")
@@ -31,6 +36,10 @@ public class BidRepositoryTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        // Setup mock encryption service
+        _encryptionServiceMock.Setup(x => x.Encrypt(It.IsAny<string>())).Returns((string input) => $"encrypted_{input}");
+        _encryptionServiceMock.Setup(x => x.Decrypt(It.IsAny<string>())).Returns((string input) => input.Replace("encrypted_", ""));
+
         // Start PostgreSQL container
         await _postgresContainer.StartAsync();
 
@@ -42,7 +51,7 @@ public class BidRepositoryTests : IAsyncLifetime
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
             .UseNpgsql(postgresConnectionString)
             .Options;
-        _dbContext = new BiddingDbContext(dbContextOptions);
+        _dbContext = new BiddingDbContext(dbContextOptions, _encryptionServiceMock.Object);
 
         // Ensure database is created
         await _dbContext.Database.EnsureCreatedAsync();

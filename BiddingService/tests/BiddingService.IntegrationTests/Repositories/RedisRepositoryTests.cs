@@ -99,7 +99,7 @@ public class RedisRepositoryTests : IAsyncLifetime
         var bid = new Bid(123, 456, "bidder", "hash", new BidAmount(100.00m), DateTime.UtcNow);
 
         // Act
-        var result = await _repository.PlaceBidAsync(bid);
+        var result = await _repository.PlaceBidAsync(bid, TimeSpan.FromDays(7));
 
         // Assert
         result.Should().BeTrue();

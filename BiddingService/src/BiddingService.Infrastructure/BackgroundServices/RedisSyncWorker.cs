@@ -29,12 +29,12 @@ public class RedisSyncWorker : BackgroundService
         {
             try
             {
+                await SyncPendingBidsAsync(stoppingToken);
                 await SyncDeadLetterQueueWithRetryInternalAsync(stoppingToken);
                 await Task.Delay(_syncInterval, stoppingToken);
             }
             catch (TaskCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                // Expected when application is shutting down
                 _logger.LogInformation("RedisSyncWorker stopping");
                 break;
             }
@@ -54,6 +54,60 @@ public class RedisSyncWorker : BackgroundService
         }
 
         _logger.LogInformation("RedisSyncWorker stopped");
+    }
+
+    private async Task SyncPendingBidsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var redisRepository = scope.ServiceProvider.GetRequiredService<IRedisRepository>();
+        var bidRepository = scope.ServiceProvider.GetRequiredService<IBidRepository>();
+
+        var pendingMembers = await redisRepository.GetPendingBidMembersAsync(100);
+        if (!pendingMembers.Any()) return;
+
+        foreach (var member in pendingMembers)
+        {
+            if (cancellationToken.IsCancellationRequested) break;
+
+            // member format: "bidId:auctionId"
+            var parts = member.Split(':');
+            if (parts.Length != 2 || !long.TryParse(parts[0], out var bidId))
+            {
+                _logger.LogError("Invalid pending bid member format: {Member}", member);
+                await redisRepository.RemovePendingBidMemberAsync(member);
+                continue;
+            }
+
+            try
+            {
+                var bid = await redisRepository.GetBidInfoAsync(bidId);
+                if (bid == null)
+                {
+                    _logger.LogWarning("Bid info not found for bid {BidId} (member: {Member})", bidId, member);
+                    // Decide whether to remove the pending member. If info is gone, we can't sync.
+                    await redisRepository.RemovePendingBidMemberAsync(member);
+                    continue;
+                }
+
+                // Check existence
+                var existing = await bidRepository.GetByIdAsync(bid.BidId);
+                if (existing == null)
+                {
+                    await bidRepository.AddAsync(bid);
+                    _logger.LogDebug("Synced bid {BidId}", bid.BidId);
+                }
+
+                // Cleanup
+                await redisRepository.RemovePendingBidMemberAsync(member);
+                await redisRepository.RemoveBidInfoAsync(bid.BidId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to sync bid {BidId}", bidId);
+                // We leave it in pending_bids to retry later
+                // Optionally move to Dead Letter if retries exceed limit (needs tracking)
+            }
+        }
     }
 
     private async Task SyncDeadLetterQueueWithRetryInternalAsync(CancellationToken cancellationToken)

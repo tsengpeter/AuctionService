@@ -21,15 +21,28 @@ public class RedisRepository : IRedisRepository
         _luaScript = reader.ReadToEnd();
     }
 
-    public async Task<bool> PlaceBidAsync(Bid bid)
+    public async Task<bool> PlaceBidAsync(Bid bid, TimeSpan ttl)
     {
         var db = _redis.GetDatabase();
         var auctionKey = $"auction:{bid.AuctionId}";
         var highestBidKey = $"highest_bid:{bid.AuctionId}";
+        var pendingBidsKey = "pending_bids";
+        var bidInfoKey = $"bid_info:{bid.BidId}";
+
+        var bidJson = JsonSerializer.Serialize(bid);
 
         var result = await db.ScriptEvaluateAsync(_luaScript,
-            new RedisKey[] { auctionKey, highestBidKey },
-            new RedisValue[] { bid.BidId, bid.BidderId, bid.Amount.Value.ToString(), bid.BidAt.ToString("O"), bid.BidderIdHash });
+            new RedisKey[] { auctionKey, highestBidKey, pendingBidsKey, bidInfoKey },
+            new RedisValue[] { 
+                bid.BidId, 
+                bid.BidderId, 
+                bid.Amount.Value.ToString(CultureInfo.InvariantCulture), 
+                bid.BidAt.ToString("O"), 
+                bid.BidderIdHash,
+                (long)ttl.TotalSeconds,
+                bid.AuctionId,
+                bidJson
+            });
 
         return (int)result == 1;
     }
@@ -128,5 +141,51 @@ public class RedisRepository : IRedisRepository
         // This is simplified - in practice, you'd need to remove specific items
         // For now, we'll just trim the list
         await db.ListTrimAsync(deadLetterKey, bidIds.Count(), -1);
+    }
+
+    public async Task<IEnumerable<string>> GetPendingBidMembersAsync(int count = 100)
+    {
+        var db = _redis.GetDatabase();
+        var pendingBidsKey = "pending_bids";
+        
+        // Use SPOP to pop random members. 
+        // Note: This implements at-most-once if we crash after popping.
+        // For at-least-once, we should use SRANDMEMBER + SREM, but that requires careful management.
+        // Given the prompt discussion, we will use SPOP for simplicity as 'RedisSyncWorker' in plan 
+        // implies "read -> write -> remove" but SPOP combines read+remove.
+        // Wait, the thought process decided on "Read -> Write -> Remove" pattern using SSCAN/SRANDMEMBER.
+        // But SRANDMEMBER might return same items.
+        // Let's use SPOP. If worker crashes, data is in 'bid_info' but lost from queue. 
+        // We can have a recovery process that scans 'bid_info:*' keys? 
+        // The plan says "寫入成功後從 pending_bids Set 移除". This implies Read-then-Remove.
+        // So I will use SRANDMEMBER.
+        
+        var members = await db.SetRandomMembersAsync(pendingBidsKey, count);
+        return members.Select(m => m.ToString());
+    }
+
+    public async Task<Bid?> GetBidInfoAsync(long bidId)
+    {
+        var db = _redis.GetDatabase();
+        var bidInfoKey = $"bid_info:{bidId}";
+        var json = await db.StringGetAsync(bidInfoKey);
+        
+        if (!json.HasValue) return null;
+        
+        return JsonSerializer.Deserialize<Bid>(json.ToString());
+    }
+
+    public async Task RemovePendingBidMemberAsync(string member)
+    {
+        var db = _redis.GetDatabase();
+        var pendingBidsKey = "pending_bids";
+        await db.SetRemoveAsync(pendingBidsKey, member);
+    }
+
+    public async Task RemoveBidInfoAsync(long bidId)
+    {
+        var db = _redis.GetDatabase();
+        var bidInfoKey = $"bid_info:{bidId}";
+        await db.KeyDeleteAsync(bidInfoKey);
     }
 }

@@ -26,6 +26,7 @@ using System.Net;
 using System.Text.Json;
 using WireMock.Server;
 using BiddingService.Shared.Helpers;
+using Moq;
 
 namespace BiddingService.IntegrationTests.Controllers;
 
@@ -37,9 +38,12 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
     private BiddingDbContext _dbContext;
     private IConnectionMultiplexer _redisConnection;
     private BidsController _controller;
+    private Mock<IEncryptionService> _encryptionServiceMock;
 
     public BidsControllerIntegrationTests()
     {
+        _encryptionServiceMock = new Mock<IEncryptionService>();
+
         // Create containers (don't start yet)
         _postgresContainer = new ContainerBuilder()
             .WithImage("postgres:16")
@@ -60,6 +64,10 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        // Setup mock encryption service
+        _encryptionServiceMock.Setup(x => x.Encrypt(It.IsAny<string>())).Returns((string input) => $"encrypted_{input}");
+        _encryptionServiceMock.Setup(x => x.Decrypt(It.IsAny<string>())).Returns((string input) => input.Replace("encrypted_", ""));
+
         // Start containers
         await _postgresContainer.StartAsync();
         await _redisContainer.StartAsync();
@@ -72,7 +80,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
             .UseNpgsql(postgresConnectionString)
             .Options;
-        _dbContext = new BiddingDbContext(dbContextOptions);
+        _dbContext = new BiddingDbContext(dbContextOptions, _encryptionServiceMock.Object);
 
         // Ensure database is created
         await _dbContext.Database.EnsureCreatedAsync();
@@ -136,7 +144,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
             .UseNpgsql(postgresConnectionString)
             .Options;
-        var dbContext = new BiddingDbContext(dbContextOptions);
+        var dbContext = new BiddingDbContext(dbContextOptions, encryptionService);
 
         var redisConnectionString = $"localhost:{_redisContainer.GetMappedPublicPort(6379)}";
         var redisConnection = new BiddingService.Infrastructure.Redis.RedisConnection(redisConnectionString);
@@ -353,7 +361,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         var response = okResult.Value as HighestBidResponse;
         response.AuctionId.Should().Be(auctionId);
         response.HighestBid.Should().NotBeNull();
-        response.HighestBid!.BidId.Should().Be(202); // bid2 has the highest amount
+        response.HighestBid!.BidId.Should().Be(202); // bid2 has the highest amount (150.00)
         response.HighestBid!.Amount.Should().Be(150.00m);
     }
 
@@ -524,14 +532,13 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
     public async Task GetBidHistory_WhenAuctionExists_ReturnsBidHistory()
     {
         // Arrange
-        // First create some bids
-        var bidRequest1 = new CreateBidRequest { AuctionId = 1, Amount = 150.00m };
-        var bidRequest2 = new CreateBidRequest { AuctionId = 1, Amount = 200.00m };
-        var bidRequest3 = new CreateBidRequest { AuctionId = 1, Amount = 250.00m };
+        // Create bids directly in database for this test
+        var bid1 = new Bid(1, 1, "bidder1", "hash1", new BidAmount(150.00m), DateTime.UtcNow.AddMinutes(-10));
+        var bid2 = new Bid(2, 1, "bidder2", "hash2", new BidAmount(200.00m), DateTime.UtcNow.AddMinutes(-5));
+        var bid3 = new Bid(3, 1, "bidder3", "hash3", new BidAmount(250.00m), DateTime.UtcNow.AddMinutes(-1));
 
-        await _controller.CreateBid(bidRequest1);
-        await _controller.CreateBid(bidRequest2);
-        await _controller.CreateBid(bidRequest3);
+        await _dbContext.Bids.AddRangeAsync(bid1, bid2, bid3);
+        await _dbContext.SaveChangesAsync();
 
         // Act
         var result = await _controller.GetBidHistory(1);

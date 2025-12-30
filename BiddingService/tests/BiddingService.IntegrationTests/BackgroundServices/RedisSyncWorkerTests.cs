@@ -45,6 +45,10 @@ public class RedisSyncWorkerTests : IAsyncLifetime
         var services = new ServiceCollection();
         // Configure services for testing
         services.AddSingleton<ILogger<RedisSyncWorker>>(_loggerMock.Object);
+        var encryptionServiceMock = new Mock<IEncryptionService>();
+        encryptionServiceMock.Setup(x => x.Encrypt(It.IsAny<string>())).Returns((string input) => $"encrypted_{input}");
+        encryptionServiceMock.Setup(x => x.Decrypt(It.IsAny<string>())).Returns((string input) => input.Replace("encrypted_", ""));
+        services.AddSingleton<IEncryptionService>(encryptionServiceMock.Object);
         
         // Add Redis connection
         var redisConnectionString = $"{_redisContainer.Hostname}:{_redisContainer.GetMappedPublicPort(6379)}";
@@ -56,7 +60,7 @@ public class RedisSyncWorkerTests : IAsyncLifetime
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
             .UseNpgsql(postgresConnectionString)
             .Options;
-        var dbContext = new BiddingDbContext(dbContextOptions);
+        var dbContext = new BiddingDbContext(dbContextOptions, encryptionServiceMock.Object);
         await dbContext.Database.EnsureCreatedAsync();
         services.AddSingleton<IBidRepository>(new BidRepository(dbContext));
         

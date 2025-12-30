@@ -1,6 +1,6 @@
 using BiddingService.Core.Entities;
+using BiddingService.Core.Interfaces;
 using BiddingService.Core.ValueObjects;
-using BiddingService.Infrastructure.Encryption;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,6 +8,13 @@ namespace BiddingService.Infrastructure.Data.Configurations;
 
 public class BidConfiguration : IEntityTypeConfiguration<Bid>
 {
+    private readonly IEncryptionService _encryptionService;
+
+    public BidConfiguration(IEncryptionService encryptionService)
+    {
+        _encryptionService = encryptionService;
+    }
+
     public void Configure(EntityTypeBuilder<Bid> builder)
     {
         builder.HasKey(b => b.BidId);
@@ -19,8 +26,11 @@ public class BidConfiguration : IEntityTypeConfiguration<Bid>
             .IsRequired();
 
         builder.Property(b => b.BidderId)
-            .HasMaxLength(100)
-            .IsRequired();
+            .HasMaxLength(255) // Increased length for encrypted value
+            .IsRequired()
+            .HasConversion(
+                v => _encryptionService.Encrypt(v),
+                v => _encryptionService.Decrypt(v));
 
         builder.Property(b => b.BidderIdHash)
             .HasMaxLength(64)
@@ -40,8 +50,13 @@ public class BidConfiguration : IEntityTypeConfiguration<Bid>
             .IsRequired();
 
         builder.HasIndex(b => b.AuctionId);
+        // Restored index on Amount for performant sorting and highest bid queries
         builder.HasIndex(b => new { b.AuctionId, b.Amount });
-        builder.HasIndex(b => b.BidderId);
+        
+        // Spec says: "使用者出價記錄查詢優化（使用 Hash，因 BidderId 加密）".
+        builder.HasIndex(b => b.BidderIdHash);
+        builder.HasIndex(b => new { b.BidderIdHash, b.BidAt });
+
         builder.HasIndex(b => b.BidAt);
     }
 }

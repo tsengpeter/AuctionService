@@ -66,23 +66,19 @@ public class BiddingService : IBiddingService
         // Generate new bid ID
         var bidId = _idGenerator.GenerateId();
 
-        // Encrypt sensitive data
-        var encryptedBidderId = _encryptionService.Encrypt(bidderId);
-        var encryptedAmount = _encryptionService.Encrypt(request.Amount.ToString());
+        // Create bid entity with raw data (encryption handled by EF Core Value Converters)
+        var bid = new Bid(bidId, request.AuctionId, bidderId, HashHelper.ComputeSha256Hash(bidderId), new BidAmount(request.Amount), DateTime.UtcNow);
 
-        // Create bid entity
-        var bid = new Bid(bidId, request.AuctionId, encryptedBidderId, HashHelper.ComputeSha256Hash(bidderId), new BidAmount(request.Amount), DateTime.UtcNow);
+        // Calculate TTL (Auction EndTime + 7 days)
+        var ttl = (auction.EndTime - DateTime.UtcNow).Add(TimeSpan.FromDays(7));
+        if (ttl < TimeSpan.Zero) ttl = TimeSpan.FromDays(7); // Safety check
 
         // Store in Redis first (fast path)
-        var success = await _redisRepository.PlaceBidAsync(bid);
+        var success = await _redisRepository.PlaceBidAsync(bid, ttl);
         if (!success)
         {
             throw new BidAmountTooLowException(highestBid?.Amount.Value ?? 0, request.Amount);
         }
-
-        // Also store in database immediately for integration testing
-        // In production, this would be done by background worker
-        await _bidRepository.AddAsync(bid);
 
         // Return response
         return new BidResponse

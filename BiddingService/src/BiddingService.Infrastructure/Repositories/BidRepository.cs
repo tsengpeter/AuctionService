@@ -72,12 +72,12 @@ public class BidRepository : GenericRepository<Bid>, IBidRepository
 
         var stats = await _context.Bids
             .Where(b => b.AuctionId == auctionId)
-            .GroupBy(b => 1) // Group all bids together
+            .GroupBy(b => 1) // Group all bids together for aggregation
             .Select(g => new AuctionStatsData
             {
                 TotalBids = g.Count(),
                 UniqueBidders = g.Select(b => b.BidderIdHash).Distinct().Count(),
-                AverageBidAmount = g.Average(b => b.Amount),
+                AverageBidAmount = g.Average(b => (decimal)b.Amount), // Explicit cast to trigger implicit operator if needed
                 FirstBidAt = g.Min(b => b.BidAt),
                 LastBidAt = g.Max(b => b.BidAt),
                 BidsInLastHour = g.Count(b => b.BidAt >= oneHourAgo),
