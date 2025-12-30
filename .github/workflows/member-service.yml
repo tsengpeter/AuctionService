@@ -1,5 +1,9 @@
 name: Member Service CI/CD
 
+permissions:
+  contents: read
+  security-events: write
+
 on:
   push:
     branches: [ master, develop ]
