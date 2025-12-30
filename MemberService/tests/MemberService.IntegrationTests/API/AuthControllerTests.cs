@@ -85,14 +85,14 @@ public class AuthControllerTests : IDisposable
         var registerRequest1 = new RegisterRequest
         {
             Email = "test@example.com",
-            Username = "testuser1",
+            Username = "testuser",
             Password = "TestPassword123!"
         };
 
         var registerRequest2 = new RegisterRequest
         {
             Email = "test@example.com", // Same email
-            Username = "testuser2",
+            Username = "anothertestuser",
             Password = "TestPassword123!"
         };
 

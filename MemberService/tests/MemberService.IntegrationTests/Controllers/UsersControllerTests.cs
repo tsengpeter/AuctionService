@@ -194,7 +194,7 @@ public class UsersControllerTests : IDisposable
         var registerRequest = new RegisterRequest
         {
             Email = "update2@example.com",
-            Username = "updateuser2",
+            Username = "updateuser",
             Password = "TestPassword123!"
         };
 
@@ -283,7 +283,7 @@ public class UsersControllerTests : IDisposable
         var registerRequest = new RegisterRequest
         {
             Email = "password2@example.com",
-            Username = "passworduser2",
+            Username = "passworduser",
             Password = "OldPassword123!"
         };
 
