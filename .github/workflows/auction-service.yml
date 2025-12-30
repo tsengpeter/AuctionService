@@ -1,5 +1,9 @@
 name: Auction Service CI/CD
 
+permissions:
+  contents: read
+  security-events: write
+
 on:
   push:
     branches: [ master, develop ]
@@ -15,21 +19,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: auctionservice
-          POSTGRES_PASSWORD: Dev@Password123
-          POSTGRES_DB: auctionservice_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
     - name: Checkout code
@@ -52,10 +41,11 @@ jobs:
       run: dotnet test --no-build --configuration Release --verbosity normal
       working-directory: AuctionService
       env:
-        ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=auctionservice_test;Username=auctionservice;Password=Dev@Password123
-        JwtSettings__SecretKey: test-jwt-secret-key-for-auction-service-testing-only-32-chars
-        JwtSettings__Issuer: AuctionService
-        JwtSettings__Audience: AuctionClient
+        ASPNETCORE_ENVIRONMENT: Testing
+        JWT_SECRET_KEY: test-jwt-secret-key-for-auction-service-testing-only-32-chars
+        Jwt__Issuer: AuctionService
+        Jwt__Audience: AuctionClient
+        Jwt__ExpiryInMinutes: 15
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -76,7 +66,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      uses: actions/docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v3
 
     - name: Set environment tag
       id: env-tag
@@ -90,7 +80,7 @@ jobs:
         fi
 
     - name: Build and export Docker image
-      uses: actions/docker/build-push-action@v5
+      uses: docker/build-push-action@v5
       with:
         context: ./AuctionService
         file: ./AuctionService/Dockerfile
@@ -128,19 +118,19 @@ jobs:
         docker load -i auctionservice.tar
         ```
 
-        ### 3. 啟動服務
+        ### 步驟 3: 啟動服務
         ```bash
-        docker-compose up -d auction-service
+        docker-compose up -d auctionservice-api
         ```
 
-        ### 步驟 5: 檢查服務狀態
+        ### 步驟 4: 檢查服務狀態
         ```bash
         docker-compose ps
-        docker logs auctionservice-auctionservice-api-1
+        docker logs auctionservice-api
         ```
 
-        ### 步驟 6: 訪問 Swagger UI
-        開啟瀏覽器：http://localhost:5002
+        ### 步驟 5: 訪問 Swagger UI
+        開啟瀏覽器：http://localhost:5106
 
         ## 映像資訊
         - **Environment**: ${{ steps.env-tag.outputs.env }}
@@ -164,16 +154,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Run Trivy vulnerability scanner
+    - name: Run Trivy vulnerability scanner on filesystem
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
         scan-ref: './AuctionService'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
 
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+
+    - name: Run Trivy vulnerability scanner on NuGet packages
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: './AuctionService'
+        scanners: 'vuln'
+        format: 'table'
+        exit-code: '0'

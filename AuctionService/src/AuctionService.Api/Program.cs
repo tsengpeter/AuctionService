@@ -83,12 +83,26 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();
 
-// 自動運行資料庫遷移 (開發環境)
-if (app.Environment.IsDevelopment())
+// 自動運行資料庫遷移 (跳過測試環境)
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<AuctionService.Infrastructure.Data.AuctionDbContext>();
-    dbContext.Database.Migrate();
+    var env = app.Environment;
+
+    if (!env.IsEnvironment("Testing"))
+    {
+        try
+        {
+            Console.WriteLine("Starting database migration...");
+            dbContext.Database.Migrate();
+            Console.WriteLine("Database migration completed successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database migration failed: {ex.Message}");
+            throw;
+        }
+    }
 }
 
 // Configure the HTTP request pipeline.
