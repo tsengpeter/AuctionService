@@ -37,7 +37,11 @@ jobs:
       run: dotnet test --no-build --configuration Release --verbosity normal
       working-directory: MemberService
       env:
+        ASPNETCORE_ENVIRONMENT: Testing
         JWT_SECRET_KEY: test-jwt-secret-key-for-ci-cd-pipeline-testing-only-32-chars-minimum
+        Jwt__Issuer: MemberService
+        Jwt__Audience: MemberService
+        Jwt__ExpiryInMinutes: 15
         SNOWFLAKE_WORKER_ID: 1
         SNOWFLAKE_DATACENTER_ID: 1
 
@@ -60,7 +64,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      uses: actions/docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v3
 
     - name: Set environment tag
       id: env-tag
@@ -74,7 +78,7 @@ jobs:
         fi
 
     - name: Build and export Docker image
-      uses: actions/docker/build-push-action@v5
+      uses: docker/build-push-action@v5
       with:
         context: ./MemberService
         file: ./MemberService/Dockerfile
@@ -112,19 +116,19 @@ jobs:
         docker load -i memberservice.tar
         ```
 
-        ### 3. 啟動服務
+        ### 步驟 3. 啟動服務
         ```bash
-        docker-compose up -d member-service
+        docker-compose up -d memberservice-api
         ```
 
-        ### 步驟 5: 檢查服務狀態
+        ### 步驟 4: 檢查服務狀態
         ```bash
         docker-compose ps
-        docker logs memberservice-memberservice-api-1
+        docker logs memberservice-api
         ```
 
-        ### 步驟 6: 訪問 Swagger UI
-        開啟瀏覽器：http://localhost:5001
+        ### 步驟 5: 訪問 Swagger UI
+        開啟瀏覽器：http://localhost:5191
 
         ## 映像資訊
         - **Environment**: ${{ steps.env-tag.outputs.env }}
@@ -148,16 +152,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Run Trivy vulnerability scanner
+    - name: Run Trivy vulnerability scanner on filesystem
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
         scan-ref: './MemberService'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
 
-    - name: Upload Trivy scan results
+    - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+
+    - name: Run Trivy vulnerability scanner on NuGet packages
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: './MemberService'
+        scanners: 'vuln'
+        format: 'table'
+        exit-code: '0'
