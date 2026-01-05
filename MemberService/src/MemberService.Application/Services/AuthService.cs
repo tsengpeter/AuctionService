@@ -185,4 +185,15 @@ public class AuthService : IAuthService
             await _refreshTokenRepository.UpdateAsync(token);
         }
     }
+
+    public Task<TokenValidationResponse> ValidateTokenAsync(string token)
+    {
+        var (isValid, userId, expiresAt) = _tokenGenerator.ValidateAndExtractClaims(token);
+
+        return Task.FromResult(new TokenValidationResponse(
+            IsValid: isValid,
+            UserId: userId,
+            ExpiresAt: expiresAt
+        ));
+    }
 }

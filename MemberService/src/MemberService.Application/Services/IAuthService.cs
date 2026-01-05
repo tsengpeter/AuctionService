@@ -8,4 +8,5 @@ public interface IAuthService
     Task<AuthResponse> LoginAsync(LoginRequest request);
     Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request);
     Task LogoutAsync(string refreshToken);
+    Task<TokenValidationResponse> ValidateTokenAsync(string token);
 }

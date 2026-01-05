@@ -162,4 +162,158 @@ public class AuthControllerTests : IDisposable
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task Validate_ValidToken_ShouldReturnValidResponse()
+    {
+        // Arrange
+        await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
+
+        // First register and login to get a valid token
+        var registerRequest = new RegisterRequest
+        {
+            Email = "validate@example.com",
+            Password = "ValidPassword123!",
+            Username = "validateuser"
+        };
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var loginRequest = new LoginRequest
+        {
+            Email = "validate@example.com",
+            Password = "ValidPassword123!"
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        loginResult.Should().NotBeNull();
+        loginResult!.AccessToken.Should().NotBeNullOrEmpty();
+
+        // Act - Validate the token
+        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", loginResult.AccessToken);
+        var validateResponse = await _client.GetAsync("/api/auth/validate");
+
+        // Assert
+        validateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var validateResult = await validateResponse.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        validateResult.Should().NotBeNull();
+        validateResult!.IsValid.Should().BeTrue();
+        validateResult.UserId.Should().NotBeNull();
+        validateResult.ExpiresAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Validate_InvalidToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange
+        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "invalid_token");
+
+        // Act
+        var response = await _client.GetAsync("/api/auth/validate");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Validate_NoToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange - No authorization header
+
+        // Act
+        var response = await _client.GetAsync("/api/auth/validate");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Validate_EmptyToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange
+        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "");
+
+        // Act
+        var response = await _client.GetAsync("/api/auth/validate");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Validate_MalformedToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange - Token without Bearer prefix
+        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("invalid_token");
+
+        // Act
+        var response = await _client.GetAsync("/api/auth/validate");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Validate_ExpiredToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange - Create an expired token manually
+        var expiredToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+
+        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", expiredToken);
+
+        // Act
+        var response = await _client.GetAsync("/api/auth/validate");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Validate_TamperedToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange - Valid token with tampered signature
+        var tamperedToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.tampered_signature";
+
+        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tamperedToken);
+
+        // Act
+        var response = await _client.GetAsync("/api/auth/validate");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
 }

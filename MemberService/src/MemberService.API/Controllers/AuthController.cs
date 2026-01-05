@@ -1,5 +1,6 @@
 using MemberService.Application.DTOs.Auth;
 using MemberService.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MemberService.API.Controllers;
@@ -49,5 +50,30 @@ public class AuthController : ControllerBase
     {
         await _authService.LogoutAsync(request.RefreshToken);
         return NoContent();
+    }
+
+    [HttpGet("validate")]
+    [ProducesResponseType(typeof(TokenValidationResponse), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> Validate()
+    {
+        // Extract token from Authorization header
+        var authHeader = Request.Headers["Authorization"].ToString();
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+        {
+            return Unauthorized(new TokenValidationResponse(IsValid: false));
+        }
+
+        var token = authHeader.Substring("Bearer ".Length);
+
+        var response = await _authService.ValidateTokenAsync(token);
+
+        // Return 401 for invalid tokens, 200 for valid tokens
+        if (!response.IsValid)
+        {
+            return Unauthorized(response);
+        }
+
+        return Ok(response);
     }
 }

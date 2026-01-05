@@ -61,6 +61,12 @@ public class JwtTokenGenerator : ITokenGenerator
 
     public bool ValidateToken(string token)
     {
+        var (isValid, _, _) = ValidateAndExtractClaims(token);
+        return isValid;
+    }
+
+    public (bool IsValid, long? UserId, DateTime? ExpiresAt) ValidateAndExtractClaims(string token)
+    {
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -78,12 +84,22 @@ public class JwtTokenGenerator : ITokenGenerator
                 ClockSkew = TimeSpan.Zero
             };
 
-            tokenHandler.ValidateToken(token, validationParameters, out _);
-            return true;
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+            var jwtToken = (JwtSecurityToken)validatedToken;
+
+            var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub);
+            var expiresAtClaim = jwtToken.ValidTo;
+
+            if (userIdClaim != null && long.TryParse(userIdClaim.Value, out var userId))
+            {
+                return (true, userId, expiresAtClaim);
+            }
+
+            return (false, null, null);
         }
         catch
         {
-            return false;
+            return (false, null, null);
         }
     }
 }

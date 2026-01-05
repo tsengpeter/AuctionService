@@ -228,6 +228,45 @@
 
 ---
 
+## Phase 4.5: User Story 2.5 - JWT Token 驗證 (Priority: P1)
+
+**目的**: 提供 Token 驗證端點供其他微服務（如 BiddingService）驗證 JWT 有效性
+
+**驗收測試**: 其他服務攼帶有效 Token 呼叫驗證端點，系統回傳驗證狀態與使用者 ID
+
+**對應端點**: 
+- GET /api/auth/validate
+
+**對應實體**: User (JWT Claims)
+
+### 測試 (TDD - 先寫測試)
+
+- [X] T167 [P] [US2.5] 先寫 AuthService.ValidateToken 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [X] T168 [P] [US2.5] 先寫 AuthController.Validate 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+
+### DTOs
+
+- [X] T169 [P] [US2.5] 建立 TokenValidationResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/TokenValidationResponse.cs
+
+### Services
+
+- [X] T170 [US2.5] 在 IAuthService 介面新增 ValidateTokenAsync 方法於 MemberService/src/MemberService.Application/Services/IAuthService.cs
+- [X] T171 [US2.5] 實作 AuthService.ValidateToken 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T169, T170)
+
+### Controllers
+
+- [X] T172 [US2.5] 實作 AuthController.Validate 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T171)
+
+### 驗證
+
+- [X] T173 [US2.5] 執行所有 US2.5 測試並確保通過 (覆蓋率 >80%)
+- [X] T174 [US2.5] 手動測試 Token 驗證流程
+- [X] T175 [US2.5] 驗證錯誤處理：過期 Token、無效 Token
+
+**檢查點**: Token 驗證 API 已可供其他微服務使用
+
+---
+
 ## Phase 5: User Story 3 - 個人資訊查詢 (Priority: P2)
 
 **目的**: 使用者可查詢自己的完整資訊以及查看其他使用者的公開資訊
@@ -454,15 +493,16 @@ Task: "實作 InvalidCredentialsException" (T090)
 
 ## Task Summary
 
-**總任務數**: 166 個任務
+**總任務數**: 175 個任務 ✅ **100% 完成**
 **依使用者故事分類**:
-- Setup (Phase 1): 38 個任務
-- Foundational (Phase 2): 39 個任務（T039-T077）
-- User Story 1 (P1): 21 個任務（T078-T098）註冊與登入 【含 MVP】
-- User Story 2 (P2): 16 個任務（T099-T114）權杖更新
-- User Story 3 (P2): 15 個任務（T115-T129）個人資訊查詢
-- User Story 4 (P3): 20 個任務（T130-T149）資訊更新與密碼變更
-- Polish (Phase 7): 17 個任務（T150-T166）
+- Setup (Phase 1): 38 個任務 ✅
+- Foundational (Phase 2): 39 個任務（T039-T077）✅
+- User Story 1 (P1): 21 個任務（T078-T098）註冊與登入 【含 MVP】✅
+- User Story 2 (P2): 16 個任務（T099-T114）權杖更新 ✅
+- User Story 2.5 (P1): 9 個任務（T167-T175）JWT Token 驗證 ✅
+- User Story 3 (P2): 15 個任務（T115-T129）個人資訊查詢 ✅
+- User Story 4 (P3): 20 個任務（T130-T149）資訊更新與密碼變更 ✅
+- Polish (Phase 7): 17 個任務（T150-T166）✅
 
 **平行機會**: 
 - Phase 1 有 31 個任務可平行開發
