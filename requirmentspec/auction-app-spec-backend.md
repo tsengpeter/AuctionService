@@ -8,6 +8,7 @@
 - **服務間通訊**:
     - **同步**: RESTful API (HTTP) / gRPC
     - **非同步**: Message Queue (e.g., RabbitMQ, Kafka)
+    - **身份驗證**: 服務間使用 JWT Token 驗證，透過 Member Service 的 `/api/auth/validate` 端點驗證 Token 有效性
 - **API 閘道器 (API Gateway)**: [YARP](https://microsoft.github.io/reverse-proxy/) 或 [Ocelot](https://github.com/ThreeMammals/Ocelot)
 - **開發框架**: ASP.NET Core 10 (C#)
 - **資料庫**: PostgreSQL (採用 **Database-per-Service** 模式)
@@ -52,6 +53,7 @@
     - `POST /api/members/register`: 註冊新使用者。
     - `POST /api/members/login`: 登入並取得 JWT。
     - `POST /api/members/refresh-token`: 使用 Refresh Token 換取新的 JWT。
+    - `GET /api/auth/validate`: 驗證 JWT Token 並返回使用者資訊（供其他微服務使用）。
     - `GET /api/members/{id}`: 取得指定使用者的公開資料。
     - `GET /api/members/me`: 取得當前登入使用者的個人資料。
     - `PUT /api/members/me`: 更新當前登入使用者的個人資料。
@@ -61,6 +63,7 @@
 
 ### 4.3 商品拍賣服務 (Auction Service)
 - **職責**: 管理商品、拍賣狀態與使用者追蹤。
+- **身份驗證**: 建立、編輯、刪除商品及追蹤功能需要有效的 JWT Token，透過呼叫 Member Service 的 `/api/auth/validate` 端點驗證。
 - **API Endpoints**:
     - `GET /api/auctions`: 取得商品清單 (支援篩選與分頁)。
     - `GET /api/auctions/{id}`: 取得單一商品詳細資訊。
@@ -77,6 +80,7 @@
 
 ### 4.4 競標服務 (Bidding Service)
 - **職責**: 處理所有出價相關的邏輯。
+- **身份驗證**: 所有端點都需要有效的 JWT Token，透過呼叫 Member Service 的 `/api/auth/validate` 端點驗證。
 - **API Endpoints**:
     - `POST /api/bids`: 提交一個新的出價 (Request Body: `{ "auctionId": "...", "amount": 1000 }`)。
     - `GET /api/auctions/{auctionId}/bids`: 查詢特定商品的完整出價歷史。

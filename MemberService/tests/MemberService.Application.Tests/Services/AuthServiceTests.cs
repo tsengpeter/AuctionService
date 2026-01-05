@@ -260,4 +260,63 @@ public class AuthServiceTests
         // Assert
         await act.Should().NotThrowAsync();
     }
+
+    [Fact]
+    public async Task ValidateTokenAsync_ValidToken_ShouldReturnValidResponse()
+    {
+        // Arrange
+        var token = "valid_jwt_token";
+        var expectedUserId = 1234567890123456L;
+        var expectedExpiresAt = DateTime.UtcNow.AddMinutes(15);
+
+        _tokenGeneratorMock.Setup(x => x.ValidateAndExtractClaims(token))
+            .Returns((true, expectedUserId, expectedExpiresAt));
+
+        // Act
+        var result = await _authService.ValidateTokenAsync(token);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsValid.Should().BeTrue();
+        result.UserId.Should().Be(expectedUserId);
+        result.ExpiresAt.Should().Be(expectedExpiresAt);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_InvalidToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange
+        var token = "invalid_jwt_token";
+
+        _tokenGeneratorMock.Setup(x => x.ValidateAndExtractClaims(token))
+            .Returns((false, null, null));
+
+        // Act
+        var result = await _authService.ValidateTokenAsync(token);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_ExpiredToken_ShouldReturnInvalidResponse()
+    {
+        // Arrange
+        var token = "expired_jwt_token";
+
+        _tokenGeneratorMock.Setup(x => x.ValidateAndExtractClaims(token))
+            .Returns((false, null, null));
+
+        // Act
+        var result = await _authService.ValidateTokenAsync(token);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+    }
 }
