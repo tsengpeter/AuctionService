@@ -213,6 +213,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/auth/validate:
+    get:
+      tags:
+        - Authentication
+      summary: 驗證 JWT Token
+      description: |
+        驗證 JWT Access Token 是否有效，供其他微服務調用以確認使用者身份。
+        此端點主要用於服務間通訊，讓其他服務（如 BiddingService、AuctionService）
+        能夠驗證從客戶端傳來的 Token 並獲取使用者 ID。
+      operationId: validateToken
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token 驗證成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenValidationResponse'
+              examples:
+                success:
+                  summary: Token 驗證成功範例
+                  value:
+                    success: true
+                    data:
+                      isValid: true
+                      userId: 1234567890123456
+                      expiresAt: '2025-11-18T11:00:00Z'
+        '401':
+          description: Token 無效或已過期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidToken:
+                  summary: Token 無效
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_TOKEN
+                      message: JWT Token 無效或已過期
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/auth/validate
+                tokenExpired:
+                  summary: Token 已過期
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_EXPIRED
+                      message: JWT Token 已過期，請重新登入或使用 Refresh Token 更新
+                      timestamp: '2025-11-18T10:30:00Z'
+                      path: /api/auth/validate
+
   /api/users/me:
     get:
       tags:
@@ -649,6 +703,36 @@ components:
               description: 帳號建立時間（UTC）
               example: '2025-11-01T10:00:00Z'
 
+    TokenValidationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - isValid
+            - userId
+          properties:
+            isValid:
+              type: boolean
+              description: Token 是否有效
+              example: true
+            userId:
+              type: integer
+              format: int64
+              description: 使用者的雪花ID
+              example: 1234567890123456
+            expiresAt:
+              type: string
+              format: date-time
+              description: Token 過期時間（UTC，選填）
+              example: '2025-11-18T11:00:00Z'
+
     ErrorResponse:
       type: object
       required:
@@ -673,6 +757,7 @@ components:
                 - EMAIL_ALREADY_EXISTS
                 - INVALID_CREDENTIALS
                 - INVALID_TOKEN
+                - TOKEN_EXPIRED
                 - REFRESH_TOKEN_EXPIRED
                 - REFRESH_TOKEN_REVOKED
                 - VALIDATION_ERROR

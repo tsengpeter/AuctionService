@@ -490,7 +490,8 @@ MemberService/                              # 服務根目錄（所有內容集�
 │   │   │   │   ├── RegisterRequest.cs           # 註冊請求 DTO
 │   │   │   │   ├── LoginRequest.cs              # 登入請求 DTO
 │   │   │   │   ├── RefreshTokenRequest.cs       # 更新 Token 請求 DTO
-│   │   │   │   └── AuthResponse.cs              # 驗證回應 DTO
+│   │   │   │   ├── AuthResponse.cs              # 驗證回應 DTO
+│   │   │   │   └── TokenValidationResponse.cs   # Token 驗證回應 DTO
 │   │   │   └── Users/
 │   │   │       ├── UserProfileResponse.cs       # 使用者資料回應 DTO
 │   │   │       ├── UpdateProfileRequest.cs      # 更新資料請求 DTO

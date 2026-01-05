@@ -101,6 +101,26 @@
 
 ---
 
+### 使用者故事 2.5 - JWT Token 驗證 (優先順序: P1)
+
+其他微服務（如 BiddingService、AuctionService）需要驗證從客戶端傳來的 JWT Token 是否有效，並獲取對應的使用者資訊，以確保只有已認證的使用者才能執行特定操作。
+
+**優先順序理由**: 這是微服務架構中服務間通訊的基礎功能。其他服務（如競標服務）需要依賴此功能來驗證使用者身份，確保系統安全性。沒有此功能，其他服務無法驗證請求的合法性。
+
+**獨立測試**: 可透過提供有效的 JWT Token 呼叫驗證端點，驗證系統能正確解析 Token 並回傳使用者資訊；使用過期或無效的 Token 驗證系統能正確拒絕請求。
+
+**驗收情境**:
+
+1. **Given** 使用者持有有效的 JWT Token, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 Token 有效狀態與使用者 ID（userId）
+
+2. **Given** JWT Token 已過期, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 錯誤並提示「JWT Token 已過期」
+
+3. **Given** JWT Token 格式無效或簽章錯誤, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 錯誤並提示「JWT Token 無效」
+
+4. **Given** 請求未包含 Authorization Header, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 錯誤並提示「需要提供認證資訊」
+
+---
+
 **Acceptance Scenarios**:
 
 ### 使用者故事 3 - 個人資料查詢 (優先順序: P2)
@@ -220,6 +240,10 @@
 - **FR-009-3**: 系統不得提供獨立的電子郵件存在性檢查API端點（避免帳號枚舉攻擊）
 
 - **FR-010**: 系統必須允許使用者使用有效的 Refresh Token 換取新的 JWT
+
+- **FR-010-1**: 系統必須提供 Token 驗證端點 (`GET /api/auth/validate`) 供其他微服務驗證 JWT 有效性
+- **FR-010-2**: Token 驗證端點必須在 Token 有效時回傳驗證狀態（isValid）與使用者 ID（userId）
+- **FR-010-3**: Token 驗證端點必須在 Token 無效或過期時回傳 401 錯誤
 
 - **FR-011**: 系統必須拒絕已過期或被撤銷的 Refresh Token<!--
 
