@@ -39,10 +39,12 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
     private IConnectionMultiplexer _redisConnection;
     private BidsController _controller;
     private Mock<IEncryptionService> _encryptionServiceMock;
+    private Mock<IMemberServiceClient> _memberServiceMock;
 
     public BidsControllerIntegrationTests()
     {
         _encryptionServiceMock = new Mock<IEncryptionService>();
+        _memberServiceMock = new Mock<IMemberServiceClient>();
 
         // Create containers (don't start yet)
         _postgresContainer = new ContainerBuilder()
@@ -67,6 +69,9 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         // Setup mock encryption service
         _encryptionServiceMock.Setup(x => x.Encrypt(It.IsAny<string>())).Returns((string input) => $"encrypted_{input}");
         _encryptionServiceMock.Setup(x => x.Decrypt(It.IsAny<string>())).Returns((string input) => input.Replace("encrypted_", ""));
+
+        // Setup mock member service (default behavior)
+        _memberServiceMock.Setup(x => x.ValidateTokenAsync(It.IsAny<string>())).ReturnsAsync(12345L);
 
         // Start containers
         await _postgresContainer.StartAsync();
@@ -112,7 +117,18 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
             encryptionService,
             logger);
 
-        _controller = new BidsController(biddingService, new LoggerFactory().CreateLogger<BidsController>());
+        _controller = new BidsController(
+            biddingService, 
+            _memberServiceMock.Object, 
+            new LoggerFactory().CreateLogger<BidsController>());
+
+        // Mock ControllerContext with Authorization header
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = "Bearer valid-token";
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
 
         // Setup mock auction service response
         _auctionServiceMock
@@ -163,7 +179,20 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
             encryptionService,
             logger);
 
-        return new BidsController(biddingService, new LoggerFactory().CreateLogger<BidsController>());
+        var controller = new BidsController(
+            biddingService, 
+            _memberServiceMock.Object, 
+            new LoggerFactory().CreateLogger<BidsController>());
+
+        // Mock ControllerContext
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = "Bearer valid-token";
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        return controller;
     }
 
     [Fact]
@@ -258,11 +287,14 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
     public async Task GetMyBids_WhenCalled_ReturnsMyBidsResponse()
     {
         // Arrange
-        // Create some test bids in database for the placeholder bidder
-        var bidderId = "placeholder-bidder-id";
-        var bidderIdHash = HashHelper.ComputeSha256Hash(bidderId);
-        var bid1 = new Bid(1, 1, bidderId, bidderIdHash, new BidAmount(150.00m), DateTime.UtcNow.AddMinutes(-10));
-        var bid2 = new Bid(2, 1, bidderId, bidderIdHash, new BidAmount(160.00m), DateTime.UtcNow.AddMinutes(-5));
+        // Use the same bidder ID as the mock setup (12345L)
+        var bidderId = 12345L;
+        var bidderIdStr = bidderId.ToString();
+        var bidderIdHash = HashHelper.ComputeSha256Hash(bidderIdStr);
+        var encryptedBidderId = $"encrypted_{bidderIdStr}"; // Matching mock encryption
+
+        var bid1 = new Bid(1, 1, encryptedBidderId, bidderIdHash, new BidAmount(150.00m), DateTime.UtcNow.AddMinutes(-10));
+        var bid2 = new Bid(2, 1, encryptedBidderId, bidderIdHash, new BidAmount(160.00m), DateTime.UtcNow.AddMinutes(-5));
 
         await _dbContext.Bids.AddRangeAsync(bid1, bid2);
         await _dbContext.SaveChangesAsync();
@@ -279,7 +311,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
                 .WithBody(@"[{""id"": 1, ""title"": ""Test Auction"", ""isActive"": true}]"));
 
         // Setup Redis highest bid
-        var highestBid = new Bid(3, 1, "other-bidder", "other-hash", new BidAmount(170.00m), DateTime.UtcNow);
+        var highestBid = new Bid(3, 1, "other-encrypted", "other-hash", new BidAmount(170.00m), DateTime.UtcNow);
         await _redisConnection.GetDatabase().HashSetAsync($"highest_bid:1", new HashEntry[]
         {
             new HashEntry("bidId", highestBid.BidId),

@@ -344,9 +344,9 @@
 - 金額精確度: 小數點後 2 位
 
 ### FR-003: 出價者身份驗證
-- 從 JWT token 取得使用者 ID
-- 跨服務呼叫 Auction Service 取得商品擁有者
-- 驗證出價者 != 商品擁有者
+- **Token 驗證**: Bidding Service 不直接解密 Token,而是將 Authorization Header 的 JWT Token 轉發給 Member Service (`GET /api/auth/validate`)
+- **身份取得**: Member Service 驗證成功後回傳 `userId`,Bidding Service 將其作為 `bidderId`
+- **商品擁有權檢查**: 跨服務呼叫 Auction Service 取得商品擁有者,驗證出價者 != 商品擁有者
 
 ### FR-004: 併發控制
 - **併發定義**: 正常負載為 1000 requests/sec (單一商品), 高併發定義為 >1500 requests/sec (150% baseline)

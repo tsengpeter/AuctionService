@@ -1,8 +1,10 @@
 using BiddingService.Api.Controllers;
+using BiddingService.Core.DTOs.Requests;
 using BiddingService.Core.DTOs.Responses;
 using BiddingService.Core.Exceptions;
 using BiddingService.Core.Interfaces;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -13,14 +15,91 @@ namespace BiddingService.UnitTests.Controllers;
 public class BidsControllerTests
 {
     private readonly Mock<IBiddingService> _biddingServiceMock;
+    private readonly Mock<IMemberServiceClient> _memberServiceClientMock;
     private readonly Mock<ILogger<BidsController>> _loggerMock;
     private readonly BidsController _controller;
 
     public BidsControllerTests()
     {
         _biddingServiceMock = new Mock<IBiddingService>();
+        _memberServiceClientMock = new Mock<IMemberServiceClient>();
         _loggerMock = new Mock<ILogger<BidsController>>();
-        _controller = new BidsController(_biddingServiceMock.Object, _loggerMock.Object);
+        _controller = new BidsController(
+            _biddingServiceMock.Object, 
+            _memberServiceClientMock.Object, 
+            _loggerMock.Object);
+
+        // Setup HttpContext for Authorization header tests
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = "Bearer valid-token";
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+    }
+
+    [Fact]
+    public async Task CreateBid_WhenTokenIsValid_ReturnsCreated()
+    {
+        // Arrange
+        var request = new CreateBidRequest { AuctionId = 1, Amount = 100 };
+        var bidderId = 12345L;
+        var expectedResponse = new BidResponse { BidId = 1, AuctionId = 1, Amount = 100 };
+
+        _memberServiceClientMock
+            .Setup(x => x.ValidateTokenAsync("valid-token"))
+            .ReturnsAsync(bidderId);
+
+        _biddingServiceMock
+            .Setup(x => x.CreateBidAsync(request, bidderId))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _controller.CreateBid(request);
+
+        // Assert
+        var createdResult = result.Should().BeOfType<CreatedAtActionResult>().Subject;
+        createdResult.Value.Should().BeEquivalentTo(expectedResponse);
+    }
+
+    [Fact]
+    public async Task CreateBid_WhenTokenIsInvalid_ReturnsUnauthorized()
+    {
+        // Arrange
+        var request = new CreateBidRequest { AuctionId = 1, Amount = 100 };
+        
+        _memberServiceClientMock
+            .Setup(x => x.ValidateTokenAsync("valid-token"))
+            .ThrowsAsync(new UnauthorizedAccessException());
+
+        // Act
+        var result = await _controller.CreateBid(request);
+
+        // Assert
+        result.Should().BeOfType<UnauthorizedObjectResult>();
+    }
+
+    [Fact]
+    public async Task GetMyBids_WhenTokenIsValid_ReturnsOk()
+    {
+        // Arrange
+        var bidderId = 12345L;
+        var expectedResponse = new MyBidsResponse { Bids = new List<MyBidResponse>() };
+
+        _memberServiceClientMock
+            .Setup(x => x.ValidateTokenAsync("valid-token"))
+            .ReturnsAsync(bidderId);
+
+        _biddingServiceMock
+            .Setup(x => x.GetMyBidsAsync(bidderId, 1, 50))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _controller.GetMyBids(1, 50);
+
+        // Assert
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeEquivalentTo(expectedResponse);
     }
 
     [Fact]

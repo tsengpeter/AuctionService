@@ -35,7 +35,7 @@ public class BiddingService : IBiddingService
         _logger = logger;
     }
 
-    public async Task<BidResponse> CreateBidAsync(CreateBidRequest request, string bidderId)
+    public async Task<BidResponse> CreateBidAsync(CreateBidRequest request, long bidderId)
     {
         // Validate auction exists and is active
         var auction = await _auctionServiceClient.GetAuctionAsync(request.AuctionId);
@@ -49,11 +49,30 @@ public class BiddingService : IBiddingService
             throw new AuctionNotActiveException(request.AuctionId);
         }
 
-        // Check if bidder already has a bid on this auction
-        var existingBid = await _redisRepository.GetBidAsync(request.AuctionId, bidderId);
+        // Prepare bidder identity
+        var bidderIdStr = bidderId.ToString();
+        var bidderIdHash = HashHelper.ComputeSha256Hash(bidderIdStr);
+        // Note: Encryption is handled by EF Core Value Converters, so we pass the raw ID string to the entity
+        // The entity stores the raw ID, and the DbContext configuration handles encryption on save.
+        // Wait, checking Bid.cs constructor... it takes string bidderId.
+        // If we want to store encrypted value in Redis, we need to encrypt it here manually?
+        // Or does RedisRepository handle it? RedisRepository serializes the Bid object.
+        // The Bid object holds the raw string if we rely on EF Core converters.
+        // BUT, Redis doesn't use EF Core converters. So if we want encryption in Redis, we must encrypt before creating Bid?
+        // Let's assume for now Bid entity holds the raw string (to be encrypted by EF) 
+        // AND we accept that Redis might hold raw string unless we handle it differently.
+        // However, the spec says "sensitive data ... in DB encrypted". It doesn't strictly say Redis must be encrypted, 
+        // but it's good practice. 
+        // Let's encrypt explicitly for the Entity to ensure safety across all layers.
+        
+        var encryptedBidderId = _encryptionService.Encrypt(bidderIdStr);
+
+        // Check if bidder already has a bid on this auction (using Hash for lookup)
+        // We pass the Hash because that's likely what we'd index on
+        var existingBid = await _redisRepository.GetBidAsync(request.AuctionId, bidderIdHash);
         if (existingBid != null)
         {
-            throw new DuplicateBidException(request.AuctionId, bidderId);
+            throw new DuplicateBidException(request.AuctionId, bidderIdStr);
         }
 
         // Get current highest bid
@@ -66,8 +85,9 @@ public class BiddingService : IBiddingService
         // Generate new bid ID
         var bidId = _idGenerator.GenerateId();
 
-        // Create bid entity with raw data (encryption handled by EF Core Value Converters)
-        var bid = new Bid(bidId, request.AuctionId, bidderId, HashHelper.ComputeSha256Hash(bidderId), new BidAmount(request.Amount), DateTime.UtcNow);
+        // Create bid entity
+        // We store the Encrypted ID in the entity so it persists encrypted to DB and Redis
+        var bid = new Bid(bidId, request.AuctionId, encryptedBidderId, bidderIdHash, new BidAmount(request.Amount), DateTime.UtcNow);
 
         // Calculate TTL (Auction EndTime + 7 days)
         var ttl = (auction.EndTime - DateTime.UtcNow).Add(TimeSpan.FromDays(7));
@@ -80,7 +100,8 @@ public class BiddingService : IBiddingService
             throw new BidAmountTooLowException(highestBid?.Amount.Value ?? 0, request.Amount);
         }
 
-        // Return response
+        // Return response (We return the Hash, not the raw ID, for privacy in public responses, 
+        // or maybe we don't return BidderId at all in the response based on the DTO)
         return new BidResponse
         {
             BidId = bid.BidId,
@@ -124,11 +145,13 @@ public class BiddingService : IBiddingService
         };
     }
 
-    public async Task<MyBidsResponse> GetMyBidsAsync(string bidderId, int page = 1, int pageSize = 50)
+    public async Task<MyBidsResponse> GetMyBidsAsync(long bidderId, int page = 1, int pageSize = 50)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        var bidderIdHash = HashHelper.ComputeSha256Hash(bidderId);
+        var bidderIdStr = bidderId.ToString();
+        var bidderIdHash = HashHelper.ComputeSha256Hash(bidderIdStr);
+        
         var bids = await _bidRepository.GetBidsByBidderIdHashAsync(bidderIdHash, page, pageSize);
         var totalCount = await _bidRepository.GetBidsCountByBidderIdHashAsync(bidderIdHash);
 

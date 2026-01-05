@@ -11,7 +11,17 @@ http://localhost:5000/api
 
 ## Authentication
 
-**Note**: Authentication is not yet implemented. All endpoints currently use a placeholder bidder ID.
+The API uses Bearer Token authentication. The Bidding Service delegates token validation to the **Member Service**.
+
+1. Client sends request with `Authorization: Bearer <token>`.
+2. Bidding Service forwards the token to Member Service for validation.
+3. If valid, Member Service returns the User ID.
+4. If invalid, API returns `401 Unauthorized`.
+
+**Required Header**:
+```
+Authorization: Bearer <your-jwt-token>
+```
 
 ## Common Response Formats
 
@@ -232,6 +242,7 @@ Endpoints that return lists support pagination:
 ### Submit a Bid
 ```bash
 curl -X POST http://localhost:5000/api/bids \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
     "auctionId": 1,

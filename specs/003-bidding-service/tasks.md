@@ -86,6 +86,8 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T033 [P] Define IAuctionServiceClient interface in src/BiddingService.Core/Interfaces/IAuctionServiceClient.cs
 - [x] T034 Implement AuctionServiceClient with HttpClient and Polly retry in src/BiddingService.Infrastructure/HttpClients/AuctionServiceClient.cs
 - [x] T035 [P] Implement CorrelationIdDelegatingHandler for HttpClient in src/BiddingService.Infrastructure/HttpClients/CorrelationIdDelegatingHandler.cs
+- [x] T035a [P] Define IMemberServiceClient interface in src/BiddingService.Core/Interfaces/IMemberServiceClient.cs
+- [x] T035b Implement MemberServiceClient for token validation in src/BiddingService.Infrastructure/HttpClients/MemberServiceClient.cs
 
 ### Background Services
 
@@ -140,6 +142,7 @@ All paths are relative to `BiddingService/` root directory (single-folder self-c
 - [x] T060 [US1] Add logging for bid creation operations in BiddingService and BidsController
 - [x] T061 [US1] Verify Redis Lua script handles concurrent bids correctly (金額檢查 + ZADD + HSET + SADD 原子操作)
 - [x] T062 [US1] Integrate AuctionServiceClient to fetch auction info and validate ownership
+- [x] T062a [US1] Integrate MemberServiceClient to validate JWT token and retrieve BidderId
 
 **Checkpoint**: User Story 1 fully functional - can create bids with all validations, < 100ms response time verified in load tests
 

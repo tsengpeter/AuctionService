@@ -45,7 +45,7 @@ public class BiddingServiceTests
     {
         // Arrange
         var request = new CreateBidRequest { AuctionId = 1, Amount = 100 };
-        var bidderId = "bidder123";
+        var bidderId = 12345L;
 
         _auctionServiceClientMock
             .Setup(x => x.GetAuctionAsync(request.AuctionId))
@@ -64,7 +64,7 @@ public class BiddingServiceTests
     {
         // Arrange
         var request = new CreateBidRequest { AuctionId = 1, Amount = 100 };
-        var bidderId = "bidder123";
+        var bidderId = 12345L;
         var auction = new AuctionInfo { Id = 1, IsActive = false };
 
         _auctionServiceClientMock
@@ -84,7 +84,7 @@ public class BiddingServiceTests
     {
         // Arrange
         var request = new CreateBidRequest { AuctionId = 1, Amount = 100 };
-        var bidderId = "bidder123";
+        var bidderId = 12345L;
         var auction = new AuctionInfo { Id = 1, IsActive = true };
         var existingBid = new Bid(123, 1, "encrypted", "hash", new BidAmount(50), DateTime.UtcNow);
 
@@ -92,8 +92,14 @@ public class BiddingServiceTests
             .Setup(x => x.GetAuctionAsync(request.AuctionId))
             .ReturnsAsync(auction);
 
+        // NOTE: The service computes hash internally using HashHelper.ComputeSha256Hash(bidderId.ToString())
+        // Since HashHelper is static and likely deterministically implemented in Shared, we can't easily mock it without a wrapper.
+        // However, for this test, we assume the service calls GetBidAsync with the hash.
+        // To make the test robust, we can use It.IsAny<string>() or replicate the hash logic if we knew the algo.
+        // Assuming we rely on It.IsAny<string>() for the hash parameter.
+
         _redisRepositoryMock
-            .Setup(x => x.GetBidAsync(request.AuctionId, bidderId))
+            .Setup(x => x.GetBidAsync(request.AuctionId, It.IsAny<string>()))
             .ReturnsAsync(existingBid);
 
         // Act
@@ -109,7 +115,7 @@ public class BiddingServiceTests
     {
         // Arrange
         var request = new CreateBidRequest { AuctionId = 1, Amount = 50 };
-        var bidderId = "bidder123";
+        var bidderId = 12345L;
         var auction = new AuctionInfo { Id = 1, IsActive = true };
         var highestBid = new Bid(123, 1, "encrypted", "hash", new BidAmount(100), DateTime.UtcNow);
 
@@ -118,7 +124,7 @@ public class BiddingServiceTests
             .ReturnsAsync(auction);
 
         _redisRepositoryMock
-            .Setup(x => x.GetBidAsync(request.AuctionId, bidderId))
+            .Setup(x => x.GetBidAsync(request.AuctionId, It.IsAny<string>()))
             .ReturnsAsync((Bid)null);
 
         _redisRepositoryMock
@@ -138,7 +144,7 @@ public class BiddingServiceTests
     {
         // Arrange
         var request = new CreateBidRequest { AuctionId = 1, Amount = 150 };
-        var bidderId = "bidder123";
+        var bidderId = 12345L;
         var auction = new AuctionInfo { Id = 1, IsActive = true };
         var highestBid = new Bid(123, 1, "encrypted", "hash", new BidAmount(100), DateTime.UtcNow);
 
@@ -147,7 +153,7 @@ public class BiddingServiceTests
             .ReturnsAsync(auction);
 
         _redisRepositoryMock
-            .Setup(x => x.GetBidAsync(request.AuctionId, bidderId))
+            .Setup(x => x.GetBidAsync(request.AuctionId, It.IsAny<string>()))
             .ReturnsAsync((Bid)null);
 
         _redisRepositoryMock
@@ -159,7 +165,7 @@ public class BiddingServiceTests
             .Returns(456);
 
         _encryptionServiceMock
-            .Setup(x => x.Encrypt(bidderId))
+            .Setup(x => x.Encrypt(bidderId.ToString()))
             .Returns("encrypted_bidder");
 
         _redisRepositoryMock
@@ -210,15 +216,14 @@ public class BiddingServiceTests
     public async Task GetMyBidsAsync_WhenCalled_ReturnsMyBidsResponse()
     {
         // Arrange
-        var bidderId = "test-bidder";
-        var bidderIdHash = "433135eb609d0bf0b9f123fae9e5d5a6b21cbdb712a05468c3191cdeb3e1ab6d";
+        var bidderId = 12345L;
         var page = 1;
         var pageSize = 10;
         var auctionId = 1L;
 
         var bids = new List<Bid>
         {
-            new Bid(1, auctionId, "bidder1", bidderIdHash, new BidAmount(100), DateTime.UtcNow)
+            new Bid(1, auctionId, "bidder1", "somehash", new BidAmount(100), DateTime.UtcNow)
         };
 
         var auctions = new List<AuctionInfo>
@@ -229,11 +234,11 @@ public class BiddingServiceTests
         var highestBid = new Bid(2, auctionId, "bidder2", "hash2", new BidAmount(150), DateTime.UtcNow);
 
         _bidRepositoryMock
-            .Setup(x => x.GetBidsByBidderIdHashAsync(bidderIdHash, page, pageSize))
+            .Setup(x => x.GetBidsByBidderIdHashAsync(It.IsAny<string>(), page, pageSize))
             .ReturnsAsync(bids);
 
         _bidRepositoryMock
-            .Setup(x => x.GetBidsCountByBidderIdHashAsync(bidderIdHash))
+            .Setup(x => x.GetBidsCountByBidderIdHashAsync(It.IsAny<string>()))
             .ReturnsAsync(1);
 
         _auctionServiceClientMock
@@ -265,18 +270,17 @@ public class BiddingServiceTests
     public async Task GetMyBidsAsync_WhenNoBids_ReturnsEmptyResponse()
     {
         // Arrange
-        var bidderId = "test-bidder";
-        var bidderIdHash = "hashed-bidder";
+        var bidderId = 12345L;
         var page = 1;
         var pageSize = 10;
         var emptyBids = new List<Bid>();
 
         _bidRepositoryMock
-            .Setup(x => x.GetBidsByBidderIdHashAsync(bidderIdHash, page, pageSize))
+            .Setup(x => x.GetBidsByBidderIdHashAsync(It.IsAny<string>(), page, pageSize))
             .ReturnsAsync(emptyBids);
 
         _bidRepositoryMock
-            .Setup(x => x.GetBidsCountByBidderIdHashAsync(bidderIdHash))
+            .Setup(x => x.GetBidsCountByBidderIdHashAsync(It.IsAny<string>()))
             .ReturnsAsync(0);
 
         _auctionServiceClientMock

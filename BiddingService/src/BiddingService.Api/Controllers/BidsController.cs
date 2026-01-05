@@ -14,33 +14,46 @@ namespace BiddingService.Api.Controllers;
 public class BidsController : ControllerBase
 {
     private readonly IBiddingService _biddingService;
+    private readonly IMemberServiceClient _memberServiceClient;
     private readonly ILogger<BidsController> _logger;
 
-    public BidsController(IBiddingService biddingService, ILogger<BidsController> logger)
+    public BidsController(
+        IBiddingService biddingService, 
+        IMemberServiceClient memberServiceClient,
+        ILogger<BidsController> logger)
     {
         _biddingService = biddingService;
+        _memberServiceClient = memberServiceClient;
         _logger = logger;
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(BidResponse), 201)]
     [ProducesResponseType(typeof(ErrorResponse), 400)]
+    [ProducesResponseType(typeof(ErrorResponse), 401)]
     [ProducesResponseType(typeof(ErrorResponse), 404)]
     [ProducesResponseType(typeof(ErrorResponse), 409)]
     public async Task<IActionResult> CreateBid([FromBody] CreateBidRequest request)
     {
-        // Get bidder ID from JWT token (will be implemented with authentication)
-        var bidderId = GetBidderIdFromToken();
-
-        _logger.LogInformation($"Creating bid for auction {request.AuctionId} by bidder {bidderId} with amount {request.Amount}");
-
         try
         {
+            var bidderId = await ValidateAndGetBidderIdAsync();
+            
+            _logger.LogInformation($"Creating bid for auction {request.AuctionId} by bidder {bidderId} with amount {request.Amount}");
+
             var result = await _biddingService.CreateBidAsync(request, bidderId);
 
             _logger.LogInformation($"Bid created successfully: {result.BidId} for auction {request.AuctionId}");
 
             return CreatedAtAction(nameof(CreateBid), new { id = result.BidId }, result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized(new ErrorResponse 
+            { 
+                ErrorCode = "UNAUTHORIZED", 
+                Message = "Invalid or expired token." 
+            });
         }
         catch (AuctionNotFoundException ex)
         {
@@ -78,17 +91,29 @@ public class BidsController : ControllerBase
 
     [HttpGet("my-bids")]
     [ProducesResponseType(typeof(MyBidsResponse), 200)]
+    [ProducesResponseType(typeof(ErrorResponse), 401)]
     public async Task<IActionResult> GetMyBids([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var bidderId = GetBidderIdFromToken();
+        try
+        {
+            var bidderId = await ValidateAndGetBidderIdAsync();
 
-        _logger.LogInformation($"Getting my bids for bidder {bidderId}, page {page}, pageSize {pageSize}");
+            _logger.LogInformation($"Getting my bids for bidder {bidderId}, page {page}, pageSize {pageSize}");
 
-        var result = await _biddingService.GetMyBidsAsync(bidderId, page, pageSize);
+            var result = await _biddingService.GetMyBidsAsync(bidderId, page, pageSize);
 
-        _logger.LogInformation($"Retrieved {result.Bids.Count()} bids for bidder {bidderId}");
+            _logger.LogInformation($"Retrieved {result.Bids.Count()} bids for bidder {bidderId}");
 
-        return Ok(result);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized(new ErrorResponse
+            {
+                ErrorCode = "UNAUTHORIZED",
+                Message = "Invalid or expired token."
+            });
+        }
     }
 
     [HttpGet("highest/{auctionId}")]
@@ -142,10 +167,16 @@ public class BidsController : ControllerBase
         return Ok(result);
     }
 
-    private string GetBidderIdFromToken()
+    private async Task<long> ValidateAndGetBidderIdAsync()
     {
-        // TODO: Implement JWT token parsing to get bidder ID
-        // For now, return a placeholder
-        return "placeholder-bidder-id";
+        if (!Request.Headers.TryGetValue("Authorization", out var authHeader) || 
+            string.IsNullOrEmpty(authHeader) || 
+            !authHeader.ToString().StartsWith("Bearer "))
+        {
+            throw new UnauthorizedAccessException("Missing or invalid Authorization header");
+        }
+
+        var token = authHeader.ToString().Substring("Bearer ".Length).Trim();
+        return await _memberServiceClient.ValidateTokenAsync(token);
     }
 }

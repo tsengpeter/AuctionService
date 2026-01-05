@@ -21,6 +21,7 @@
 
 **Language/Version**: C# 13 / .NET 10 (ASP.NET Core 10 Web API)  
 **Primary Dependencies**: 
+- **External Services**: Member Service (Auth Validation), Auction Service (Data)
 - **Framework**: ASP.NET Core 10 Web API (Controller-based, 不使用 Minimal APIs)
 - **ORM**: Entity Framework Core 10 (Code First)
 - **Redis Client**: StackExchange.Redis 2.7+

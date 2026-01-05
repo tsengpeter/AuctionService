@@ -60,6 +60,14 @@ public static class ServiceCollectionExtensions
         })
         .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
 
+        services.AddHttpClient<IMemberServiceClient, MemberServiceClient>((sp, client) =>
+        {
+            var baseUrl = configuration.GetValue<string>("MemberService:BaseUrl");
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(5); // Fast timeout for auth check
+        })
+        .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
+
         services.AddTransient<CorrelationIdDelegatingHandler>();
 
         // Caching

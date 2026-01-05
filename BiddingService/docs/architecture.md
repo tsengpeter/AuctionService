@@ -39,7 +39,7 @@ The service is organized into four main layers:
 
 #### Infrastructure Layer (`BiddingService.Infrastructure`)
 - Data access implementations (`BidRepository`, `RedisRepository`)
-- External service clients (`AuctionServiceClient`)
+- External service clients (`AuctionServiceClient`, `MemberServiceClient`)
 - Background services (`RedisSyncWorker`, `RedisHealthCheckService`)
 - Database migrations and configuration
 - Caching implementations
@@ -77,11 +77,12 @@ The service is organized into four main layers:
 
 ### Bid Submission Flow
 ```
-1. API Controller receives POST /api/bids
-2. BiddingService validates auction and bid
-3. RedisRepository places bid atomically (Lua script)
-4. BidRepository saves to PostgreSQL (async)
-5. Response returned to client
+1. API Controller receives POST /api/bids (with JWT)
+2. MemberServiceClient validates token & retrieves UserID
+3. BiddingService validates auction and bid
+4. RedisRepository places bid atomically (Lua script)
+5. BidRepository saves to PostgreSQL (async)
+6. Response returned to client
 ```
 
 ### Bid Query Flow
@@ -197,10 +198,10 @@ CREATE INDEX idx_bids_bid_at ON bids(bid_at);
 - SQL injection prevention via EF Core
 - XSS protection via proper encoding
 
-### Authentication (Planned)
-- JWT token validation
-- Role-based access control
-- API key authentication for service-to-service calls
+### Authentication (Implemented)
+- JWT token validation via `MemberService` (Server-to-Server)
+- Authorization Header passed to MemberService to obtain authenticated UserID
+- Role-based access control (future)
 
 ## Testing Strategy
 

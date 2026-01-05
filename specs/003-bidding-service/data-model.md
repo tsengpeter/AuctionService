@@ -359,11 +359,14 @@ CREATE INDEX IX_Bids_BidderIdHash_BidAt ON Bids(BidderIdHash, BidAt DESC);
 sequenceDiagram
     participant C as Client
     participant API as Bidding API
+    participant MS as Member Service
     participant R as Redis
     participant W as Background Worker
     participant DB as PostgreSQL
     
-    C->>API: POST /api/bids
+    C->>API: POST /api/bids (Header: JWT)
+    API->>MS: GET /api/auth/validate
+    MS-->>API: 200 OK (userId)
     API->>R: Lua Script 原子操作
     Note over R: 1. 檢查金額<br/>2. ZADD bids<br/>3. HSET highest_bid<br/>4. SADD pending_bids
     R-->>API: Success
