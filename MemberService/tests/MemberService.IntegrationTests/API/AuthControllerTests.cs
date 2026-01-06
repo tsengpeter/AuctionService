@@ -3,6 +3,12 @@ using MemberService.Application.DTOs.Auth;
 using MemberService.IntegrationTests.TestHelpers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using MemberService.Domain.Interfaces;
+using MemberService.Infrastructure.Security;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
@@ -22,18 +28,19 @@ public class AuthControllerTests : IDisposable
         _testDatabaseName = $"authtest_{Guid.NewGuid():N}";
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
         TestDatabaseHelper.EnsureDatabaseStartedAsync().Wait();
+        
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.ConfigureAppConfiguration((context, config) =>
             {
-                // Add test configuration
-                config.AddInMemoryCollection(new Dictionary<string, string>
+                // Add test configuration with higher priority (added last)
+                config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
+                    ["ConnectionStrings:MemberDb"] = TestDatabaseHelper.GetConnectionString(_testDatabaseName),
                     ["Jwt:Issuer"] = "MemberService",
                     ["Jwt:Audience"] = "MemberService",
-                    ["Jwt:SecretKey"] = "your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm",
-                    ["Jwt:ExpiryInMinutes"] = "15",
-                    ["RefreshToken:ExpiryInDays"] = "7"
+                    ["Jwt:SecretKey"] = "your-super-secret-key-here-change-in-production",
+                    ["Jwt:ExpiryInMinutes"] = "60"
                 });
             });
             builder.ConfigureServices(services =>
@@ -50,7 +57,7 @@ public class AuthControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task Register_WithValidData_ReturnsCreatedWithAuthResponse()
+    public async Task Register_WithValidData_ReturnsCreatedWithRegisterResponse()
     {
         // Arrange
         await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
@@ -67,13 +74,12 @@ public class AuthControllerTests : IDisposable
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        authResponse.Should().NotBeNull();
-        authResponse!.User.Should().NotBeNull();
-        authResponse.User.Email.Should().Be(registerRequest.Email);
-        authResponse.User.Username.Should().Be(registerRequest.Username);
-        authResponse.AccessToken.Should().NotBeNullOrEmpty();
-        authResponse.RefreshToken.Should().NotBeNullOrEmpty();
+        var registerResponse = await response.Content.ReadFromJsonAsync<RegisterResponse>();
+        registerResponse.Should().NotBeNull();
+        registerResponse!.User.Should().NotBeNull();
+        registerResponse.User.Email.Should().Be(registerRequest.Email);
+        registerResponse.User.Username.Should().Be(registerRequest.Username);
+        registerResponse.Message.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -169,7 +175,7 @@ public class AuthControllerTests : IDisposable
         // Arrange
         await TestDatabaseHelper.ResetDatabaseAsync(_factory.Services, _testDatabaseName);
 
-        // First register and login to get a valid token
+        // First register user
         var registerRequest = new RegisterRequest
         {
             Email = "validate@example.com",
@@ -180,6 +186,7 @@ public class AuthControllerTests : IDisposable
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
+        // Then login to get a valid token
         var loginRequest = new LoginRequest
         {
             Email = "validate@example.com",
@@ -194,8 +201,7 @@ public class AuthControllerTests : IDisposable
         loginResult!.AccessToken.Should().NotBeNullOrEmpty();
 
         // Act - Validate the token
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", loginResult.AccessToken);
-        var validateResponse = await _client.GetAsync("/api/auth/validate");
+        var validateResponse = await _client.GetAsync($"/api/auth/validate?token={loginResult.AccessToken}");
 
         // Assert
         validateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -209,11 +215,8 @@ public class AuthControllerTests : IDisposable
     [Fact]
     public async Task Validate_InvalidToken_ShouldReturnInvalidResponse()
     {
-        // Arrange
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "invalid_token");
-
-        // Act
-        var response = await _client.GetAsync("/api/auth/validate");
+        // Arrange & Act
+        var response = await _client.GetAsync("/api/auth/validate?token=invalid_token");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -227,46 +230,30 @@ public class AuthControllerTests : IDisposable
     [Fact]
     public async Task Validate_NoToken_ShouldReturnInvalidResponse()
     {
-        // Arrange - No authorization header
+        // Arrange - No token parameter
 
         // Act
         var response = await _client.GetAsync("/api/auth/validate");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
-        result.Should().NotBeNull();
-        result!.IsValid.Should().BeFalse();
-        result.UserId.Should().BeNull();
-        result.ExpiresAt.Should().BeNull();
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task Validate_EmptyToken_ShouldReturnInvalidResponse()
     {
-        // Arrange
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "");
-
-        // Act
-        var response = await _client.GetAsync("/api/auth/validate");
+        // Arrange & Act
+        var response = await _client.GetAsync("/api/auth/validate?token=");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
-        result.Should().NotBeNull();
-        result!.IsValid.Should().BeFalse();
-        result.UserId.Should().BeNull();
-        result.ExpiresAt.Should().BeNull();
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task Validate_MalformedToken_ShouldReturnInvalidResponse()
     {
-        // Arrange - Token without Bearer prefix
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("invalid_token");
-
-        // Act
-        var response = await _client.GetAsync("/api/auth/validate");
+        // Arrange & Act
+        var response = await _client.GetAsync("/api/auth/validate?token=malformed_token_xyz");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -283,10 +270,8 @@ public class AuthControllerTests : IDisposable
         // Arrange - Create an expired token manually
         var expiredToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", expiredToken);
-
         // Act
-        var response = await _client.GetAsync("/api/auth/validate");
+        var response = await _client.GetAsync($"/api/auth/validate?token={expiredToken}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -303,10 +288,8 @@ public class AuthControllerTests : IDisposable
         // Arrange - Valid token with tampered signature
         var tamperedToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.tampered_signature";
 
-        _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tamperedToken);
-
         // Act
-        var response = await _client.GetAsync("/api/auth/validate");
+        var response = await _client.GetAsync($"/api/auth/validate?token={tamperedToken}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);

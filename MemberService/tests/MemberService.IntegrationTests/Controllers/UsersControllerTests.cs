@@ -33,7 +33,7 @@ public class UsersControllerTests : IDisposable
                 {
                     ["Jwt:Issuer"] = "MemberService",
                     ["Jwt:Audience"] = "MemberService",
-                    ["Jwt:SecretKey"] = "your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm",
+                    ["Jwt:SecretKey"] = "your-super-secret-key-here-change-in-production",
                     ["Jwt:ExpiryInMinutes"] = "15",
                     ["RefreshToken:ExpiryInDays"] = "7"
                 });
@@ -68,19 +68,19 @@ public class UsersControllerTests : IDisposable
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
-        authResponse.Should().NotBeNull();
+        var registerResult = await registerResponse.Content.ReadFromJsonAsync<RegisterResponse>();
+        registerResult.Should().NotBeNull();
 
         // Act
-        var response = await _client.GetAsync($"/api/users/{authResponse!.User.Id}");
+        var response = await _client.GetAsync($"/api/users/{registerResult!.User.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var profile = await response.Content.ReadFromJsonAsync<UserPublicProfileResponse>();
         profile.Should().NotBeNull();
-        profile!.Id.Should().Be(authResponse.User.Id);
-        profile.Username.Should().Be(authResponse.User.Username);
-        profile.CreatedAt.Should().BeCloseTo(authResponse.User.CreatedAt, TimeSpan.FromMilliseconds(1));
+        profile!.Id.Should().Be(registerResult.User.Id);
+        profile.Username.Should().Be(registerResult.User.Username);
+        profile.CreatedAt.Should().BeCloseTo(registerResult.User.CreatedAt, TimeSpan.FromMilliseconds(1));
     }
 
     [Fact]
@@ -114,7 +114,17 @@ public class UsersControllerTests : IDisposable
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        // Login to get tokens
+        var loginRequest = new LoginRequest
+        {
+            Email = "me@example.com",
+            Password = "TestPassword123!"
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         authResponse.Should().NotBeNull();
 
         // Set authorization header
@@ -164,7 +174,17 @@ public class UsersControllerTests : IDisposable
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        // Login to get tokens
+        var loginRequest = new LoginRequest
+        {
+            Email = "update@example.com",
+            Password = "TestPassword123!"
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         authResponse.Should().NotBeNull();
 
         _client.DefaultRequestHeaders.Authorization =
@@ -201,7 +221,17 @@ public class UsersControllerTests : IDisposable
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        // Login to get tokens
+        var loginRequest = new LoginRequest
+        {
+            Email = "update2@example.com",
+            Password = "TestPassword123!"
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         authResponse.Should().NotBeNull();
 
         _client.DefaultRequestHeaders.Authorization =
@@ -254,7 +284,17 @@ public class UsersControllerTests : IDisposable
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        // Login to get tokens
+        var loginRequest = new LoginRequest
+        {
+            Email = "password@example.com",
+            Password = "OldPassword123!"
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         authResponse.Should().NotBeNull();
 
         _client.DefaultRequestHeaders.Authorization =
@@ -290,7 +330,17 @@ public class UsersControllerTests : IDisposable
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        // Login to get tokens
+        var loginRequest = new LoginRequest
+        {
+            Email = "password2@example.com",
+            Password = "OldPassword123!"
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         authResponse.Should().NotBeNull();
 
         _client.DefaultRequestHeaders.Authorization =

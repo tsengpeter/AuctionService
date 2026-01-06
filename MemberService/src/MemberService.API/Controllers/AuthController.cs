@@ -17,7 +17,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResponse), 201)]
+    [ProducesResponseType(typeof(RegisterResponse), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(409)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
@@ -54,17 +54,15 @@ public class AuthController : ControllerBase
 
     [HttpGet("validate")]
     [ProducesResponseType(typeof(TokenValidationResponse), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> Validate()
+    public async Task<IActionResult> Validate([FromQuery] string? token)
     {
-        // Extract token from Authorization header
-        var authHeader = Request.Headers["Authorization"].ToString();
-        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+        // Check if token parameter is provided
+        if (string.IsNullOrWhiteSpace(token))
         {
-            return Unauthorized(new TokenValidationResponse(IsValid: false));
+            return BadRequest(new { error = "Token parameter is required" });
         }
-
-        var token = authHeader.Substring("Bearer ".Length);
 
         var response = await _authService.ValidateTokenAsync(token);
 

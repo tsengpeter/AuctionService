@@ -53,7 +53,7 @@
 
 -->
 
-1. **Given** 使用者尚未註冊, **When** 使用者提供有效的電子郵件、密碼（8 字元以上）與使用者名稱進行註冊, **Then** 系統建立新帳號並自動登入，回傳 JWT 存取權杖
+1. **Given** 使用者尚未註冊, **When** 使用者提供有效的電子郵件、密碼（8 字元以上）與使用者名稱進行註冊, **Then** 系統建立新帳號並回傳成功訊息（需要再次登入以獲取 JWT tokens）
 
 2. **Given** 電子郵件已被註冊, **When** 使用者嘗試使用相同電子郵件註冊, **Then** 系統拒絕註冊並顯示「此電子郵件已被使用」錯誤訊息### User Story 1 - [Brief Title] (Priority: P1)
 
@@ -107,17 +107,19 @@
 
 **優先順序理由**: 這是微服務架構中服務間通訊的基礎功能。其他服務（如競標服務）需要依賴此功能來驗證使用者身份，確保系統安全性。沒有此功能，其他服務無法驗證請求的合法性。
 
-**獨立測試**: 可透過提供有效的 JWT Token 呼叫驗證端點，驗證系統能正確解析 Token 並回傳使用者資訊；使用過期或無效的 Token 驗證系統能正確拒絕請求。
+**獨立測試**: 可透過提供有效的 JWT Token 呼叫驗證端點（`GET /api/auth/validate?token=xxx`），驗證系統能正確解析 Token 並回傳使用者資訊；使用過期或無效的 Token 驗證系統能正確拒絕請求。
 
 **驗收情境**:
 
-1. **Given** 使用者持有有效的 JWT Token, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 Token 有效狀態與使用者 ID（userId）
+1. **Given** 使用者持有有效的 JWT Token, **When** 其他服務呼叫 Token 驗證端點（`GET /api/auth/validate?token=xxx`）, **Then** 系統回傳 200 OK 與 Token 有效狀態、使用者 ID（userId）及過期時間（expiresAt）
 
-2. **Given** JWT Token 已過期, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 錯誤並提示「JWT Token 已過期」
+2. **Given** JWT Token 已過期, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 Unauthorized 與 isValid=false
 
-3. **Given** JWT Token 格式無效或簽章錯誤, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 錯誤並提示「JWT Token 無效」
+3. **Given** JWT Token 格式無效或簽章錯誤, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 Unauthorized 與 isValid=false
 
-4. **Given** 請求未包含 Authorization Header, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 401 錯誤並提示「需要提供認證資訊」
+4. **Given** 請求未包含 token query parameter, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 400 Bad Request 並提示「Token parameter is required」
+
+5. **Given** token query parameter 為空字串, **When** 其他服務呼叫 Token 驗證端點, **Then** 系統回傳 400 Bad Request 並提示「Token parameter is required」
 
 ---
 
@@ -227,7 +229,7 @@
 - **FR-005-2**: 系統必須將密碼與使用者的雪花ID組合後進行雜湊: bcrypt(password + snowflakeId)，提供額外的安全保護
 - **FR-005-3**: bcrypt 的 work factor (成本因子) 建議設定為 12（可根據安全需求調整）
 
-- **FR-006**: 系統必須在註冊成功後自動讓使用者登入，回傳 JWT 與 Refresh Token
+- **FR-006**: 系統必須在註冊成功後回傳註冊成功訊息與使用者資訊（不包含 JWT tokens，使用者需要再次調用登入端點）
 - **FR-007**: 系統必須允許使用者使用電子郵件與密碼進行登入
 
 - **FR-008**: 系統必須在登入成功後回傳 JWT 存取權杖（有效期限 15 分鐘）與 Refresh Token（有效期限 7 天）
@@ -241,9 +243,11 @@
 
 - **FR-010**: 系統必須允許使用者使用有效的 Refresh Token 換取新的 JWT
 
-- **FR-010-1**: 系統必須提供 Token 驗證端點 (`GET /api/auth/validate`) 供其他微服務驗證 JWT 有效性
-- **FR-010-2**: Token 驗證端點必須在 Token 有效時回傳驗證狀態（isValid）與使用者 ID（userId）
-- **FR-010-3**: Token 驗證端點必須在 Token 無效或過期時回傳 401 錯誤
+- **FR-010-1**: 系統必須提供 Token 驗證端點 (`GET /api/auth/validate?token=xxx`) 供其他微服務驗證 JWT 有效性
+- **FR-010-2**: Token 驗證端點必須接受 `token` query parameter 作為要驗證的 JWT token
+- **FR-010-3**: Token 驗證端點必須在 Token 有效時回傳 200 OK 與驗證狀態（isValid=true）、使用者 ID（userId）及過期時間（expiresAt）
+- **FR-010-4**: Token 驗證端點必須在 Token 無效或過期時回傳 401 Unauthorized 與驗證狀態（isValid=false）
+- **FR-010-5**: Token 驗證端點必須在缺少或為空的 token parameter 時回傳 400 Bad Request
 
 - **FR-011**: 系統必須拒絕已過期或被撤銷的 Refresh Token<!--
 

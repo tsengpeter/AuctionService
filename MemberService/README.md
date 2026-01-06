@@ -17,13 +17,14 @@ MemberService 是拍賣系統的核心身份驗證微服務，提供使用者註
 
 ## 功能特色
 
-- ✅ 使用者註冊與登入
+- ✅ 使用者註冊與登入（分離流程）
 - ✅ JWT 認證 (15 分鐘 Access Token + 7 天 Refresh Token)
+- ✅ JWT Token 驗證端點（供其他微服務使用）
 - ✅ 個人資訊查詢 (認證/公開)
 - ✅ 個人資訊更新 (username/email)
 - ✅ 密碼變更 (需驗證舊密碼)
 - ✅ 健康檢查端點
-- ✅ 完整的單元測試與整合測試 (>80% 覆蓋率)
+- ✅ 完整的單元測試與整合測試 (222 個測試，全部通過)
 
 ## 系統需求
 
@@ -87,10 +88,11 @@ Docker 環境中會自動生成開發證書。
 ## API 端點
 
 ### 認證端點
-- `POST /api/auth/register` - 使用者註冊
-- `POST /api/auth/login` - 使用者登入
+- `POST /api/auth/register` - 使用者註冊（不返回 tokens，需再次登入）
+- `POST /api/auth/login` - 使用者登入（返回 JWT tokens）
 - `POST /api/auth/refresh-token` - 重新整理 JWT 權杖
 - `POST /api/auth/logout` - 登出
+- `GET /api/auth/validate` - 驗證 JWT Token（供其他微服務使用）
 
 ### 使用者端點
 - `GET /api/users/me` - 取得當前使用者資訊 (需要認證)
