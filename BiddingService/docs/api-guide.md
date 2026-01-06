@@ -1,31 +1,36 @@
-# API Guide
+# API 指南
 
-## Overview
+## 概述
 
-The BiddingService provides RESTful APIs for managing auction bids. All endpoints return JSON responses and use standard HTTP status codes.
+BiddingService 提供 RESTful API 用於管理拍賣出價。所有端點都返回 JSON 響應並使用標準 HTTP 狀態碼。
 
-## Base URL
+## 基礎 URL
 ```
 http://localhost:5000/api
 ```
 
-## Authentication
+## 身份驗證
 
-The API uses Bearer Token authentication. The Bidding Service delegates token validation to the **Member Service**.
+API 使用 Bearer Token 身份驗證。Bidding Service 將 token 驗證委派給 **Member Service**。
 
-1. Client sends request with `Authorization: Bearer <token>`.
-2. Bidding Service forwards the token to Member Service for validation.
-3. If valid, Member Service returns the User ID.
-4. If invalid, API returns `401 Unauthorized`.
+1. 客戶端發送帶有 `Authorization: Bearer <token>` 的請求。
+2. Bidding Service 將 token 轉發給 Member Service 進行驗證。
+3. Member Service 返回結構化的驗證結果，包含：
+   - `isValid`：布林值，表示 token 是否有效
+   - `userId`：如果有效則為用戶 ID（無效則為 null）
+   - `expiresAt`：token 到期時間
+   - `errorMessage`：如果無效則為錯誤詳情
+4. 如果有效，請求將使用已驗證的用戶 ID 繼續處理。
+5. 如果無效，API 返回 `401 Unauthorized` 並包含錯誤詳情。
 
-**Required Header**:
+**必需的請求標頭**：
 ```
 Authorization: Bearer <your-jwt-token>
 ```
 
-## Common Response Formats
+## 通用響應格式
 
-### Success Response
+### 成功響應
 ```json
 {
   "bidId": 1234567890123456789,
@@ -36,26 +41,26 @@ Authorization: Bearer <your-jwt-token>
 }
 ```
 
-### Error Response
+### 錯誤響應
 ```json
 {
   "error": {
     "code": "AUCTION_NOT_FOUND",
-    "message": "Auction with ID 999 not found",
+    "message": "找不到 ID 為 999 的拍賣",
     "details": null
   }
 }
 ```
 
-## Endpoints
+## 端點
 
-### 1. Submit Bid
+### 1. 提交出價
 
-Submit a new bid for an auction.
+為拍賣提交新的出價。
 
-**Endpoint**: `POST /api/bids`
+**端點**: `POST /api/bids`
 
-**Request Body**:
+**請求主體**:
 ```json
 {
   "auctionId": 1,
@@ -63,7 +68,7 @@ Submit a new bid for an auction.
 }
 ```
 
-**Response**: `201 Created`
+**響應**: `201 Created`
 ```json
 {
   "bidId": 1234567890123456789,
@@ -74,18 +79,18 @@ Submit a new bid for an auction.
 }
 ```
 
-**Error Codes**:
-- `400 Bad Request`: Invalid request data
-- `404 Not Found`: Auction not found
-- `409 Conflict`: Auction not active or bid amount too low
+**錯誤代碼**:
+- `400 Bad Request`: 請求資料無效
+- `404 Not Found`: 拍賣不存在
+- `409 Conflict`: 拍賣未激活或出價金額太低
 
-### 2. Get Bid by ID
+### 2. 根據 ID 獲取出價
 
-Retrieve a specific bid by its ID.
+根據出價 ID 檢索特定的出價。
 
-**Endpoint**: `GET /api/bids/{bidId}`
+**端點**: `GET /api/bids/{bidId}`
 
-**Response**: `200 OK`
+**響應**: `200 OK`
 ```json
 {
   "bidId": 1234567890123456789,
@@ -96,20 +101,20 @@ Retrieve a specific bid by its ID.
 }
 ```
 
-**Error Codes**:
-- `404 Not Found`: Bid not found
+**錯誤代碼**:
+- `404 Not Found`: 出價不存在
 
-### 3. Get Bid History
+### 3. 獲取出價歷史
 
-Retrieve bidding history for a specific auction.
+檢索特定拍賣的出價歷史。
 
-**Endpoint**: `GET /api/bids/history/{auctionId}`
+**端點**: `GET /api/bids/history/{auctionId}`
 
-**Query Parameters**:
-- `page` (optional): Page number (default: 1)
-- `pageSize` (optional): Items per page (default: 50, max: 100)
+**查詢參數**:
+- `page` (可選): 頁碼 (預設: 1)
+- `pageSize` (可選): 每頁項目數 (預設: 50, 最大: 100)
 
-**Response**: `200 OK`
+**響應**: `200 OK`
 ```json
 {
   "auctionId": 1,
@@ -133,17 +138,17 @@ Retrieve bidding history for a specific auction.
 }
 ```
 
-### 4. Get My Bids
+### 4. 獲取我的出價
 
-Retrieve all bids placed by the current user.
+檢索當前用戶提交的所有出價。
 
-**Endpoint**: `GET /api/bids/my-bids`
+**端點**: `GET /api/bids/my-bids`
 
-**Query Parameters**:
-- `page` (optional): Page number (default: 1)
-- `pageSize` (optional): Items per page (default: 50, max: 100)
+**查詢參數**:
+- `page` (可選): 頁碼 (預設: 1)
+- `pageSize` (可選): 每頁項目數 (預設: 50, 最大: 100)
 
-**Response**: `200 OK`
+**響應**: `200 OK`
 ```json
 {
   "bids": [
@@ -166,13 +171,13 @@ Retrieve all bids placed by the current user.
 }
 ```
 
-### 5. Get Highest Bid
+### 5. 獲取最高出價
 
-Retrieve the current highest bid for an auction.
+檢索拍賣的當前最高出價。
 
-**Endpoint**: `GET /api/bids/highest/{auctionId}`
+**端點**: `GET /api/bids/highest/{auctionId}`
 
-**Response**: `200 OK`
+**響應**: `200 OK`
 ```json
 {
   "auctionId": 1,
@@ -186,15 +191,15 @@ Retrieve the current highest bid for an auction.
 }
 ```
 
-**Note**: Returns `null` for `highestBid` if no bids exist.
+**注意**: 如果沒有出價，`highestBid` 返回 `null`。
 
-### 6. Get Auction Statistics
+### 6. 獲取拍賣統計
 
-Retrieve comprehensive statistics for an auction.
+檢索拍賣的綜合統計資訊。
 
-**Endpoint**: `GET /api/bids/auctions/{auctionId}/stats`
+**端點**: `GET /api/bids/auctions/{auctionId}/stats`
 
-**Response**: `200 OK`
+**響應**: `200 OK`
 ```json
 {
   "auctionId": 1,
@@ -211,35 +216,36 @@ Retrieve comprehensive statistics for an auction.
 }
 ```
 
-## Rate Limiting
+## 速率限制
 
-**Note**: Rate limiting is not yet implemented. Consider implementing based on:
-- IP address
-- User ID (when authentication is added)
-- Auction ID
+**注意**: 速率限制尚未實作。考慮根據以下條件實作：
+- IP 地址
+- 用戶 ID (當添加身份驗證時)
+- 拍賣 ID
 
-## Pagination
+## 分頁
 
-Endpoints that return lists support pagination:
+返回列表的端點支援分頁：
 
-- Default page size: 50 items
-- Maximum page size: 100 items
-- Use `page` and `pageSize` query parameters
+- 預設頁面大小: 50 項目
+- 最大頁面大小: 100 項目
+- 使用 `page` 和 `pageSize` 查詢參數
 
-## Error Codes
+## 錯誤代碼
 
-| Code | HTTP Status | Description |
+| 代碼 | HTTP 狀態 | 描述 |
 |------|-------------|-------------|
-| `AUCTION_NOT_FOUND` | 404 | Auction does not exist |
-| `AUCTION_NOT_ACTIVE` | 409 | Auction is not currently active |
-| `BID_AMOUNT_TOO_LOW` | 409 | Bid amount is below minimum requirements |
-| `DUPLICATE_BID` | 409 | User has already bid on this auction |
-| `BID_NOT_FOUND` | 404 | Specific bid does not exist |
-| `VALIDATION_ERROR` | 400 | Request data validation failed |
+| `UNAUTHORIZED` | 401 | 缺少或無效的 JWT token |
+| `AUCTION_NOT_FOUND` | 404 | 拍賣不存在 |
+| `AUCTION_NOT_ACTIVE` | 409 | 拍賣目前未激活 |
+| `BID_AMOUNT_TOO_LOW` | 409 | 出價金額低於最低要求 |
+| `DUPLICATE_BID` | 409 | 用戶已對此拍賣出價 |
+| `BID_NOT_FOUND` | 404 | 特定出價不存在 |
+| `VALIDATION_ERROR` | 400 | 請求資料驗證失敗 |
 
-## Examples
+## 範例
 
-### Submit a Bid
+### 提交出價
 ```bash
 curl -X POST http://localhost:5000/api/bids \
   -H "Authorization: Bearer <token>" \
@@ -250,19 +256,19 @@ curl -X POST http://localhost:5000/api/bids \
   }'
 ```
 
-### Get Auction Statistics
+### 獲取拍賣統計
 ```bash
 curl http://localhost:5000/api/bids/auctions/1/stats
 ```
 
-### Get Bid History with Pagination
+### 獲取出價歷史並分頁
 ```bash
 curl "http://localhost:5000/api/bids/history/1?page=1&pageSize=20"
 ```
 
-## SDKs and Libraries
+## SDK 和函式庫
 
-**Note**: No official SDKs are available yet. Use standard HTTP clients.
+**注意**: 尚未提供官方 SDK。請使用標準 HTTP 客戶端。
 
 ### JavaScript (fetch)
 ```javascript
@@ -292,15 +298,15 @@ var bid = await response.Content.ReadFromJsonAsync<BidResponse>();
 
 ## Webhooks
 
-**Note**: Webhooks are not yet implemented. Future versions may include:
-- Bid placed notifications
-- Auction ending soon alerts
-- Outbid notifications
+**注意**: Webhooks 尚未實作。未來版本可能包含：
+- 出價通知
+- 拍賣即將結束提醒
+- 被超過出價通知
 
-## Versioning
+## 版本控制
 
-The API uses URL versioning. Current version is v1 (implicit in base path).
+API 使用 URL 版本控制。目前版本為 v1 (基礎路徑中隱含)。
 
-Future versions will be available at:
+未來版本將在以下位置提供：
 - `/api/v2/bids`
 - `/api/v3/bids`

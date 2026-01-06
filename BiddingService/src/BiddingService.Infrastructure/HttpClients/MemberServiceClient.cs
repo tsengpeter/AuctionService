@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using BiddingService.Core.DTOs.Responses;
 using BiddingService.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -16,46 +17,88 @@ public class MemberServiceClient : IMemberServiceClient
         _logger = logger;
     }
 
-    public async Task<long> ValidateTokenAsync(string token)
+    public async Task<TokenValidationResult> ValidateTokenAsync(string token)
     {
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/validate");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var response = await _httpClient.SendAsync(request);
+            var requestUri = $"/api/auth/validate?token={Uri.EscapeDataString(token)}";
+            var response = await _httpClient.GetAsync(requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Token validation failed. Status Code: {StatusCode}", response.StatusCode);
-                throw new UnauthorizedAccessException("Invalid or expired token.");
+                return TokenValidationResult.Failure("Invalid or expired token.");
             }
 
             var content = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(content);
             
-            // Assuming the response structure is: { "isValid": true, "userId": 123456789 }
-            // Adjust property name based on actual MemberService response
-            if (document.RootElement.TryGetProperty("userId", out var userIdElement) && userIdElement.TryGetInt64(out var userId))
+            var root = document.RootElement;
+            
+            // Extract isValid
+            bool isValid = false;
+            if (root.TryGetProperty("isValid", out var isValidElement))
             {
-                return userId;
+                isValid = isValidElement.GetBoolean();
             }
             
-            // Fallback: Check if it's wrapped in a 'data' property like standard API response
-            if (document.RootElement.TryGetProperty("data", out var dataElement) && 
-                dataElement.TryGetProperty("userId", out var dataUserIdElement) &&
-                dataUserIdElement.TryGetInt64(out var dataUserId))
+            // Extract userId (can be null)
+            long? userId = null;
+            if (root.TryGetProperty("userId", out var userIdElement) && 
+                userIdElement.ValueKind != JsonValueKind.Null &&
+                userIdElement.TryGetInt64(out var parsedUserId))
             {
-                return dataUserId;
+                userId = parsedUserId;
             }
-
-            _logger.LogError("Failed to parse UserID from validation response: {Response}", content);
-            throw new UnauthorizedAccessException("Token valid but user ID missing.");
+            
+            // Extract expiresAt (can be null)
+            DateTime? expiresAt = null;
+            if (root.TryGetProperty("expiresAt", out var expiresAtElement) && 
+                expiresAtElement.ValueKind != JsonValueKind.Null)
+            {
+                var expiresAtStr = expiresAtElement.GetString();
+                if (expiresAtStr != null && DateTime.TryParse(expiresAtStr, out var parsedExpiresAt))
+                {
+                    expiresAt = parsedExpiresAt;
+                }
+            }
+            
+            // Extract errorMessage (can be null)
+            string? errorMessage = null;
+            if (root.TryGetProperty("errorMessage", out var errorMessageElement) && 
+                errorMessageElement.ValueKind != JsonValueKind.Null)
+            {
+                errorMessage = errorMessageElement.GetString();
+            }
+            
+            var result = new TokenValidationResult
+            {
+                IsValid = isValid,
+                UserId = userId,
+                ExpiresAt = expiresAt,
+                ErrorMessage = errorMessage
+            };
+            
+            if (isValid)
+            {
+                _logger.LogInformation("Token validated successfully for user {UserId}", userId);
+            }
+            else
+            {
+                _logger.LogWarning("Token validation failed: {ErrorMessage}", errorMessage ?? "Unknown error");
+            }
+            
+            return result;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse JSON response from Member Service");
+            return TokenValidationResult.Failure("Invalid response from authentication service.");
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Error connecting to Member Service for token validation.");
-            throw new Exception("Authentication service unavailable.", ex);
+            return TokenValidationResult.Failure("Authentication service unavailable.");
         }
     }
 }

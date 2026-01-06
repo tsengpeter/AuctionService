@@ -345,7 +345,9 @@
 
 ### FR-003: 出價者身份驗證
 - **Token 驗證**: Bidding Service 不直接解密 Token,而是將 Authorization Header 的 JWT Token 轉發給 Member Service (`GET /api/auth/validate`)
-- **身份取得**: Member Service 驗證成功後回傳 `userId`,Bidding Service 將其作為 `bidderId`
+- **API 響應格式**: Member Service 返回結構化驗證結果 `{ "isValid": boolean, "userId": long | null, "expiresAt": DateTime | null, "errorMessage": string | null }`
+- **身份取得**: Token 驗證成功時 (`isValid: true`) 取得 `userId` 作為 `bidderId`,驗證失敗時 (`isValid: false`) 拋出 401 Unauthorized 異常
+- **錯誤處理**: 無效 Token 返回 `userId: null` 和具體的 `errorMessage`,系統記錄錯誤並拒絕請求
 - **商品擁有權檢查**: 跨服務呼叫 Auction Service 取得商品擁有者,驗證出價者 != 商品擁有者
 
 ### FR-004: 併發控制

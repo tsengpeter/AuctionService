@@ -48,7 +48,7 @@ public class BidsControllerTests
 
         _memberServiceClientMock
             .Setup(x => x.ValidateTokenAsync("valid-token"))
-            .ReturnsAsync(bidderId);
+            .ReturnsAsync(TokenValidationResult.Success(bidderId));
 
         _biddingServiceMock
             .Setup(x => x.CreateBidAsync(request, bidderId))
@@ -70,7 +70,7 @@ public class BidsControllerTests
         
         _memberServiceClientMock
             .Setup(x => x.ValidateTokenAsync("valid-token"))
-            .ThrowsAsync(new UnauthorizedAccessException());
+            .ReturnsAsync(TokenValidationResult.Failure("Invalid token"));
 
         // Act
         var result = await _controller.CreateBid(request);
@@ -88,7 +88,7 @@ public class BidsControllerTests
 
         _memberServiceClientMock
             .Setup(x => x.ValidateTokenAsync("valid-token"))
-            .ReturnsAsync(bidderId);
+            .ReturnsAsync(TokenValidationResult.Success(bidderId));
 
         _biddingServiceMock
             .Setup(x => x.GetMyBidsAsync(bidderId, 1, 50))

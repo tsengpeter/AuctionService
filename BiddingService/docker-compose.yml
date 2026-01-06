@@ -44,6 +44,7 @@ services:
       - ConnectionStrings__BiddingDatabase=Host=auctionservice-db;Port=5432;Database=biddingservice_dev;Username=biddingservice;Password=Dev@Password123
       - Redis__ConnectionString=biddingservice-redis:6379
       - AuctionService__BaseUrl=http://auctionservice-api:8080
+      - MemberService__BaseUrl=http://memberservice-api:8080
       - Encryption__Key=Your32CharacterEncryptionKeyHere123
       - Encryption__IV=Your16CharacterIVHere
       - IdGen__GeneratorId=1

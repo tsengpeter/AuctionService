@@ -433,7 +433,12 @@ components:
       description: |
         JWT Token 格式: `Authorization: Bearer <token>`
         
-        **Token Claims**:
+        **驗證流程**:
+        - Bidding Service 不直接解密 Token
+        - 將 Token 轉發給 Member Service 進行驗證
+        - 驗證成功返回使用者 ID，失敗返回詳細錯誤訊息
+        
+        **Token Claims** (由 Member Service 驗證):
         - `sub`: 使用者 ID (BidderId)
         - `exp`: 過期時間
         - `iat`: 簽發時間
@@ -816,6 +821,18 @@ components:
               value:
                 code: "UNAUTHORIZED"
                 message: "缺少 Authorization Token"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+            invalidToken:
+              value:
+                code: "UNAUTHORIZED"
+                message: "無效的 JWT Token"
+                correlationId: "abc123-def456-ghi789"
+                timestamp: "2025-12-03T12:00:00Z"
+            expiredToken:
+              value:
+                code: "UNAUTHORIZED"
+                message: "JWT Token 已過期"
                 correlationId: "abc123-def456-ghi789"
                 timestamp: "2025-12-03T12:00:00Z"
 

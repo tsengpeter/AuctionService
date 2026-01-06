@@ -1,14 +1,14 @@
 using System.Threading.Tasks;
+using BiddingService.Core.DTOs.Responses;
 
 namespace BiddingService.Core.Interfaces;
 
 public interface IMemberServiceClient
 {
     /// <summary>
-    /// Validates the JWT token with Member Service and returns the User ID (BidderId).
+    /// Validates the JWT token with Member Service.
     /// </summary>
     /// <param name="token">The JWT access token (without "Bearer " prefix).</param>
-    /// <returns>The User ID if valid.</returns>
-    /// <exception cref="UnauthorizedAccessException">Thrown if token is invalid or expired.</exception>
-    Task<long> ValidateTokenAsync(string token);
+    /// <returns>The validation result containing token status and user information.</returns>
+    Task<TokenValidationResult> ValidateTokenAsync(string token);
 }

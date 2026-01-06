@@ -71,7 +71,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         _encryptionServiceMock.Setup(x => x.Decrypt(It.IsAny<string>())).Returns((string input) => input.Replace("encrypted_", ""));
 
         // Setup mock member service (default behavior)
-        _memberServiceMock.Setup(x => x.ValidateTokenAsync(It.IsAny<string>())).ReturnsAsync(12345L);
+        _memberServiceMock.Setup(x => x.ValidateTokenAsync(It.IsAny<string>())).ReturnsAsync(TokenValidationResult.Success(12345L));
 
         // Start containers
         await _postgresContainer.StartAsync();

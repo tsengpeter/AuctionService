@@ -64,7 +64,7 @@ public static class ServiceCollectionExtensions
         {
             var baseUrl = configuration.GetValue<string>("MemberService:BaseUrl");
             client.BaseAddress = new Uri(baseUrl);
-            client.Timeout = TimeSpan.FromSeconds(5); // Fast timeout for auth check
+            client.Timeout = TimeSpan.FromSeconds(configuration.GetValue<int>("MemberService:TimeoutSeconds"));
         })
         .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
 

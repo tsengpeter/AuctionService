@@ -177,6 +177,18 @@ public class BidsController : ControllerBase
         }
 
         var token = authHeader.ToString().Substring("Bearer ".Length).Trim();
-        return await _memberServiceClient.ValidateTokenAsync(token);
+        var validationResult = await _memberServiceClient.ValidateTokenAsync(token);
+        
+        if (!validationResult.IsValid)
+        {
+            throw new UnauthorizedAccessException(validationResult.ErrorMessage ?? "Invalid or expired token.");
+        }
+        
+        if (!validationResult.UserId.HasValue)
+        {
+            throw new UnauthorizedAccessException("Token valid but user ID missing.");
+        }
+        
+        return validationResult.UserId.Value;
     }
 }
