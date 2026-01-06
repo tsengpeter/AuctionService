@@ -54,24 +54,17 @@ public class AuthController : ControllerBase
 
     [HttpGet("validate")]
     [ProducesResponseType(typeof(TokenValidationResponse), 200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(401)]
     public async Task<IActionResult> Validate([FromQuery] string? token)
     {
         // Check if token parameter is provided
         if (string.IsNullOrWhiteSpace(token))
         {
-            return BadRequest(new { error = "Token parameter is required" });
+            return Ok(new TokenValidationResponse(IsValid: false, ErrorMessage: "Token parameter is required"));
         }
 
         var response = await _authService.ValidateTokenAsync(token);
 
-        // Return 401 for invalid tokens, 200 for valid tokens
-        if (!response.IsValid)
-        {
-            return Unauthorized(response);
-        }
-
+        // Always return 200 OK with TokenValidationResponse
         return Ok(response);
     }
 }

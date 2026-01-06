@@ -266,7 +266,7 @@ public class AuthServiceTests
         var expectedExpiresAt = DateTime.UtcNow.AddMinutes(15);
 
         _tokenGeneratorMock.Setup(x => x.ValidateAndExtractClaims(token))
-            .Returns((true, expectedUserId, expectedExpiresAt));
+            .Returns((true, expectedUserId, expectedExpiresAt, null));
 
         // Act
         var result = await _authService.ValidateTokenAsync(token);
@@ -285,7 +285,7 @@ public class AuthServiceTests
         var token = "invalid_jwt_token";
 
         _tokenGeneratorMock.Setup(x => x.ValidateAndExtractClaims(token))
-            .Returns((false, null, null));
+            .Returns((false, null, null, "Token signature is invalid"));
 
         // Act
         var result = await _authService.ValidateTokenAsync(token);
@@ -295,6 +295,7 @@ public class AuthServiceTests
         result.IsValid.Should().BeFalse();
         result.UserId.Should().BeNull();
         result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().Be("Token signature is invalid");
     }
 
     [Fact]
@@ -304,7 +305,7 @@ public class AuthServiceTests
         var token = "expired_jwt_token";
 
         _tokenGeneratorMock.Setup(x => x.ValidateAndExtractClaims(token))
-            .Returns((false, null, null));
+            .Returns((false, null, null, "Token has expired"));
 
         // Act
         var result = await _authService.ValidateTokenAsync(token);
@@ -314,5 +315,6 @@ public class AuthServiceTests
         result.IsValid.Should().BeFalse();
         result.UserId.Should().BeNull();
         result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().Be("Token has expired");
     }
 }

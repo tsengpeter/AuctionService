@@ -210,6 +210,7 @@ public class AuthControllerTests : IDisposable
         validateResult!.IsValid.Should().BeTrue();
         validateResult.UserId.Should().NotBeNull();
         validateResult.ExpiresAt.Should().NotBeNull();
+        validateResult.ErrorMessage.Should().BeNull();
     }
 
     [Fact]
@@ -219,12 +220,13 @@ public class AuthControllerTests : IDisposable
         var response = await _client.GetAsync("/api/auth/validate?token=invalid_token");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
         result.Should().NotBeNull();
         result!.IsValid.Should().BeFalse();
         result.UserId.Should().BeNull();
         result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -236,7 +238,13 @@ public class AuthControllerTests : IDisposable
         var response = await _client.GetAsync("/api/auth/validate");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().Be("Token parameter is required");
     }
 
     [Fact]
@@ -246,7 +254,13 @@ public class AuthControllerTests : IDisposable
         var response = await _client.GetAsync("/api/auth/validate?token=");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeFalse();
+        result.UserId.Should().BeNull();
+        result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().Be("Token parameter is required");
     }
 
     [Fact]
@@ -256,12 +270,13 @@ public class AuthControllerTests : IDisposable
         var response = await _client.GetAsync("/api/auth/validate?token=malformed_token_xyz");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
         result.Should().NotBeNull();
         result!.IsValid.Should().BeFalse();
         result.UserId.Should().BeNull();
         result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -274,12 +289,13 @@ public class AuthControllerTests : IDisposable
         var response = await _client.GetAsync($"/api/auth/validate?token={expiredToken}");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
         result.Should().NotBeNull();
         result!.IsValid.Should().BeFalse();
         result.UserId.Should().BeNull();
         result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().Be("Token signature is invalid");
     }
 
     [Fact]
@@ -292,11 +308,12 @@ public class AuthControllerTests : IDisposable
         var response = await _client.GetAsync($"/api/auth/validate?token={tamperedToken}");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<TokenValidationResponse>();
         result.Should().NotBeNull();
         result!.IsValid.Should().BeFalse();
         result.UserId.Should().BeNull();
         result.ExpiresAt.Should().BeNull();
+        result.ErrorMessage.Should().Be("Token signature is invalid");
     }
 }

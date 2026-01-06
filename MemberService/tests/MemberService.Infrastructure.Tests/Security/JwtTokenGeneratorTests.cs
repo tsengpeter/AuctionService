@@ -140,13 +140,14 @@ public class JwtTokenGeneratorTests
         var token = _tokenGenerator.GenerateAccessToken(userId, email);
 
         // Act
-        var (isValid, extractedUserId, expiresAt) = _tokenGenerator.ValidateAndExtractClaims(token);
+        var (isValid, extractedUserId, expiresAt, errorMessage) = _tokenGenerator.ValidateAndExtractClaims(token);
 
         // Assert
         isValid.Should().BeTrue();
         extractedUserId.Should().Be(userId);
         expiresAt.Should().NotBeNull();
         expiresAt.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(AccessTokenExpirationMinutes), TimeSpan.FromSeconds(5));
+        errorMessage.Should().BeNull();
     }
 
     [Fact]

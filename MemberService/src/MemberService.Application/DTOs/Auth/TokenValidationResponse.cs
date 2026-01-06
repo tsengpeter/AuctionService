@@ -5,5 +5,6 @@ namespace MemberService.Application.DTOs.Auth;
 public record TokenValidationResponse(
     bool IsValid,
     long? UserId = null,
-    DateTime? ExpiresAt = null
+    DateTime? ExpiresAt = null,
+    string? ErrorMessage = null
 );
