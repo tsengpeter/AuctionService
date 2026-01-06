@@ -64,11 +64,11 @@ public class JwtTokenGenerator : ITokenGenerator
 
     public bool ValidateToken(string token)
     {
-        var (isValid, _, _) = ValidateAndExtractClaims(token);
+        var (isValid, _, _, _) = ValidateAndExtractClaims(token);
         return isValid;
     }
 
-    public (bool IsValid, long? UserId, DateTime? ExpiresAt) ValidateAndExtractClaims(string token)
+    public (bool IsValid, long? UserId, DateTime? ExpiresAt, string? ErrorMessage) ValidateAndExtractClaims(string token)
     {
         try
         {
@@ -80,7 +80,7 @@ public class JwtTokenGenerator : ITokenGenerator
             // Ensure the token handler can read the token
             if (!tokenHandler.CanReadToken(token))
             {
-                return (false, null, null);
+                return (false, null, null, "Token format is invalid");
             }
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
@@ -105,14 +105,30 @@ public class JwtTokenGenerator : ITokenGenerator
 
             if (userIdClaim != null && long.TryParse(userIdClaim.Value, out var userId))
             {
-                return (true, userId, expiresAtClaim);
+                return (true, userId, expiresAtClaim, null);
             }
 
-            return (false, null, null);
+            return (false, null, null, "Token does not contain valid user information");
         }
-        catch
+        catch (SecurityTokenExpiredException)
         {
-            return (false, null, null);
+            return (false, null, null, "Token has expired");
+        }
+        catch (SecurityTokenInvalidSignatureException)
+        {
+            return (false, null, null, "Token signature is invalid");
+        }
+        catch (SecurityTokenInvalidIssuerException)
+        {
+            return (false, null, null, "Token issuer is invalid");
+        }
+        catch (SecurityTokenInvalidAudienceException)
+        {
+            return (false, null, null, "Token audience is invalid");
+        }
+        catch (Exception ex)
+        {
+            return (false, null, null, $"Token validation failed: {ex.Message}");
         }
     }
 }

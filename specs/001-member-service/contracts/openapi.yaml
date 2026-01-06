@@ -732,6 +732,10 @@ components:
               format: date-time
               description: Token 過期時間（UTC，選填）
               example: '2025-11-18T11:00:00Z'
+            errorMessage:
+              type: string
+              description: 驗證失敗時的錯誤訊息（選填）
+              example: 'Token has expired'
 
     ErrorResponse:
       type: object

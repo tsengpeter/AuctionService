@@ -172,12 +172,13 @@ public class AuthService : IAuthService
 
     public Task<TokenValidationResponse> ValidateTokenAsync(string token)
     {
-        var (isValid, userId, expiresAt) = _tokenGenerator.ValidateAndExtractClaims(token);
+        var (isValid, userId, expiresAt, errorMessage) = _tokenGenerator.ValidateAndExtractClaims(token);
 
         return Task.FromResult(new TokenValidationResponse(
             IsValid: isValid,
             UserId: userId,
-            ExpiresAt: expiresAt
+            ExpiresAt: expiresAt,
+            ErrorMessage: errorMessage
         ));
     }
 }

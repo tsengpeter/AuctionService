@@ -86,30 +86,28 @@ GET /api/auth/validate?token=<jwt_token>
 ```
 
 **參數說明**:
-- `token` (query parameter, required): 要驗證的 JWT token
+- `token` (query parameter, optional): 要驗證的 JWT token
 
-**成功回應 (200)**:
+**回應 (200)**:
+無論Token是否有效，都返回200狀態碼和統一的回應格式：
+
+**有效Token**:
 ```json
 {
   "isValid": true,
   "userId": 1234567890123456,
-  "expiresAt": "2026-01-06T10:15:00Z"
+  "expiresAt": "2026-01-06T10:15:00Z",
+  "errorMessage": null
 }
 ```
 
-**無效Token回應 (401)**:
+**無效Token (包括缺少、過期、格式錯誤等)**:
 ```json
 {
   "isValid": false,
   "userId": null,
-  "expiresAt": null
-}
-```
-
-**缺少Token回應 (400)**:
-```json
-{
-  "error": "Token parameter is required"
+  "expiresAt": null,
+  "errorMessage": "Token has expired"
 }
 ```
 
