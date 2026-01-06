@@ -31,6 +31,8 @@ public class JwtTokenGenerator : ITokenGenerator
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+        var now = DateTime.UtcNow;
+        
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
@@ -42,7 +44,8 @@ public class JwtTokenGenerator : ITokenGenerator
             issuer: _issuer,
             audience: _audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_accessTokenExpirationMinutes),
+            notBefore: now,
+            expires: now.AddMinutes(_accessTokenExpirationMinutes),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
@@ -69,7 +72,17 @@ public class JwtTokenGenerator : ITokenGenerator
     {
         try
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenHandler = new JwtSecurityTokenHandler
+            {
+                MapInboundClaims = false
+            };
+            
+            // Ensure the token handler can read the token
+            if (!tokenHandler.CanReadToken(token))
+            {
+                return (false, null, null);
+            }
+
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
 
             var validationParameters = new TokenValidationParameters

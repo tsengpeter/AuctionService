@@ -115,4 +115,50 @@ public class JwtTokenGeneratorTests
         jwtToken.Issuer.Should().Be("MemberService");
         jwtToken.Audiences.Should().Contain("MemberService");
     }
+
+    [Fact]
+    public void ValidateToken_ShouldReturnTrue_ForValidToken()
+    {
+        // Arrange
+        var userId = 12345L;
+        var email = "test@example.com";
+        var token = _tokenGenerator.GenerateAccessToken(userId, email);
+
+        // Act
+        var isValid = _tokenGenerator.ValidateToken(token);
+
+        // Assert
+        isValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateAndExtractClaims_ShouldReturnValidData_ForValidToken()
+    {
+        // Arrange
+        var userId = 12345L;
+        var email = "test@example.com";
+        var token = _tokenGenerator.GenerateAccessToken(userId, email);
+
+        // Act
+        var (isValid, extractedUserId, expiresAt) = _tokenGenerator.ValidateAndExtractClaims(token);
+
+        // Assert
+        isValid.Should().BeTrue();
+        extractedUserId.Should().Be(userId);
+        expiresAt.Should().NotBeNull();
+        expiresAt.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(AccessTokenExpirationMinutes), TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void ValidateToken_ShouldReturnFalse_ForInvalidToken()
+    {
+        // Arrange
+        var invalidToken = "invalid.token.here";
+
+        // Act
+        var isValid = _tokenGenerator.ValidateToken(invalidToken);
+
+        // Assert
+        isValid.Should().BeFalse();
+    }
 }

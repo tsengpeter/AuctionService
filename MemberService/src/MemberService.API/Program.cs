@@ -125,6 +125,7 @@ app.UseHttpsRedirection();
 app.UseMiddleware<GlobalExceptionHandler>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

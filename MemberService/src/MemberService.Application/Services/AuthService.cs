@@ -29,7 +29,7 @@ public class AuthService : IAuthService
         _idGenerator = idGenerator;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<RegisterResponse> RegisterAsync(RegisterRequest request)
     {
         // Check if email already exists
         var emailResult = Email.Create(request.Email);
@@ -58,30 +58,14 @@ public class AuthService : IAuthService
         var user = new User(userId, email, passwordHash, username);
         await _userRepository.AddAsync(user);
 
-        // Generate tokens
-        var accessToken = _tokenGenerator.GenerateAccessToken(user.Id, user.Email.Value);
-        var refreshToken = _tokenGenerator.GenerateRefreshToken();
-
-        // Store refresh token
-        var refreshTokenEntity = new RefreshToken(
-            Guid.NewGuid(),
-            refreshToken,
-            user.Id,
-            DateTime.UtcNow.AddDays(7) // Refresh tokens typically last 7 days
-        );
-        await _refreshTokenRepository.AddAsync(refreshTokenEntity);
-
-        return new AuthResponse(
-            AccessToken: accessToken,
-            RefreshToken: refreshToken,
-            ExpiresAt: DateTime.UtcNow.AddHours(1), // JWT typically expires in 1 hour
+        // Registration successful - user needs to login separately
+        return new RegisterResponse(
             User: new UserInfo(
                 Id: user.Id,
                 Email: user.Email.Value,
                 Username: user.Username.Value,
                 CreatedAt: user.CreatedAt
-            ),
-            TokenType: "Bearer"
+            )
         );
     }
 

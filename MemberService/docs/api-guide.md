@@ -3,6 +3,8 @@
 ## Authentication Endpoints
 
 ### Register
+註冊新使用者，成功後需要再次調用 Login 端點獲取 JWT tokens。
+
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -14,7 +16,21 @@ Content-Type: application/json
 }
 ```
 
+**成功回應 (201)**:
+```json
+{
+  "user": {
+    "id": 1234567890123456,
+    "email": "user@example.com",
+    "username": "User Name"
+  },
+  "message": "Registration successful. Please login to continue."
+}
+```
+
 ### Login
+使用者登入，成功後返回 JWT access token 和 refresh token。
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -22,6 +38,21 @@ Content-Type: application/json
 {
   "email": "user@example.com",
   "password": "SecurePassword123!"
+}
+```
+
+**成功回應 (200)**:
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "refreshToken": "base64_encoded_token",
+  "expiresAt": "2026-01-06T10:15:00Z",
+  "user": {
+    "id": 1234567890123456,
+    "email": "user@example.com",
+    "username": "User Name"
+  },
+  "tokenType": "Bearer"
 }
 ```
 
@@ -51,16 +82,18 @@ Content-Type: application/json
 驗證 JWT Token 是否有效，供其他微服務調用以確認使用者身份。
 
 ```http
-GET /api/auth/validate
-Authorization: Bearer <access_token>
+GET /api/auth/validate?token=<jwt_token>
 ```
+
+**參數說明**:
+- `token` (query parameter, required): 要驗證的 JWT token
 
 **成功回應 (200)**:
 ```json
 {
   "isValid": true,
   "userId": 1234567890123456,
-  "expiresAt": "2025-12-05T10:15:00Z"
+  "expiresAt": "2026-01-06T10:15:00Z"
 }
 ```
 
@@ -73,12 +106,10 @@ Authorization: Bearer <access_token>
 }
 ```
 
-**缺少Token回應 (401)**:
+**缺少Token回應 (400)**:
 ```json
 {
-  "isValid": false,
-  "userId": null,
-  "expiresAt": null
+  "error": "Token parameter is required"
 }
 ```
 
@@ -137,32 +168,12 @@ API 錯誤時會返回適當的 HTTP 狀態碼和錯誤詳情。常見錯誤格�
 
 成功回應直接返回請求的資料結構，不使用額外的包裝層。
 
-**註冊成功 (201)**:
+**Refresh Token 成功 (200)**:
 ```json
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "base64_encoded_token",
-  "expiresAt": "2025-12-05T10:15:00Z",
-  "user": {
-    "id": 1234567890123456,
-    "email": "user@example.com",
-    "username": "User Name"
-  },
-  "tokenType": "Bearer"
-}
-```
-
-**登入成功 (200)**:
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "base64_encoded_token",
-  "expiresAt": "2025-12-05T10:15:00Z",
-  "user": {
-    "id": 1234567890123456,
-    "email": "user@example.com",
-    "username": "User Name"
-  },
+  "refreshToken": "new_base64_encoded_token",
+  "expiresAt": "2026-01-06T10:30:00Z",
   "tokenType": "Bearer"
 }
 ```

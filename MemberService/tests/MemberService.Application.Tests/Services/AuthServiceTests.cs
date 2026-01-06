@@ -36,7 +36,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_ValidRequest_ShouldCreateUserAndReturnAuthResponse()
+    public async Task RegisterAsync_ValidRequest_ShouldCreateUserAndReturnRegisterResponse()
     {
         // Arrange
         var request = new RegisterRequest
@@ -48,24 +48,20 @@ public class AuthServiceTests
 
         var userId = 1L;
         var passwordHash = "hashed_password";
-        var accessToken = "access_token";
-        var refreshToken = "refresh_token";
 
         _idGeneratorMock.Setup(x => x.GenerateId()).Returns(userId);
         _passwordHasherMock.Setup(x => x.HashPassword(request.Password, userId)).Returns(passwordHash);
         _userRepositoryMock.Setup(x => x.ExistsByEmailAsync(It.IsAny<Email>())).ReturnsAsync(false);
-        _tokenGeneratorMock.Setup(x => x.GenerateAccessToken(It.IsAny<long>(), It.IsAny<string>()))
-            .Returns(accessToken);
-        _tokenGeneratorMock.Setup(x => x.GenerateRefreshToken()).Returns(refreshToken);
 
         // Act
         var result = await _authService.RegisterAsync(request);
 
         // Assert
         result.Should().NotBeNull();
-        result.AccessToken.Should().Be(accessToken);
-        result.RefreshToken.Should().Be(refreshToken);
-        result.TokenType.Should().Be("Bearer");
+        result.User.Should().NotBeNull();
+        result.User.Email.Should().Be(request.Email);
+        result.User.Username.Should().Be(request.Username);
+        result.Message.Should().NotBeNullOrEmpty();
 
         _userRepositoryMock.Verify(x => x.AddAsync(It.Is<User>(u =>
             u.Id == userId &&
