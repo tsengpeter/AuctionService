@@ -145,7 +145,7 @@ public class RedisSyncWorker : BackgroundService
                 if (retryCount <= maxRetries)
                 {
                     var delay = _retryDelays[retryCount - 1];
-                    _logger.LogWarning(ex, "Sync failed, retrying in {Delay}s (attempt {RetryCount}/{MaxRetries})",
+                    _logger.LogError(ex, "Sync failed, retrying in {Delay}s (attempt {RetryCount}/{MaxRetries})",
                         delay.TotalSeconds, retryCount, maxRetries);
                     await Task.Delay(delay, cancellationToken);
                 }
