@@ -1,0 +1,66 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+*.tmp
+*.swp
+Thumbs.db
+.DS_Store
+
+# Visual Studio
+.vs/
+.vscode/
+*.sln.cache
+*.sln.DotSettings.user
+
+# Rider
+.idea/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Docker
+.dockerignore
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+TestResults/
+*.trx
+coverage/
+
+# Build outputs
+publish/
+build/
+
+# Logs
+logs/
+*.log
+
+# Load Test Reports
+loadtests/**/reports/
+loadtests/**/*.html
+loadtests/**/*.txt
+loadtests/**/*.csv
+loadtests/**/*.md
+
+# Database
+*.db
+*.sqlite
+
+# Secrets
+secrets.json
+
+# Scripts (temporary test data)
+scripts/seed-test-data.sql
