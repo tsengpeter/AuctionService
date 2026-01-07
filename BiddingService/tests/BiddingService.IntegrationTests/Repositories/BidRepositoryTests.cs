@@ -15,23 +15,37 @@ namespace BiddingService.IntegrationTests.Repositories;
 
 public class BidRepositoryTests : IAsyncLifetime
 {
-    private IContainer _postgresContainer;
+    private IContainer? _postgresContainer;
     private BiddingDbContext _dbContext;
     private BidRepository _repository;
     private Mock<IEncryptionService> _encryptionServiceMock;
+    private readonly bool _useTestcontainers;
+    private string _postgresConnectionString = string.Empty;
 
     public BidRepositoryTests()
     {
         _encryptionServiceMock = new Mock<IEncryptionService>();
 
-        // Create PostgreSQL container (don't start yet)
-        _postgresContainer = new ContainerBuilder()
-            .WithImage("postgres:16")
-            .WithEnvironment("POSTGRES_DB", "bidding_test")
-            .WithEnvironment("POSTGRES_USER", "testuser")
-            .WithEnvironment("POSTGRES_PASSWORD", "testpass")
-            .WithPortBinding(5432, true)
-            .Build();
+        // Check if running in CI/CD environment
+        var ciPostgresConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        _useTestcontainers = string.IsNullOrEmpty(ciPostgresConnection);
+
+        if (_useTestcontainers)
+        {
+            // Local development: use Testcontainers
+            _postgresContainer = new ContainerBuilder()
+                .WithImage("postgres:16")
+                .WithEnvironment("POSTGRES_DB", "bidding_test")
+                .WithEnvironment("POSTGRES_USER", "testuser")
+                .WithEnvironment("POSTGRES_PASSWORD", "testpass")
+                .WithPortBinding(5432, true)
+                .Build();
+        }
+        else
+        {
+            // CI/CD: use pre-configured PostgreSQL service
+            _postgresConnectionString = ciPostgresConnection!;
+        }
     }
 
     public async Task InitializeAsync()
@@ -40,16 +54,20 @@ public class BidRepositoryTests : IAsyncLifetime
         _encryptionServiceMock.Setup(x => x.Encrypt(It.IsAny<string>())).Returns((string input) => $"encrypted_{input}");
         _encryptionServiceMock.Setup(x => x.Decrypt(It.IsAny<string>())).Returns((string input) => input.Replace("encrypted_", ""));
 
-        // Start PostgreSQL container
-        await _postgresContainer.StartAsync();
+        if (_useTestcontainers && _postgresContainer != null)
+        {
+            // Start PostgreSQL container for local development
+            await _postgresContainer.StartAsync();
 
-        // Wait for PostgreSQL to be ready with retry logic
-        await WaitForPostgresReady();
+            // Wait for PostgreSQL to be ready with retry logic
+            await WaitForPostgresReady();
+
+            _postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+        }
 
         // Setup database context
-        var postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
-            .UseNpgsql(postgresConnectionString)
+            .UseNpgsql(_postgresConnectionString)
             .Options;
         _dbContext = new BiddingDbContext(dbContextOptions, _encryptionServiceMock.Object);
 
@@ -62,7 +80,13 @@ public class BidRepositoryTests : IAsyncLifetime
 
     private async Task WaitForPostgresReady()
     {
-        var connectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+        if (!_useTestcontainers)
+        {
+            // CI/CD environment: assume PostgreSQL is already ready
+            return;
+        }
+
+        var connectionString = $"Host={_postgresContainer!.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
         
         for (int i = 0; i < 30; i++) // Try for up to 30 seconds
         {
@@ -84,8 +108,11 @@ public class BidRepositoryTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         // Clean up
-        await _postgresContainer.StopAsync();
-        await _postgresContainer.DisposeAsync();
+        if (_useTestcontainers && _postgresContainer != null)
+        {
+            await _postgresContainer.StopAsync();
+            await _postgresContainer.DisposeAsync();
+        }
         _dbContext?.Dispose();
     }
 

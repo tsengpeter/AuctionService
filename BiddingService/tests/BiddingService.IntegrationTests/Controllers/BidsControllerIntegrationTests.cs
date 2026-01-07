@@ -32,33 +32,50 @@ namespace BiddingService.IntegrationTests.Controllers;
 
 public class BidsControllerIntegrationTests : IAsyncLifetime
 {
-    private IContainer _postgresContainer;
-    private IContainer _redisContainer;
+    private IContainer? _postgresContainer;
+    private IContainer? _redisContainer;
     private WireMockServer _auctionServiceMock;
     private BiddingDbContext _dbContext;
     private IConnectionMultiplexer _redisConnection;
     private BidsController _controller;
     private Mock<IEncryptionService> _encryptionServiceMock;
     private Mock<IMemberServiceClient> _memberServiceMock;
+    private readonly bool _useTestcontainers;
+    private string _postgresConnectionString = string.Empty;
+    private string _redisConnectionString = string.Empty;
 
     public BidsControllerIntegrationTests()
     {
         _encryptionServiceMock = new Mock<IEncryptionService>();
         _memberServiceMock = new Mock<IMemberServiceClient>();
 
-        // Create containers (don't start yet)
-        _postgresContainer = new ContainerBuilder()
-            .WithImage("postgres:16")
-            .WithEnvironment("POSTGRES_DB", "bidding_test")
-            .WithEnvironment("POSTGRES_USER", "testuser")
-            .WithEnvironment("POSTGRES_PASSWORD", "testpass")
-            .WithPortBinding(5432, true)
-            .Build();
+        // Check if running in CI/CD environment
+        var ciRedisConnection = Environment.GetEnvironmentVariable("ConnectionStrings__Redis");
+        var ciPostgresConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        _useTestcontainers = string.IsNullOrEmpty(ciRedisConnection) || string.IsNullOrEmpty(ciPostgresConnection);
 
-        _redisContainer = new ContainerBuilder()
-            .WithImage("redis:7")
-            .WithPortBinding(6379, true)
-            .Build();
+        if (_useTestcontainers)
+        {
+            // Local development: use Testcontainers
+            _postgresContainer = new ContainerBuilder()
+                .WithImage("postgres:16")
+                .WithEnvironment("POSTGRES_DB", "bidding_test")
+                .WithEnvironment("POSTGRES_USER", "testuser")
+                .WithEnvironment("POSTGRES_PASSWORD", "testpass")
+                .WithPortBinding(5432, true)
+                .Build();
+
+            _redisContainer = new ContainerBuilder()
+                .WithImage("redis:7")
+                .WithPortBinding(6379, true)
+                .Build();
+        }
+        else
+        {
+            // CI/CD: use pre-configured services
+            _postgresConnectionString = ciPostgresConnection!;
+            _redisConnectionString = ciRedisConnection!;
+        }
 
         // Start WireMock for auction service
         _auctionServiceMock = WireMockServer.Start();
@@ -73,17 +90,22 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         // Setup mock member service (default behavior)
         _memberServiceMock.Setup(x => x.ValidateTokenAsync(It.IsAny<string>())).ReturnsAsync(TokenValidationResult.Success(12345L));
 
-        // Start containers
-        await _postgresContainer.StartAsync();
-        await _redisContainer.StartAsync();
+        if (_useTestcontainers)
+        {
+            // Start containers for local development
+            await _postgresContainer!.StartAsync();
+            await _redisContainer!.StartAsync();
 
-        // Wait for PostgreSQL to be ready with retry logic
-        await WaitForPostgresReady();
+            // Wait for PostgreSQL to be ready with retry logic
+            await WaitForPostgresReady();
+
+            _postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+            _redisConnectionString = $"localhost:{_redisContainer.GetMappedPublicPort(6379)}";
+        }
 
         // Setup database context
-        var postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
-            .UseNpgsql(postgresConnectionString)
+            .UseNpgsql(_postgresConnectionString)
             .Options;
         _dbContext = new BiddingDbContext(dbContextOptions, _encryptionServiceMock.Object);
 
@@ -91,8 +113,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
         await _dbContext.Database.EnsureCreatedAsync();
 
         // Setup Redis connection
-        var redisConnectionString = $"localhost:{_redisContainer.GetMappedPublicPort(6379)}";
-        _redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
+        _redisConnection = ConnectionMultiplexer.Connect(_redisConnectionString);
 
         // Setup services
         var logger = new LoggerFactory().CreateLogger<BiddingService.Core.Services.BiddingService>();
@@ -101,7 +122,7 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
             "0123456789abcdef0123456789abcdef",
             "0123456789abcdef");
 
-        var redisConnection = new BiddingService.Infrastructure.Redis.RedisConnection(redisConnectionString);
+        var redisConnection = new BiddingService.Infrastructure.Redis.RedisConnection(_redisConnectionString);
         var bidRepository = new BidRepository(_dbContext);
         var redisRepository = new RedisRepository(redisConnection);
 
@@ -141,8 +162,13 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await _postgresContainer.StopAsync();
-        await _redisContainer.StopAsync();
+        if (_useTestcontainers)
+        {
+            if (_postgresContainer != null)
+                await _postgresContainer.StopAsync();
+            if (_redisContainer != null)
+                await _redisContainer.StopAsync();
+        }
         _auctionServiceMock.Stop();
         _redisConnection?.Dispose();
         await _dbContext.DisposeAsync();
@@ -615,7 +641,13 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
 
     private async Task WaitForPostgresReady()
     {
-        var connectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+        if (!_useTestcontainers)
+        {
+            // CI/CD environment: assume PostgreSQL is already ready
+            return;
+        }
+
+        var connectionString = $"Host={_postgresContainer!.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
         
         for (int i = 0; i < 30; i++) // Try for up to 30 seconds
         {

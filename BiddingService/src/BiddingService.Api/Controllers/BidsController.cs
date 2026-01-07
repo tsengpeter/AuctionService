@@ -6,6 +6,7 @@ using BiddingService.Core.Validators;
 using BiddingService.Shared.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace BiddingService.Api.Controllers;
 
@@ -15,15 +16,18 @@ public class BidsController : ControllerBase
     private readonly IBiddingService _biddingService;
     private readonly IMemberServiceClient _memberServiceClient;
     private readonly ILogger<BidsController> _logger;
+    private readonly IConfiguration _configuration;
 
     public BidsController(
         IBiddingService biddingService, 
         IMemberServiceClient memberServiceClient,
-        ILogger<BidsController> logger)
+        ILogger<BidsController> logger,
+        IConfiguration configuration)
     {
         _biddingService = biddingService;
         _memberServiceClient = memberServiceClient;
         _logger = logger;
+        _configuration = configuration;
     }
 
     [HttpPost("api/bids")]
@@ -168,6 +172,21 @@ public class BidsController : ControllerBase
 
     private async Task<long> ValidateAndGetBidderIdAsync()
     {
+        // 測試環境：從配置讀取是否跳過 token 驗證
+        var bypassAuth = _configuration.GetValue<bool>("Authentication:BypassAuth", false);
+        
+        if (bypassAuth)
+        {
+            if (Request.Headers.TryGetValue("X-Test-Bidder-Id", out var testBidderId) && 
+                long.TryParse(testBidderId, out var bidderId))
+            {
+                _logger.LogWarning("Authentication:BypassAuth is enabled: Using test bidder ID {BidderId}", bidderId);
+                return bidderId;
+            }
+            throw new UnauthorizedAccessException("Authentication:BypassAuth is enabled but X-Test-Bidder-Id header missing or invalid");
+        }
+
+        // 正式環境：完整的 token 驗證
         if (!Request.Headers.TryGetValue("Authorization", out var authHeader) || 
             string.IsNullOrEmpty(authHeader) || 
             !authHeader.ToString().StartsWith("Bearer "))

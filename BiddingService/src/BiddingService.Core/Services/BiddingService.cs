@@ -7,6 +7,7 @@ using BiddingService.Core.ValueObjects;
 using BiddingService.Shared.Constants;
 using BiddingService.Shared.Helpers;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace BiddingService.Core.Services;
 
@@ -18,6 +19,7 @@ public class BiddingService : IBiddingService
     private readonly ISnowflakeIdGenerator _idGenerator;
     private readonly IEncryptionService _encryptionService;
     private readonly ILogger<BiddingService> _logger;
+    private readonly IConfiguration _configuration;
 
     public BiddingService(
         IBidRepository bidRepository,
@@ -25,7 +27,8 @@ public class BiddingService : IBiddingService
         IAuctionServiceClient auctionServiceClient,
         ISnowflakeIdGenerator idGenerator,
         IEncryptionService encryptionService,
-        ILogger<BiddingService> logger)
+        ILogger<BiddingService> logger,
+        IConfiguration configuration)
     {
         _bidRepository = bidRepository;
         _redisRepository = redisRepository;
@@ -33,20 +36,36 @@ public class BiddingService : IBiddingService
         _idGenerator = idGenerator;
         _encryptionService = encryptionService;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task<BidResponse> CreateBidAsync(CreateBidRequest request, long bidderId)
     {
-        // Validate auction exists and is active
-        var auction = await _auctionServiceClient.GetAuctionAsync(request.AuctionId);
-        if (auction == null)
+        // 測試環境：從配置讀取是否跳過拍賣驗證
+        var bypassAuth = _configuration.GetValue<bool>("Authentication:BypassAuth", false);
+        DateTime auctionEndTime;
+        
+        if (bypassAuth)
         {
-            throw new AuctionNotFoundException(request.AuctionId);
+            // 測試模式：假設拍賣存在且活躍，使用固定的結束時間
+            auctionEndTime = DateTime.UtcNow.AddDays(7);
+            _logger.LogWarning("Authentication:BypassAuth is enabled: Skipping auction validation for auction {AuctionId}", request.AuctionId);
         }
-
-        if (!auction.IsActive)
+        else
         {
-            throw new AuctionNotActiveException(request.AuctionId);
+            // 正式環境：驗證拍賣存在且活躍
+            var auction = await _auctionServiceClient.GetAuctionAsync(request.AuctionId);
+            if (auction == null)
+            {
+                throw new AuctionNotFoundException(request.AuctionId);
+            }
+
+            if (!auction.IsActive)
+            {
+                throw new AuctionNotActiveException(request.AuctionId);
+            }
+            
+            auctionEndTime = auction.EndTime;
         }
 
         // Prepare bidder identity
@@ -102,7 +121,7 @@ public class BiddingService : IBiddingService
         var bid = new Bid(bidId, request.AuctionId, encryptedBidderId, bidderIdHash, new BidAmount(request.Amount), DateTime.UtcNow);
 
         // Calculate TTL (Auction EndTime + 7 days)
-        var ttl = (auction.EndTime - DateTime.UtcNow).Add(TimeSpan.FromDays(7));
+        var ttl = (auctionEndTime - DateTime.UtcNow).Add(TimeSpan.FromDays(7));
         if (ttl < TimeSpan.Zero) ttl = TimeSpan.FromDays(7); // Safety check
 
         // Store in Redis first (fast path)

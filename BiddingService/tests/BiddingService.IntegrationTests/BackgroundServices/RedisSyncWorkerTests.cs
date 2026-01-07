@@ -16,31 +16,54 @@ namespace BiddingService.IntegrationTests.BackgroundServices;
 
 public class RedisSyncWorkerTests : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgresContainer;
-    private readonly RedisContainer _redisContainer;
+    private readonly PostgreSqlContainer? _postgresContainer;
+    private readonly RedisContainer? _redisContainer;
     private IServiceProvider _serviceProvider;
     private readonly Mock<ILogger<RedisSyncWorker>> _loggerMock;
+    private readonly bool _useTestcontainers;
+    private string _redisConnectionString = string.Empty;
+    private string _postgresConnectionString = string.Empty;
 
     public RedisSyncWorkerTests()
     {
-        _postgresContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:16")
-            .WithDatabase("biddingservice_test")
-            .WithUsername("postgres")
-            .WithPassword("password")
-            .Build();
-
-        _redisContainer = new RedisBuilder()
-            .WithImage("redis:7")
-            .Build();
-
         _loggerMock = new Mock<ILogger<RedisSyncWorker>>();
+
+        // Check if running in CI/CD environment
+        var ciRedisConnection = Environment.GetEnvironmentVariable("ConnectionStrings__Redis");
+        var ciPostgresConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        _useTestcontainers = string.IsNullOrEmpty(ciRedisConnection) || string.IsNullOrEmpty(ciPostgresConnection);
+
+        if (_useTestcontainers)
+        {
+            // Local development: use Testcontainers
+            _postgresContainer = new PostgreSqlBuilder()
+                .WithImage("postgres:16")
+                .WithDatabase("biddingservice_test")
+                .WithUsername("postgres")
+                .WithPassword("password")
+                .Build();
+
+            _redisContainer = new RedisBuilder()
+                .WithImage("redis:7")
+                .Build();
+        }
+        else
+        {
+            // CI/CD: use pre-configured services
+            _redisConnectionString = ciRedisConnection!;
+            _postgresConnectionString = ciPostgresConnection!;
+        }
     }
 
     public async Task InitializeAsync()
     {
-        await _postgresContainer.StartAsync();
-        await _redisContainer.StartAsync();
+        if (_useTestcontainers)
+        {
+            await _postgresContainer!.StartAsync();
+            await _redisContainer!.StartAsync();
+            _redisConnectionString = $"{_redisContainer.Hostname}:{_redisContainer.GetMappedPublicPort(6379)}";
+            _postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=biddingservice_test;Username=postgres;Password=password;SSL Mode=Disable";
+        }
 
         var services = new ServiceCollection();
         // Configure services for testing
@@ -51,14 +74,12 @@ public class RedisSyncWorkerTests : IAsyncLifetime
         services.AddSingleton<IEncryptionService>(encryptionServiceMock.Object);
         
         // Add Redis connection
-        var redisConnectionString = $"{_redisContainer.Hostname}:{_redisContainer.GetMappedPublicPort(6379)}";
-        services.AddSingleton<IRedisConnection>(new RedisConnection(redisConnectionString));
+        services.AddSingleton<IRedisConnection>(new RedisConnection(_redisConnectionString));
         services.AddSingleton<IRedisRepository, RedisRepository>();
         
         // Add PostgreSQL connection and BidRepository for RedisSyncWorker
-        var postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=biddingservice_test;Username=postgres;Password=password;SSL Mode=Disable";
         var dbContextOptions = new DbContextOptionsBuilder<BiddingDbContext>()
-            .UseNpgsql(postgresConnectionString)
+            .UseNpgsql(_postgresConnectionString)
             .Options;
         var dbContext = new BiddingDbContext(dbContextOptions, encryptionServiceMock.Object);
         await dbContext.Database.EnsureCreatedAsync();
@@ -69,8 +90,13 @@ public class RedisSyncWorkerTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await _postgresContainer.DisposeAsync();
-        await _redisContainer.DisposeAsync();
+        if (_useTestcontainers)
+        {
+            if (_postgresContainer != null)
+                await _postgresContainer.DisposeAsync();
+            if (_redisContainer != null)
+                await _redisContainer.DisposeAsync();
+        }
     }
 
     [Fact]
