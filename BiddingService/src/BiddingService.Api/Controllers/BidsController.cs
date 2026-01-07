@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 namespace BiddingService.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 public class BidsController : ControllerBase
 {
     private readonly IBiddingService _biddingService;
@@ -27,7 +26,7 @@ public class BidsController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost]
+    [HttpPost("api/bids")]
     [ProducesResponseType(typeof(BidResponse), 201)]
     [ProducesResponseType(typeof(ErrorResponse), 400)]
     [ProducesResponseType(typeof(ErrorResponse), 401)]
@@ -75,7 +74,7 @@ public class BidsController : ControllerBase
         }
     }
 
-    [HttpGet("history/{auctionId}")]
+    [HttpGet("api/auctions/{auctionId}/bids")]
     [ProducesResponseType(typeof(BidHistoryResponse), 200)]
     [ProducesResponseType(typeof(ErrorResponse), 400)]
     public async Task<IActionResult> GetBidHistory(long auctionId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
@@ -89,7 +88,7 @@ public class BidsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("my-bids")]
+    [HttpGet("api/me/bids")]
     [ProducesResponseType(typeof(MyBidsResponse), 200)]
     [ProducesResponseType(typeof(ErrorResponse), 401)]
     public async Task<IActionResult> GetMyBids([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
@@ -116,7 +115,7 @@ public class BidsController : ControllerBase
         }
     }
 
-    [HttpGet("highest/{auctionId}")]
+    [HttpGet("api/auctions/{auctionId}/highest-bid")]
     [ProducesResponseType(typeof(HighestBidResponse), 200)]
     [ProducesResponseType(typeof(ErrorResponse), 404)]
     public async Task<IActionResult> GetHighestBid(long auctionId)
@@ -139,7 +138,7 @@ public class BidsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("auctions/{auctionId}/stats")]
+    [HttpGet("api/auctions/{auctionId}/stats")]
     [ProducesResponseType(typeof(AuctionStatsResponse), 200)]
     [ProducesResponseType(typeof(ErrorResponse), 404)]
     public async Task<IActionResult> GetAuctionStats(long auctionId)
@@ -153,7 +152,7 @@ public class BidsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{bidId}")]
+    [HttpGet("api/bids/{bidId}")]
     [ProducesResponseType(typeof(BidResponse), 200)]
     [ProducesResponseType(typeof(ErrorResponse), 404)]
     public async Task<IActionResult> GetBidById(long bidId)

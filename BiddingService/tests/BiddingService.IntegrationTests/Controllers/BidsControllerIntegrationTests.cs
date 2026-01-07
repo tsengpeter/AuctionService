@@ -107,7 +107,8 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
 
         var auctionServiceClient = new AuctionServiceClient(
             new HttpClient { BaseAddress = new Uri(_auctionServiceMock.Url) },
-            new MemoryCache(new MemoryCacheOptions()));
+            new MemoryCache(new MemoryCacheOptions()),
+            new Mock<ILogger<AuctionServiceClient>>().Object);
 
         var biddingService = new BiddingService.Core.Services.BiddingService(
             bidRepository,
@@ -169,7 +170,8 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
 
         var auctionServiceClient = new AuctionServiceClient(
             new HttpClient { BaseAddress = new Uri(_auctionServiceMock.Url) },
-            new MemoryCache(new MemoryCacheOptions()));
+            new MemoryCache(new MemoryCacheOptions()),
+            new Mock<ILogger<AuctionServiceClient>>().Object);
 
         var biddingService = new BiddingService.Core.Services.BiddingService(
             bidRepository,

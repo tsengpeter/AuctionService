@@ -128,14 +128,48 @@ public class BiddingService : IBiddingService
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        // Get bid history from database (as per specification: user bid records are queried from PostgreSQL)
+        // Try Redis first (FR-006: 優先查詢 Redis Sorted Set)
+        var redisBids = await _redisRepository.GetBidHistoryAsync(auctionId, page, pageSize);
+        var redisCount = await _redisRepository.GetBidCountAsync(auctionId);
+
+        if (redisBids.Any())
+        {
+            stopwatch.Stop();
+            _logger.LogInformation(
+                "Retrieved bid history for auction {AuctionId} from Redis, page {Page}, pageSize {PageSize}, returned {Count} bids, total {TotalCount}, query time {QueryTime}ms",
+                auctionId, page, pageSize, redisBids.Count(), redisCount, stopwatch.ElapsedMilliseconds);
+
+            return new BidHistoryResponse
+            {
+                AuctionId = auctionId,
+                Bids = redisBids.Select(b => new BidResponse
+                {
+                    BidId = b.BidId,
+                    AuctionId = b.AuctionId,
+                    Amount = b.Amount.Value,
+                    BidAt = b.BidAt
+                }).ToList(),
+                Pagination = new PaginationMetadata
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    TotalCount = (int)redisCount
+                }
+            };
+        }
+
+        // Fallback to database if Redis has no data
+        _logger.LogWarning(
+            "Bid history for auction {AuctionId} not found in Redis, falling back to database",
+            auctionId);
+
         var bids = await _bidRepository.GetBidsByAuctionAsync(auctionId, page, pageSize);
         var totalCount = await _bidRepository.GetBidCountAsync(auctionId);
 
         stopwatch.Stop();
 
         _logger.LogInformation(
-            "Retrieved bid history for auction {AuctionId}, page {Page}, pageSize {PageSize}, returned {Count} bids, total {TotalCount}, query time {QueryTime}ms",
+            "Retrieved bid history for auction {AuctionId} from database, page {Page}, pageSize {PageSize}, returned {Count} bids, total {TotalCount}, query time {QueryTime}ms",
             auctionId, page, pageSize, bids.Count(), totalCount, stopwatch.ElapsedMilliseconds);
 
         return new BidHistoryResponse

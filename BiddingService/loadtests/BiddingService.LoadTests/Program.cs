@@ -5,6 +5,22 @@ using System.Security.Cryptography.X509Certificates;
 
 class Program
 {
+    static HttpClient CreateHttpClient(bool useHttps)
+    {
+        var handler = new HttpClientHandler();
+        if (useHttps)
+        {
+            handler.ServerCertificateCustomValidationCallback = 
+                (sender, cert, chain, sslPolicyErrors) => true;
+        }
+        // Configure connection settings for high concurrency
+        handler.MaxConnectionsPerServer = 1000;
+        return new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
+    }
+
     static void Main(string[] args)
     {
         var config = new ConfigurationBuilder()
@@ -25,23 +41,20 @@ class Program
         Console.WriteLine($"📍 Target: {baseUrl} ({(useHttps ? "HTTPS" : "HTTP")})");
         Console.WriteLine($"⏰ Taiwan Time: {taiwanTime:yyyy-MM-dd HH:mm:ss} (UTC+8)\n");
 
+        // Create shared HttpClient instances
+        var highestBidClient = CreateHttpClient(useHttps);
+        var bidHistoryClient = CreateHttpClient(useHttps);
+
         // Scenario 1: Highest bid queries (5000 concurrent reads)
         var highestBidQueriesScenario = Scenario.Create("highest_bid_queries", async context =>
         {
-            var handler = new HttpClientHandler();
-            if (useHttps)
-            {
-                handler.ServerCertificateCustomValidationCallback = 
-                    (sender, cert, chain, sslPolicyErrors) => true;
-            }
-            
-            using var client = new HttpClient(handler);
             var auctionIds = new[] { 123456789L, 987654321L, 111111111L };
             var randomAuctionId = auctionIds[Random.Shared.Next(auctionIds.Length)];
             
-            var response = await client.GetAsync($"{baseUrl}/api/bids/highest/{randomAuctionId}");
+            var response = await highestBidClient.GetAsync($"{baseUrl}/api/auctions/{randomAuctionId}/highest-bid");
             
-            return response.IsSuccessStatusCode 
+            // For highest bid queries, both 200 (bid exists) and 404 (no bids) are valid responses
+            return (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 ? Response.Ok(statusCode: ((int)response.StatusCode).ToString()) 
                 : Response.Fail(statusCode: ((int)response.StatusCode).ToString());
         })
@@ -53,19 +66,11 @@ class Program
         // Scenario 2: Bid history queries (1000 concurrent paginated reads)
         var bidHistoryQueriesScenario = Scenario.Create("bid_history_queries", async context =>
         {
-            var handler = new HttpClientHandler();
-            if (useHttps)
-            {
-                handler.ServerCertificateCustomValidationCallback = 
-                    (sender, cert, chain, sslPolicyErrors) => true;
-            }
-            
-            using var client = new HttpClient(handler);
             var auctionIds = new[] { 123456789L, 987654321L };
             var randomAuctionId = auctionIds[Random.Shared.Next(auctionIds.Length)];
             var page = Random.Shared.Next(1, 5);
             
-            var response = await client.GetAsync($"{baseUrl}/api/bids/history/{randomAuctionId}?page={page}&pageSize=20");
+            var response = await bidHistoryClient.GetAsync($"{baseUrl}/api/auctions/{randomAuctionId}/bids?page={page}&pageSize=20");
             
             return response.IsSuccessStatusCode 
                 ? Response.Ok(statusCode: ((int)response.StatusCode).ToString()) 

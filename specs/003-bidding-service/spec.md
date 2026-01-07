@@ -1,8 +1,8 @@
 # 規格文件:競標服務 (Bidding Service)
 
-**版本**: 1.0  
+**版本**: 1.1  
 **狀態**: 待審核  
-**最後更新**: 2024-01-15  
+**最後更新**: 2026-01-07  
 **所有者**: 開發團隊
 
 ---
@@ -598,6 +598,7 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 - 409 Conflict: 商品已結束、併發衝突
 - 500 Internal Server Error: 系統異常
 - 503 Service Unavailable: Redis 與 PostgreSQL 均不可用
+- **HttpClient 錯誤處理**: 所有跨服務呼叫 (Auction Service, Member Service) 必須記錄詳細錯誤日誌，包含 Correlation ID、請求 URL、HTTP 狀態碼、錯誤訊息和異常堆疊追蹤
 
 ### FR-014-1: Redis 降級機制
 - **健康檢查**: 獨立 HostedService 每 10 秒執行 `PING` 命令

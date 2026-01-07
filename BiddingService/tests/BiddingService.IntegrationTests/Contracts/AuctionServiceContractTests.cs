@@ -18,16 +18,18 @@ public class AuctionServiceContractTests : IAsyncLifetime
     private readonly WireMockServer _mockServer;
     private readonly AuctionServiceClient _client;
     private readonly IMemoryCache _cache;
+    private readonly Mock<ILogger<AuctionServiceClient>> _loggerMock;
 
     public AuctionServiceContractTests()
     {
         _mockServer = WireMockServer.Start();
         // Use real MemoryCache instead of mock to avoid Moq issues with out parameters
         _cache = new MemoryCache(new MemoryCacheOptions());
+        _loggerMock = new Mock<ILogger<AuctionServiceClient>>();
 
         // Create client with mock server URL
         var httpClient = new HttpClient { BaseAddress = new Uri(_mockServer.Url) };
-        _client = new AuctionServiceClient(httpClient, _cache);
+        _client = new AuctionServiceClient(httpClient, _cache, _loggerMock.Object);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

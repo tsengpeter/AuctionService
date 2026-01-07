@@ -72,22 +72,52 @@ public class RedisRepository : IRedisRepository
     public async Task<IEnumerable<Bid>> GetBidHistoryAsync(long auctionId, int page = 1, int pageSize = 50)
     {
         var db = _redis.GetDatabase();
-        var auctionKey = $"auction:{auctionId}";
+        var auctionKey = $"auction:{auctionId}:bids";
 
         // Check if auction has any bids in Redis
         var bidCount = await db.SortedSetLengthAsync(auctionKey);
 
         if (bidCount == 0)
         {
-            // No bids in Redis, fall back to database
-            // Note: In a real implementation, this would query the database
-            // For integration testing, we'll return empty since we don't have DB access here
             return new List<Bid>();
         }
 
-        // Get bids from Redis sorted set (this is simplified - real implementation would need to store full bid data)
-        // For now, return empty list since Redis doesn't store complete bid information
-        return new List<Bid>();
+        // Calculate pagination offset
+        var skip = (page - 1) * pageSize;
+        
+        // Get bids from Redis sorted set (sorted by score descending = bid time descending)
+        var entries = await db.SortedSetRangeByScoreWithScoresAsync(
+            auctionKey,
+            order: Order.Descending,
+            skip: skip,
+            take: pageSize
+        );
+
+        var bids = new List<Bid>();
+        foreach (var entry in entries)
+        {
+            // Member format: "bidId:timestamp:bidderId"
+            var parts = entry.Element.ToString().Split(':');
+            if (parts.Length >= 3)
+            {
+                var bidId = long.Parse(parts[0]);
+                var timestamp = long.Parse(parts[1]);
+                var bidderId = parts[2];
+                
+                // Get bid details from hash
+                var bidHash = await db.HashGetAllAsync($"bid:{bidId}");
+                if (bidHash.Length > 0)
+                {
+                    var amount = decimal.Parse(bidHash.First(h => h.Name == "amount").Value);
+                    var bidAt = DateTime.Parse(bidHash.First(h => h.Name == "bidAt").Value, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    var bidderIdHash = bidHash.First(h => h.Name == "bidderIdHash").Value.ToString();
+                    
+                    bids.Add(new Bid(bidId, auctionId, bidderId, bidderIdHash, new Core.ValueObjects.BidAmount(amount), bidAt, false));
+                }
+            }
+        }
+
+        return bids;
     }
 
     public async Task<long> GetBidCountAsync(long auctionId)

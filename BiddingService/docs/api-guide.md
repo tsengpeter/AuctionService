@@ -1,8 +1,16 @@
 # API 指南
 
+**版本**: 1.1  
+**最後更新**: 2026-01-07
+
 ## 概述
 
 BiddingService 提供 RESTful API 用於管理拍賣出價。所有端點都返回 JSON 響應並使用標準 HTTP 狀態碼。
+
+**架構特色**:
+- Redis 優先查詢策略：出價歷史和最高出價優先從 Redis 快取讀取，降級到 PostgreSQL
+- 跨服務錯誤處理：所有對 Auction Service 和 Member Service 的呼叫都會記錄詳細錯誤日誌
+- Correlation ID 追蹤：每個請求都使用唯一 ID 進行端到端追蹤
 
 ## 基礎 URL
 ```
@@ -108,7 +116,9 @@ Authorization: Bearer <your-jwt-token>
 
 檢索特定拍賣的出價歷史。
 
-**端點**: `GET /api/bids/history/{auctionId}`
+**端點**: `GET /api/auctions/{auctionId}/bids`
+
+**查詢策略**: 優先從 Redis Sorted Set 查詢 (效能最佳)，無資料時降級到 PostgreSQL 查詢
 
 **查詢參數**:
 - `page` (可選): 頁碼 (預設: 1)
@@ -142,7 +152,7 @@ Authorization: Bearer <your-jwt-token>
 
 檢索當前用戶提交的所有出價。
 
-**端點**: `GET /api/bids/my-bids`
+**端點**: `GET /api/me/bids`
 
 **查詢參數**:
 - `page` (可選): 頁碼 (預設: 1)
@@ -175,7 +185,9 @@ Authorization: Bearer <your-jwt-token>
 
 檢索拍賣的當前最高出價。
 
-**端點**: `GET /api/bids/highest/{auctionId}`
+**端點**: `GET /api/auctions/{auctionId}/highest-bid`
+
+**查詢策略**: 優先從 Redis Hash 查詢 (< 50ms)，無資料時降級到 PostgreSQL 查詢
 
 **響應**: `200 OK`
 ```json
@@ -197,7 +209,7 @@ Authorization: Bearer <your-jwt-token>
 
 檢索拍賣的綜合統計資訊。
 
-**端點**: `GET /api/bids/auctions/{auctionId}/stats`
+**端點**: `GET /api/auctions/{auctionId}/stats`
 
 **響應**: `200 OK`
 ```json
@@ -258,12 +270,12 @@ curl -X POST http://localhost:5000/api/bids \
 
 ### 獲取拍賣統計
 ```bash
-curl http://localhost:5000/api/bids/auctions/1/stats
+curl http://localhost:5000/api/auctions/1/stats
 ```
 
 ### 獲取出價歷史並分頁
 ```bash
-curl "http://localhost:5000/api/bids/history/1?page=1&pageSize=20"
+curl "http://localhost:5000/api/auctions/1/bids?page=1&pageSize=20"
 ```
 
 ## SDK 和函式庫

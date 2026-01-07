@@ -2,6 +2,7 @@ using BiddingService.Core.Interfaces;
 using BiddingService.Infrastructure.HttpClients;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -15,6 +16,7 @@ public class AuctionServiceClientTests
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
+    private readonly Mock<ILogger<AuctionServiceClient>> _loggerMock;
     private readonly AuctionServiceClient _client;
 
     public AuctionServiceClientTests()
@@ -25,7 +27,8 @@ public class AuctionServiceClientTests
             BaseAddress = new Uri("http://localhost:5000/")
         };
         _cache = new MemoryCache(new MemoryCacheOptions());
-        _client = new AuctionServiceClient(_httpClient, _cache);
+        _loggerMock = new Mock<ILogger<AuctionServiceClient>>();
+        _client = new AuctionServiceClient(_httpClient, _cache, _loggerMock.Object);
     }
 
     [Fact]

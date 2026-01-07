@@ -1,6 +1,7 @@
 using BiddingService.Core.Interfaces;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace BiddingService.Infrastructure.HttpClients;
 
@@ -8,16 +9,18 @@ public class AuctionServiceClient : IAuctionServiceClient
 {
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
+    private readonly ILogger<AuctionServiceClient> _logger;
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public AuctionServiceClient(HttpClient httpClient, IMemoryCache cache)
+    public AuctionServiceClient(HttpClient httpClient, IMemoryCache cache, ILogger<AuctionServiceClient> logger)
     {
         _httpClient = httpClient;
         _cache = cache;
+        _logger = logger;
     }
 
     public async Task<AuctionInfo?> GetAuctionAsync(long auctionId)
@@ -30,10 +33,17 @@ public class AuctionServiceClient : IAuctionServiceClient
                 var content = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<AuctionInfo>(content, _jsonOptions);
             }
+            
+            _logger.LogWarning(
+                "Failed to get auction {AuctionId} from AuctionService. Status: {StatusCode}",
+                auctionId, response.StatusCode);
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, 
+                "Exception occurred while getting auction {AuctionId} from AuctionService",
+                auctionId);
             return null;
         }
     }
@@ -43,10 +53,19 @@ public class AuctionServiceClient : IAuctionServiceClient
         try
         {
             var response = await _httpClient.GetAsync($"api/auctions/{auctionId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Failed to validate auction {AuctionId} from AuctionService. Status: {StatusCode}",
+                    auctionId, response.StatusCode);
+            }
             return response.IsSuccessStatusCode;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex,
+                "Exception occurred while validating auction {AuctionId} from AuctionService",
+                auctionId);
             return false;
         }
     }
@@ -91,9 +110,11 @@ public class AuctionServiceClient : IAuctionServiceClient
                     batchSuccess = true;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Batch request threw exception, will fall back to individual requests
+                _logger.LogWarning(ex,
+                    "Batch request for auctions failed, falling back to individual requests. AuctionIds: {AuctionIds}",
+                    string.Join(", ", missingAuctionIds));
             }
 
             // If batch fetch fails, try individual fetches for missing auctions
@@ -124,10 +145,17 @@ public class AuctionServiceClient : IAuctionServiceClient
                 var content = await response.Content.ReadAsStringAsync();
                 return decimal.Parse(content);
             }
+            
+            _logger.LogWarning(
+                "Failed to get starting price for auction {AuctionId} from AuctionService. Status: {StatusCode}",
+                auctionId, response.StatusCode);
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex,
+                "Exception occurred while getting starting price for auction {AuctionId} from AuctionService",
+                auctionId);
             return null;
         }
     }

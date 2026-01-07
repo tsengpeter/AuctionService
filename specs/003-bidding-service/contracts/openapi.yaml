@@ -18,7 +18,11 @@ info:
     **相依服務**:
     - Auction Service (商品資訊)
     - Member Service (使用者資訊)
-  version: 1.0.0
+    
+    **錯誤處理**:
+    - 所有跨服務呼叫記錄詳細錯誤日誌 (包含 Correlation ID、請求 URL、HTTP 狀態碼)
+    - 結構化錯誤響應，包含錯誤代碼、訊息和相關細節
+  version: 1.1.0
   contact:
     name: API Support
     email: support@auction.com
