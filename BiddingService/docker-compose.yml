@@ -45,8 +45,8 @@ services:
       - Redis__ConnectionString=biddingservice-redis:6379
       - AuctionService__BaseUrl=http://auctionservice-api:8080
       - MemberService__BaseUrl=http://memberservice-api:8080
-      - Encryption__Key=Your32CharacterEncryptionKeyHere123
-      - Encryption__IV=Your16CharacterIVHere
+      - Encryption__Key=jiRz2DI3YuQPFxZElKmTqdLrC0wa7pcv
+      - Encryption__IV=XwlpSZnRfxD19z2y
       - IdGen__GeneratorId=1
       - IdGen__DatacenterId=1
     volumes:
