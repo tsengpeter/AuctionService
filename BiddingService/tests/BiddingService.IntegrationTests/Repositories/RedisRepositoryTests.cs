@@ -59,7 +59,23 @@ public class RedisRepositoryTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        // Clean up
+        // Clean up Redis database before disposing
+        if (_redisConnection != null)
+        {
+            try
+            {
+                var db = _redisConnection.GetDatabase();
+                var endpoints = _redisConnection.GetEndPoints();
+                var server = _redisConnection.GetServer(endpoints.First());
+                await server.FlushDatabaseAsync();
+            }
+            catch (Exception)
+            {
+                // Ignore cleanup errors in DisposeAsync
+            }
+        }
+
+        // Clean up containers
         if (_useTestcontainers && _redisContainer != null)
         {
             await _redisContainer.StopAsync();
@@ -119,6 +135,11 @@ public class RedisRepositoryTests : IAsyncLifetime
         // Arrange
         var bid = new Bid(123, 456, "bidder", "hash", new BidAmount(100.00m), DateTime.UtcNow);
 
+        // Clean up Redis before test to ensure no stale data
+        var db = _redisConnection.GetDatabase();
+        var highestBidKey = $"highest_bid:{bid.AuctionId}";
+        await db.KeyDeleteAsync(highestBidKey);
+
         // Act
         var result = await _repository.PlaceBidAsync(bid, TimeSpan.FromDays(7));
 
@@ -126,8 +147,6 @@ public class RedisRepositoryTests : IAsyncLifetime
         result.Should().BeTrue();
 
         // Verify data was stored
-        var db = _redisConnection.GetDatabase();
-        var highestBidKey = $"highest_bid:{bid.AuctionId}";
         var storedData = await db.HashGetAllAsync(highestBidKey);
 
         storedData.Should().Contain(h => h.Name == "bidId" && h.Value == bid.BidId);
