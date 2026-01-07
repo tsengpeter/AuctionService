@@ -86,28 +86,30 @@ public class BiddingServiceTests
         var request = new CreateBidRequest { AuctionId = 1, Amount = 100 };
         var bidderId = 12345L;
         var auction = new AuctionInfo { Id = 1, IsActive = true };
-        var existingBid = new Bid(123, 1, "encrypted", "hash", new BidAmount(50), DateTime.UtcNow);
 
         _auctionServiceClientMock
             .Setup(x => x.GetAuctionAsync(request.AuctionId))
             .ReturnsAsync(auction);
 
-        // NOTE: The service computes hash internally using HashHelper.ComputeSha256Hash(bidderId.ToString())
-        // Since HashHelper is static and likely deterministically implemented in Shared, we can't easily mock it without a wrapper.
-        // However, for this test, we assume the service calls GetBidAsync with the hash.
-        // To make the test robust, we can use It.IsAny<string>() or replicate the hash logic if we knew the algo.
-        // Assuming we rely on It.IsAny<string>() for the hash parameter.
+        // Mock existing bid from the same bidder with same amount
+        var existingBid = new Bid(
+            1234567890L,
+            request.AuctionId,
+            "encrypted-bidder-id",
+            "bidder-hash",
+            new BidAmount(request.Amount), // Same amount
+            DateTime.UtcNow
+        );
 
         _redisRepositoryMock
-            .Setup(x => x.GetBidAsync(request.AuctionId, It.IsAny<string>()))
+            .Setup(x => x.GetBidByBidderAsync(request.AuctionId, It.IsAny<string>()))
             .ReturnsAsync(existingBid);
 
         // Act
         Func<Task> act = async () => await _service.CreateBidAsync(request, bidderId);
 
-        // Assert
-        await act.Should().ThrowAsync<DuplicateBidException>()
-            .WithMessage($"Bidder {bidderId} has already placed a bid on auction {request.AuctionId}");
+        // Assert - Should throw because bidder is trying to place a bid with same or lower amount
+        await act.Should().ThrowAsync<BidAmountTooLowException>();
     }
 
     [Fact]
@@ -124,8 +126,8 @@ public class BiddingServiceTests
             .ReturnsAsync(auction);
 
         _redisRepositoryMock
-            .Setup(x => x.GetBidAsync(request.AuctionId, It.IsAny<string>()))
-            .ReturnsAsync((Bid)null);
+            .Setup(x => x.HasBidAsync(request.AuctionId, It.IsAny<string>()))
+            .ReturnsAsync(false);
 
         _redisRepositoryMock
             .Setup(x => x.GetHighestBidAsync(request.AuctionId))
@@ -153,8 +155,8 @@ public class BiddingServiceTests
             .ReturnsAsync(auction);
 
         _redisRepositoryMock
-            .Setup(x => x.GetBidAsync(request.AuctionId, It.IsAny<string>()))
-            .ReturnsAsync((Bid)null);
+            .Setup(x => x.HasBidAsync(request.AuctionId, It.IsAny<string>()))
+            .ReturnsAsync(false);
 
         _redisRepositoryMock
             .Setup(x => x.GetHighestBidAsync(request.AuctionId))
@@ -169,7 +171,7 @@ public class BiddingServiceTests
             .Returns("encrypted_bidder");
 
         _redisRepositoryMock
-            .Setup(x => x.PlaceBidAsync(It.IsAny<Bid>(), It.IsAny<TimeSpan>()))
+            .Setup(x => x.PlaceBidAsync(It.IsAny<Bid>(), It.IsAny<TimeSpan>(), It.IsAny<bool>()))
             .ReturnsAsync(false); // Redis placement fails
 
         // Act

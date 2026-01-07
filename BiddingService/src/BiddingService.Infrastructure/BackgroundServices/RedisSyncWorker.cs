@@ -104,8 +104,25 @@ public class RedisSyncWorker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to sync bid {BidId}", bidId);
-                // We leave it in pending_bids to retry later
-                // Optionally move to Dead Letter if retries exceed limit (needs tracking)
+                
+                // Poison message handling:
+                // Move to Dead Letter Queue to avoid infinite loop
+                try 
+                {
+                    var bid = await redisRepository.GetBidInfoAsync(bidId);
+                    if (bid != null)
+                    {
+                        await redisRepository.AddToDeadLetterQueueAsync(bid, ex.Message);
+                        _logger.LogInformation("Moved failed bid {BidId} to dead letter queue", bidId);
+                    }
+                }
+                catch (Exception dlqEx)
+                {
+                    _logger.LogError(dlqEx, "Failed to move bid {BidId} to dead letter queue", bidId);
+                }
+
+                // Remove from pending so we don't retry immediately and block other bids
+                await redisRepository.RemovePendingBidMemberAsync(member);
             }
         }
     }
@@ -153,21 +170,33 @@ public class RedisSyncWorker : BackgroundService
         var redisRepository = scope.ServiceProvider.GetRequiredService<IRedisRepository>();
         var bidRepository = scope.ServiceProvider.GetRequiredService<IBidRepository>();
 
-        var deadLetterBids = await redisRepository.GetDeadLetterBidsAsync(100);
+        var deadLetterMetadata = await redisRepository.GetDeadLetterBidsAsync(100);
 
-        if (!deadLetterBids.Any())
+        if (!deadLetterMetadata.Any())
         {
             _logger.LogDebug("No bids in dead letter queue");
             return;
         }
 
-        _logger.LogInformation("Processing {Count} bids from dead letter queue", deadLetterBids.Count());
+        _logger.LogInformation("Processing {Count} bids from dead letter queue", deadLetterMetadata.Count());
 
-        var syncedCount = 0;
+        var syncedBidIds = new List<long>();
+        var expiredBidIds = new List<long>();
         var failedCount = 0;
 
-        foreach (var bid in deadLetterBids)
+        foreach (var metadata in deadLetterMetadata)
         {
+            var bid = metadata.Bid;
+            
+            // Check if max retries exceeded
+            if (!metadata.ShouldRetry())
+            {
+                _logger.LogWarning("Bid {BidId} exceeded max retries ({MaxRetries}), marking as expired",
+                    bid.BidId, metadata.MaxRetries);
+                expiredBidIds.Add(bid.BidId);
+                continue;
+            }
+            
             try
             {
                 // Check if already exists
@@ -175,29 +204,45 @@ public class RedisSyncWorker : BackgroundService
                 if (existing == null)
                 {
                     await bidRepository.AddAsync(bid);
-                    syncedCount++;
-                    _logger.LogDebug("Synced bid {BidId} for auction {AuctionId}", bid.BidId, bid.AuctionId);
+                    _logger.LogDebug("Synced bid {BidId} for auction {AuctionId} (retry {RetryCount}/{MaxRetries})",
+                        bid.BidId, bid.AuctionId, metadata.RetryCount, metadata.MaxRetries);
                 }
                 else
                 {
                     _logger.LogDebug("Bid {BidId} already exists, skipping", bid.BidId);
                 }
-
-                // Remove from dead letter queue
-                await redisRepository.RemoveDeadLetterBidsAsync(new[] { bid.BidId });
+                
+                syncedBidIds.Add(bid.BidId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to sync bid {BidId}", bid.BidId);
+                _logger.LogError(ex, "Failed to sync bid {BidId} from DLQ (retry {RetryCount}/{MaxRetries})",
+                    bid.BidId, metadata.RetryCount, metadata.MaxRetries);
+                
+                // Update retry count
+                await redisRepository.UpdateDeadLetterRetryAsync(bid.BidId);
                 failedCount++;
             }
         }
 
-        _logger.LogInformation("Sync completed: {SyncedCount} bids synced, {FailedCount} failed, {RemainingCount} remaining in queue",
-            syncedCount, failedCount, deadLetterBids.Count() - syncedCount - failedCount);
+        // Remove successful bids from dead letter queue
+        foreach (var bidId in syncedBidIds)
+        {
+            await redisRepository.RemoveDeadLetterBidAsync(bidId);
+        }
+        
+        // Remove expired bids (exceeded max retries) from dead letter queue
+        foreach (var bidId in expiredBidIds)
+        {
+            await redisRepository.RemoveDeadLetterBidAsync(bidId);
+            _logger.LogError("Bid {BidId} permanently failed after max retries and removed from DLQ", bidId);
+        }
+
+        _logger.LogInformation("Sync completed: {SyncedCount} bids synced, {ExpiredCount} expired, {FailedCount} failed, {RemainingCount} remaining in queue",
+            syncedBidIds.Count, expiredBidIds.Count, failedCount, deadLetterMetadata.Count() - syncedBidIds.Count - expiredBidIds.Count);
 
         // If all bids failed to sync, throw an exception to trigger retry
-        if (syncedCount == 0 && failedCount > 0)
+        if (syncedBidIds.Count == 0 && expiredBidIds.Count == 0 && failedCount > 0)
         {
             throw new Exception($"Failed to sync any bids from dead letter queue. {failedCount} bids failed.");
         }

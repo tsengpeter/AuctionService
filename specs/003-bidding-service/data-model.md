@@ -282,42 +282,46 @@ var pendingIds = await _redis.SetPopAsync("pending_bids", 1000);
 await _redis.SetAddAsync("pending_bids", failedBidId);
 ```
 
-### 4. Set: 死信佇列
+### 4. Hash: 死信佇列
 
 **Key**: `dead_letter_bids`  
-**Members**: `{bidId}` (重試失敗的出價 ID)
+**Fields**: `{bidId: DeadLetterMetadata}` (重試失敗的出價完整資訊)
 
 **範例**:
 ```
 Key: dead_letter_bids
-Members: ["987654999"]
+Fields:
+  "987654999": {
+    "bidId": "987654999",
+    "errorMessage": "Database connection timeout",
+    "timestamp": 1703123456,
+    "retryCount": 3,
+    "lastRetryAt": 1703123440
+  }
 ```
-
-**關聯 Hash**:
-**Key**: `dead_letter_bid:{bidId}`  
-**Fields**:
-- `bidId`: 出價 ID
-- `error`: 錯誤訊息
-- `timestamp`: 移入時間 (Unix timestamp)
-- `retryCount`: 重試次數
 
 **操作**:
 ```csharp
 // 移入死信佇列
-await _redis.SetAddAsync("dead_letter_bids", bidId);
-await _redis.HashSetAsync(
-    $"dead_letter_bid:{bidId}",
-    new HashEntry[]
-    {
-        new("bidId", bidId),
-        new("error", "Max retries exceeded"),
-        new("timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
-        new("retryCount", 3)
-    }
-);
+var metadata = new DeadLetterMetadata
+{
+    BidId = bidId,
+    ErrorMessage = "Max retries exceeded",
+    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+    RetryCount = 3,
+    LastRetryAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+};
+
+await _redis.HashSetAsync("dead_letter_bids", bidId, JsonSerializer.Serialize(metadata));
 
 // 查詢死信佇列
-var deadLetterIds = await _redis.SetMembersAsync("dead_letter_bids");
+var deadLetterEntries = await _redis.HashGetAllAsync("dead_letter_bids");
+foreach (var entry in deadLetterEntries)
+{
+    var metadata = JsonSerializer.Deserialize<DeadLetterMetadata>(entry.Value);
+    // 處理死信項目
+}
+```
 ```
 
 ---

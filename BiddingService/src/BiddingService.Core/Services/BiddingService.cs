@@ -67,19 +67,31 @@ public class BiddingService : IBiddingService
         
         var encryptedBidderId = _encryptionService.Encrypt(bidderIdStr);
 
-        // Check if bidder already has a bid on this auction (using Hash for lookup)
-        // We pass the Hash because that's likely what we'd index on
-        var existingBid = await _redisRepository.GetBidAsync(request.AuctionId, bidderIdHash);
-        if (existingBid != null)
-        {
-            throw new DuplicateBidException(request.AuctionId, bidderIdStr);
-        }
-
         // Get current highest bid
         var highestBid = await _redisRepository.GetHighestBidAsync(request.AuctionId);
-        if (highestBid != null && request.Amount <= highestBid.Amount.Value)
+        
+        // Check if bidder already has a bid on this auction
+        var existingBid = await _redisRepository.GetBidByBidderAsync(request.AuctionId, bidderIdHash);
+        if (existingBid != null)
         {
-            throw new BidAmountTooLowException(highestBid.Amount.Value, request.Amount);
+            // Allow bidder to increase their bid, but not decrease it
+            if (request.Amount <= existingBid.Amount.Value)
+            {
+                throw new BidAmountTooLowException(existingBid.Amount.Value, request.Amount);
+            }
+            // Also ensure the new bid is higher than current highest bid
+            if (highestBid != null && highestBid.BidId != existingBid.BidId && request.Amount <= highestBid.Amount.Value)
+            {
+                throw new BidAmountTooLowException(highestBid.Amount.Value, request.Amount);
+            }
+        }
+        else
+        {
+            // New bidder must bid higher than current highest
+            if (highestBid != null && request.Amount <= highestBid.Amount.Value)
+            {
+                throw new BidAmountTooLowException(highestBid.Amount.Value, request.Amount);
+            }
         }
 
         // Generate new bid ID
@@ -94,7 +106,7 @@ public class BiddingService : IBiddingService
         if (ttl < TimeSpan.Zero) ttl = TimeSpan.FromDays(7); // Safety check
 
         // Store in Redis first (fast path)
-        var success = await _redisRepository.PlaceBidAsync(bid, ttl);
+        var success = await _redisRepository.PlaceBidAsync(bid, ttl, existingBid != null);
         if (!success)
         {
             throw new BidAmountTooLowException(highestBid?.Amount.Value ?? 0, request.Amount);

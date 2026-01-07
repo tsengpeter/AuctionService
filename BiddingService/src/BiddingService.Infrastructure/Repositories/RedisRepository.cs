@@ -21,18 +21,19 @@ public class RedisRepository : IRedisRepository
         _luaScript = reader.ReadToEnd();
     }
 
-    public async Task<bool> PlaceBidAsync(Bid bid, TimeSpan ttl)
+    public async Task<bool> PlaceBidAsync(Bid bid, TimeSpan ttl, bool isExistingBidder = false)
     {
         var db = _redis.GetDatabase();
         var auctionKey = $"auction:{bid.AuctionId}";
         var highestBidKey = $"highest_bid:{bid.AuctionId}";
         var pendingBidsKey = "pending_bids";
         var bidInfoKey = $"bid_info:{bid.BidId}";
+        var biddersKey = $"auction:{bid.AuctionId}:bidders";
 
         var bidJson = JsonSerializer.Serialize(bid);
 
         var result = await db.ScriptEvaluateAsync(_luaScript,
-            new RedisKey[] { auctionKey, highestBidKey, pendingBidsKey, bidInfoKey },
+            new RedisKey[] { auctionKey, highestBidKey, pendingBidsKey, bidInfoKey, biddersKey },
             new RedisValue[] { 
                 bid.BidId, 
                 bid.BidderId, 
@@ -41,7 +42,8 @@ public class RedisRepository : IRedisRepository
                 bid.BidderIdHash,
                 (long)ttl.TotalSeconds,
                 bid.AuctionId,
-                bidJson
+                bidJson,
+                isExistingBidder ? "true" : "false"
             });
 
         return (int)result == 1;
@@ -95,11 +97,31 @@ public class RedisRepository : IRedisRepository
         return await db.SortedSetLengthAsync(auctionKey);
     }
 
-    public async Task<Bid?> GetBidAsync(long auctionId, string bidderId)
+    public async Task<bool> HasBidAsync(long auctionId, string bidderIdHash)
     {
-        // Note: This is a simplified implementation that falls back to database
-        // In a real implementation, you might want to maintain a separate Redis set for bidders per auction
-        // For now, we'll return null to allow duplicate bids (which might be the intended behavior)
+        var db = _redis.GetDatabase();
+        var biddersKey = $"auction:{auctionId}:bidders";
+        return await db.SetContainsAsync(biddersKey, bidderIdHash);
+    }
+
+    public async Task<Bid?> GetBidByBidderAsync(long auctionId, string bidderIdHash)
+    {
+        var db = _redis.GetDatabase();
+        
+        // Get all bids for this auction from the sorted set
+        var bidsKey = $"auction:{auctionId}:bids";
+        var allBids = await db.SortedSetRangeByRankAsync(bidsKey, 0, -1, Order.Descending);
+        
+        // Find the bid from this specific bidder
+        foreach (var bidJson in allBids)
+        {
+            var bid = System.Text.Json.JsonSerializer.Deserialize<Bid>((string)bidJson!);
+            if (bid != null && bid.BidderIdHash == bidderIdHash)
+            {
+                return bid;
+            }
+        }
+        
         return null;
     }
 
@@ -116,31 +138,70 @@ public class RedisRepository : IRedisRepository
         return 0;
     }
 
-    public async Task AddToDeadLetterQueueAsync(Bid bid)
+    public async Task AddToDeadLetterQueueAsync(Bid bid, string errorMessage)
     {
         var db = _redis.GetDatabase();
         var deadLetterKey = "dead_letter_bids";
-        var bidJson = JsonSerializer.Serialize(bid);
-        await db.ListLeftPushAsync(deadLetterKey, bidJson);
+        var now = DateTime.UtcNow;
+        
+        var metadata = new Core.DTOs.DeadLetterMetadata
+        {
+            Bid = bid,
+            RetryCount = 0,
+            FirstFailedAt = now,
+            LastFailedAt = now,
+            ErrorMessage = errorMessage,
+            MaxRetries = 3
+        };
+        
+        var metadataJson = JsonSerializer.Serialize(metadata);
+        await db.HashSetAsync(deadLetterKey, bid.BidId, metadataJson);
     }
 
-    public async Task<IEnumerable<Bid>> GetDeadLetterBidsAsync(int count = 100)
+    public async Task<IEnumerable<Core.DTOs.DeadLetterMetadata>> GetDeadLetterBidsAsync(int count = 100)
     {
         var db = _redis.GetDatabase();
         var deadLetterKey = "dead_letter_bids";
-        var bidsJson = await db.ListRangeAsync(deadLetterKey, 0, count - 1);
-
-        return bidsJson.Select(json => JsonSerializer.Deserialize<Bid>(json.ToString())).Where(b => b != null)!;
+        var entries = await db.HashGetAllAsync(deadLetterKey);
+        
+        var metadataList = new List<Core.DTOs.DeadLetterMetadata>();
+        
+        foreach (var entry in entries.Take(count))
+        {
+            var metadata = JsonSerializer.Deserialize<Core.DTOs.DeadLetterMetadata>(entry.Value.ToString());
+            if (metadata != null)
+            {
+                metadataList.Add(metadata);
+            }
+        }
+        
+        return metadataList;
     }
 
-    public async Task RemoveDeadLetterBidsAsync(IEnumerable<long> bidIds)
+    public async Task RemoveDeadLetterBidAsync(long bidId)
     {
         var db = _redis.GetDatabase();
         var deadLetterKey = "dead_letter_bids";
-
-        // This is simplified - in practice, you'd need to remove specific items
-        // For now, we'll just trim the list
-        await db.ListTrimAsync(deadLetterKey, bidIds.Count(), -1);
+        await db.HashDeleteAsync(deadLetterKey, bidId);
+    }
+    
+    public async Task UpdateDeadLetterRetryAsync(long bidId)
+    {
+        var db = _redis.GetDatabase();
+        var deadLetterKey = "dead_letter_bids";
+        var metadataJson = await db.HashGetAsync(deadLetterKey, bidId);
+        
+        if (!metadataJson.HasValue)
+            return;
+        
+        var metadata = JsonSerializer.Deserialize<Core.DTOs.DeadLetterMetadata>(metadataJson.ToString());
+        if (metadata != null)
+        {
+            metadata.RetryCount++;
+            metadata.LastFailedAt = DateTime.UtcNow;
+            var updatedJson = JsonSerializer.Serialize(metadata);
+            await db.HashSetAsync(deadLetterKey, bidId, updatedJson);
+        }
     }
 
     public async Task<IEnumerable<string>> GetPendingBidMembersAsync(int count = 100)

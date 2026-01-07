@@ -29,8 +29,8 @@
 
 - Q3: 背景 Worker 失敗重試與資料恢復策略? → A: 選項 B - 指數退避重試 + 死信佇列 + 人工介入
   - 重試策略: 指數退避 (1秒、2秒、4秒),最多重試 3 次
-  - 失敗處理: 3 次重試後仍失敗,將出價 ID 移入 Redis `dead_letter_bids` Set
-  - 死信佇列: 記錄 bidId、失敗原因、時間戳、重試次數
+  - 失敗處理: 3 次重試後仍失敗,將完整的 DeadLetterMetadata 移入 Redis `dead_letter_bids` Hash
+  - 死信佇列: 記錄 bidId、失敗原因、時間戳、重試次數、最後重試時間
   - 告警機制: 死信佇列有新項目時,發送告警通知運維團隊
   - 人工介入: 提供管理 API 查詢死信佇列、手動重試、標記為已處理
   - 資料保護: Redis AOF 確保重啟後死信佇列不遺失
@@ -339,8 +339,9 @@
   - 409: 商品已結束
 
 ### FR-002: 出價金額驗證
-- 出價金額必須 > 當前最高出價
-- 首次出價必須 >= 起標價
+- **新出價者**: 出價金額必須 > 當前最高出價，首次出價必須 >= 起標價
+- **現有出價者**: 允許提高出價，但新出價必須 > 自己的現有出價金額
+- **禁止行為**: 不允許降低出價金額
 - 金額精確度: 小數點後 2 位
 
 ### FR-003: 出價者身份驗證
@@ -376,8 +377,8 @@
 - PostgreSQL 儲存欄位: bidId, auctionId, bidderId, amount, bidAt, createdAt
 - 索引: auctionId + bidAt (降序), bidderId + bidAt (降序)
 - Redis TTL: 商品結束時間 + 7 天 (之後僅從 DB 查詢)
-- 寫入失敗重試: 指數退避 (1s, 2s, 4s),最多 3 次
-- 死信佇列: 重試失敗後移入 `dead_letter_bids` Set,記錄 bidId、錯誤原因、時間戳
+- 寫入失敗重試: 每筆出價個別處理,指數退避 (1s, 2s, 4s),最多 3 次
+- 死信佇列: 重試失敗後移入 `dead_letter_bids` Hash,記錄完整的 DeadLetterMetadata (bidId、錯誤原因、時間戳、重試次數、最後重試時間)
 
 ### FR-006: 查詢出價歷史 API
 - **端點**: `GET /api/auctions/{auctionId}/bids`
@@ -579,11 +580,10 @@ Bidding Service 需要 Auction Service 提供以下 API 端點:
 3. Set: `pending_bids` 
    - Members: bidId (待寫入 DB 的出價 ID)
 
-4. Set: `dead_letter_bids`
-   - Members: bidId (重試失敗的出價 ID)
-   
-5. Hash: `dead_letter_bid:{bidId}`
-   - Fields: bidId, error, timestamp, retryCount
+4. Hash: `dead_letter_bids`
+   - Key: bidId (重試失敗的出價 ID)
+   - Value: JSON serialized DeadLetterMetadata object
+   - DeadLetterMetadata fields: bidId, errorMessage, timestamp, retryCount, lastRetryAt
 
 **PostgreSQL 索引**:
 - (auctionId, bidAt DESC): 出價歷史查詢

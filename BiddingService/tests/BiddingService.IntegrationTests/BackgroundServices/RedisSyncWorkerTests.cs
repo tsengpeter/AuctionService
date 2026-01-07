@@ -93,7 +93,7 @@ public class RedisSyncWorkerTests : IAsyncLifetime
         // Add bid to dead letter queue (mock or actual RedisRepository)
         using var scope = _serviceProvider.CreateScope();
         var redisRepo = scope.ServiceProvider.GetRequiredService<IRedisRepository>();
-        await redisRepo.AddToDeadLetterQueueAsync(bid);
+        await redisRepo.AddToDeadLetterQueueAsync(bid, "Test sync failure");
 
         // Act
         await worker.SyncDeadLetterQueueWithRetryAsync(CancellationToken.None);
@@ -111,8 +111,6 @@ public class RedisSyncWorkerTests : IAsyncLifetime
     public async Task SyncDeadLetterQueueAsync_WithRetryOnFailure_RetriesWithExponentialBackoff()
     {
         // Arrange
-        var worker = new RedisSyncWorker(_serviceProvider, _loggerMock.Object);
-
         // Create test bid and add to dead letter queue
         var bid = new Bid(
             1234567890123456789L, // Test ID
@@ -127,7 +125,7 @@ public class RedisSyncWorkerTests : IAsyncLifetime
         // Add bid to dead letter queue first
         using var scope = _serviceProvider.CreateScope();
         var redisRepo = scope.ServiceProvider.GetRequiredService<IRedisRepository>();
-        await redisRepo.AddToDeadLetterQueueAsync(bid);
+        await redisRepo.AddToDeadLetterQueueAsync(bid, "Test retry failure");
 
         // Mock repository to always fail
         var mockBidRepo = new Mock<IBidRepository>();
@@ -143,18 +141,27 @@ public class RedisSyncWorkerTests : IAsyncLifetime
 
         var failingWorker = new RedisSyncWorker(failingServiceProvider, _loggerMock.Object);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<Exception>(() => failingWorker.SyncDeadLetterQueueWithRetryAsync(CancellationToken.None));
+        // Act - Run DLQ processing multiple times to trigger retries
+        await failingWorker.SyncDeadLetterQueueWithRetryAsync(CancellationToken.None);
+        await failingWorker.SyncDeadLetterQueueWithRetryAsync(CancellationToken.None);
+        await failingWorker.SyncDeadLetterQueueWithRetryAsync(CancellationToken.None);
+        
+        // After max retries, the bid should be removed from DLQ
+        await failingWorker.SyncDeadLetterQueueWithRetryAsync(CancellationToken.None);
 
-        // Verify retry delays were logged
+        // Assert - Verify retry logic was executed
+        var dlqBids = await redisRepo.GetDeadLetterBidsAsync(100);
+        Assert.Empty(dlqBids); // bid should be removed after exceeding max retries
+
+        // Verify error was logged multiple times (at least 3 retries)
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.IsAny<It.IsAnyType>(),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.AtLeast(3)); // Should retry 3 times with exponential backoff
+            Times.AtLeast(3));
     }
 
     [Fact]
