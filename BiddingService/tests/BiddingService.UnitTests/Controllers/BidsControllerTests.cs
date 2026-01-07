@@ -6,6 +6,7 @@ using BiddingService.Core.Interfaces;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -17,6 +18,7 @@ public class BidsControllerTests
     private readonly Mock<IBiddingService> _biddingServiceMock;
     private readonly Mock<IMemberServiceClient> _memberServiceClientMock;
     private readonly Mock<ILogger<BidsController>> _loggerMock;
+    private readonly IConfiguration _configuration;
     private readonly BidsController _controller;
 
     public BidsControllerTests()
@@ -24,10 +26,20 @@ public class BidsControllerTests
         _biddingServiceMock = new Mock<IBiddingService>();
         _memberServiceClientMock = new Mock<IMemberServiceClient>();
         _loggerMock = new Mock<ILogger<BidsController>>();
+        
+        // Create real IConfiguration with Authentication:BypassAuth = false (production behavior)
+        _configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:BypassAuth"] = "false"
+            }!)
+            .Build();
+        
         _controller = new BidsController(
             _biddingServiceMock.Object, 
             _memberServiceClientMock.Object, 
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _configuration);
 
         // Setup HttpContext for Authorization header tests
         var httpContext = new DefaultHttpContext();

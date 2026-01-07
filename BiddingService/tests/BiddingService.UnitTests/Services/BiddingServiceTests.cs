@@ -6,6 +6,7 @@ using BiddingService.Core.Interfaces;
 using BiddingService.Core.Services;
 using BiddingService.Core.ValueObjects;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -20,6 +21,7 @@ public class BiddingServiceTests
     private readonly Mock<ISnowflakeIdGenerator> _idGeneratorMock;
     private readonly Mock<IEncryptionService> _encryptionServiceMock;
     private readonly Mock<ILogger<BiddingService.Core.Services.BiddingService>> _loggerMock;
+    private readonly IConfiguration _configuration;
     private readonly BiddingService.Core.Services.BiddingService _service;
 
     public BiddingServiceTests()
@@ -30,6 +32,14 @@ public class BiddingServiceTests
         _idGeneratorMock = new Mock<ISnowflakeIdGenerator>();
         _encryptionServiceMock = new Mock<IEncryptionService>();
         _loggerMock = new Mock<ILogger<BiddingService.Core.Services.BiddingService>>();
+        
+        // Create real IConfiguration with Authentication:BypassAuth = false (production behavior)
+        _configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:BypassAuth"] = "false"
+            }!)
+            .Build();
 
         _service = new BiddingService.Core.Services.BiddingService(
             _bidRepositoryMock.Object,
@@ -37,7 +47,8 @@ public class BiddingServiceTests
             _auctionServiceClientMock.Object,
             _idGeneratorMock.Object,
             _encryptionServiceMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _configuration);
     }
 
     [Fact]

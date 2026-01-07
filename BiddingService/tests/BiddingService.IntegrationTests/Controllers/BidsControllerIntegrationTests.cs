@@ -131,18 +131,27 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
             new MemoryCache(new MemoryCacheOptions()),
             new Mock<ILogger<AuctionServiceClient>>().Object);
 
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:BypassAuth"] = "false"
+            }!)
+            .Build();
+        
         var biddingService = new BiddingService.Core.Services.BiddingService(
             bidRepository,
             redisRepository,
             auctionServiceClient,
             idGenerator,
             encryptionService,
-            logger);
+            logger,
+            configuration);
 
         _controller = new BidsController(
             biddingService, 
             _memberServiceMock.Object, 
-            new LoggerFactory().CreateLogger<BidsController>());
+            new LoggerFactory().CreateLogger<BidsController>(),
+            configuration);
 
         // Mock ControllerContext with Authorization header
         var httpContext = new DefaultHttpContext();
@@ -199,18 +208,27 @@ public class BidsControllerIntegrationTests : IAsyncLifetime
             new MemoryCache(new MemoryCacheOptions()),
             new Mock<ILogger<AuctionServiceClient>>().Object);
 
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:BypassAuth"] = "false"
+            }!)
+            .Build();
+        
         var biddingService = new BiddingService.Core.Services.BiddingService(
             bidRepository,
             redisRepository,
             auctionServiceClient,
             idGenerator,
             encryptionService,
-            logger);
+            logger,
+            configuration);
 
         var controller = new BidsController(
             biddingService, 
             _memberServiceMock.Object, 
-            new LoggerFactory().CreateLogger<BidsController>());
+            new LoggerFactory().CreateLogger<BidsController>(),
+            configuration);
 
         // Mock ControllerContext
         var httpContext = new DefaultHttpContext();
