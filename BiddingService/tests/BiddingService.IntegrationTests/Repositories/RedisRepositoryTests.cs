@@ -12,38 +12,59 @@ namespace BiddingService.IntegrationTests.Repositories;
 
 public class RedisRepositoryTests : IAsyncLifetime
 {
-    private IContainer _redisContainer;
-    private IConnectionMultiplexer _redisConnection;
-    private RedisRepository _repository;
+    private IContainer? _redisContainer;
+    private IConnectionMultiplexer _redisConnection = null!;
+    private RedisRepository _repository = null!;
+    private readonly bool _useTestcontainers;
+    private string _redisConnectionString;
 
     public RedisRepositoryTests()
     {
-        // Create Redis container (don't start yet)
-        _redisContainer = new ContainerBuilder()
-            .WithImage("redis:7")
-            .WithPortBinding(6379, true)
-            .Build();
+        // Check if running in CI/CD environment (GitHub Actions provides Redis service)
+        var ciRedisConnection = Environment.GetEnvironmentVariable("ConnectionStrings__Redis");
+        _useTestcontainers = string.IsNullOrEmpty(ciRedisConnection);
+
+        if (_useTestcontainers)
+        {
+            // Local development: use Testcontainers
+            _redisContainer = new ContainerBuilder()
+                .WithImage("redis:7")
+                .WithPortBinding(6379, true)
+                .Build();
+            _redisConnectionString = string.Empty; // Will be set after container starts
+        }
+        else
+        {
+            // CI/CD: use pre-configured Redis service
+            _redisConnectionString = ciRedisConnection!;
+        }
     }
 
     public async Task InitializeAsync()
     {
-        // Start Redis container
-        await _redisContainer.StartAsync();
+        if (_useTestcontainers && _redisContainer != null)
+        {
+            // Start Redis container for local development
+            await _redisContainer.StartAsync();
+            _redisConnectionString = $"localhost:{_redisContainer.GetMappedPublicPort(6379)}";
+        }
 
         // Create Redis connection
-        var redisConnectionString = $"localhost:{_redisContainer.GetMappedPublicPort(6379)}";
-        _redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
+        _redisConnection = await ConnectionMultiplexer.ConnectAsync(_redisConnectionString);
 
         // Create repository
-        var redisConnection = new RedisConnection(redisConnectionString);
+        var redisConnection = new RedisConnection(_redisConnectionString);
         _repository = new RedisRepository(redisConnection);
     }
 
     public async Task DisposeAsync()
     {
         // Clean up
-        await _redisContainer.StopAsync();
-        await _redisContainer.DisposeAsync();
+        if (_useTestcontainers && _redisContainer != null)
+        {
+            await _redisContainer.StopAsync();
+            await _redisContainer.DisposeAsync();
+        }
         _redisConnection?.Dispose();
     }
 

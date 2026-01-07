@@ -2,6 +2,8 @@ using NBomber.CSharp;
 using Microsoft.Extensions.Configuration;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Json;
 
 class Program
 {
@@ -21,7 +23,74 @@ class Program
         };
     }
 
-    static void Main(string[] args)
+    static async Task WarmUpRedisAsync(string baseUrl, HttpClient client)
+    {
+        Console.WriteLine("\n🔥 Warming up Redis cache with test data...");
+        
+        var auctionIds = new[] { 123456789L, 987654321L, 111111111L };
+        var bidderIds = Enumerable.Range(1, 50).Select(i => (long)i).ToArray();
+        var random = new Random();
+        var successCount = 0;
+        
+        // 為每個拍賣創建 50-100 筆競標
+        foreach (var auctionId in auctionIds)
+        {
+            var bidCount = random.Next(50, 101);
+            var baseAmount = 1000;
+            
+            for (int i = 0; i < bidCount; i++)
+            {
+                var bidderId = bidderIds[random.Next(bidderIds.Length)];
+                var amount = baseAmount + (i * 100) + random.Next(1, 100);
+                
+                var bidRequest = new
+                {
+                    auctionId = auctionId,
+                    amount = amount
+                };
+                
+                var json = JsonSerializer.Serialize(bidRequest);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                // 使用測試模式的 X-Test-Bidder-Id header (需要 API 設定 BYPASS_AUTH=true)
+                client.DefaultRequestHeaders.Remove("X-Test-Bidder-Id");
+                client.DefaultRequestHeaders.Add("X-Test-Bidder-Id", bidderId.ToString());
+                
+                try
+                {
+                    var response = await client.PostAsync($"{baseUrl}/api/bids", content);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        successCount++;
+                    }
+                    else if (i < 3) // 只記錄前幾個失敗
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"❌ Failed to create bid: {response.StatusCode} - {errorContent}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (i < 3) // 只記錄前幾個異常
+                    {
+                        Console.WriteLine($"❌ Exception creating bid: {ex.Message}");
+                    }
+                }
+                
+                // 避免過快發送請求
+                if (i % 10 == 0)
+                {
+                    await Task.Delay(100);
+                }
+            }
+        }
+        
+        Console.WriteLine($"✅ Redis warm-up completed! Created {successCount} bids.");
+        Console.WriteLine("⏳ Waiting 2 seconds for data to settle...\n");
+        await Task.Delay(2000);
+    }
+
+    static async Task Main(string[] args)
     {
         var config = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
@@ -44,6 +113,10 @@ class Program
         // Create shared HttpClient instances
         var highestBidClient = CreateHttpClient(useHttps);
         var bidHistoryClient = CreateHttpClient(useHttps);
+        var warmUpClient = CreateHttpClient(useHttps);
+
+        // Warm up Redis before load testing
+        await WarmUpRedisAsync(baseUrl, warmUpClient);
 
         // Scenario 1: Highest bid queries (5000 concurrent reads)
         var highestBidQueriesScenario = Scenario.Create("highest_bid_queries", async context =>
