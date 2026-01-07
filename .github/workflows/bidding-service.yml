@@ -92,7 +92,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      uses: actions/docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v3
 
     - name: Set environment tag
       id: env-tag
@@ -106,7 +106,7 @@ jobs:
         fi
 
     - name: Build and export Docker image
-      uses: actions/docker/build-push-action@v5
+      uses: docker/build-push-action@v5
       with:
         context: ./BiddingService
         file: ./BiddingService/Dockerfile
@@ -170,16 +170,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Run Trivy vulnerability scanner
+    - name: Run Trivy vulnerability scanner on filesystem
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
         scan-ref: './BiddingService'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
 
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+
+    - name: Run Trivy vulnerability scanner on NuGet packages
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: './BiddingService'
+        scanners: 'vuln'
+        format: 'table'
+        exit-code: '0'

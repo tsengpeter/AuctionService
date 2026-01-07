@@ -22,6 +22,8 @@ public class BidRepositoryTests : IAsyncLifetime
     private readonly bool _useTestcontainers;
     private string _postgresConnectionString = string.Empty;
 
+    private readonly string _uniqueDbName;
+
     public BidRepositoryTests()
     {
         _encryptionServiceMock = new Mock<IEncryptionService>();
@@ -30,12 +32,15 @@ public class BidRepositoryTests : IAsyncLifetime
         var ciPostgresConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
         _useTestcontainers = string.IsNullOrEmpty(ciPostgresConnection);
 
+        // Use unique database name to avoid conflicts between concurrent test classes
+        _uniqueDbName = $"bidding_test_{Guid.NewGuid():N}";
+
         if (_useTestcontainers)
         {
             // Local development: use Testcontainers
             _postgresContainer = new ContainerBuilder()
                 .WithImage("postgres:16")
-                .WithEnvironment("POSTGRES_DB", "bidding_test")
+                .WithEnvironment("POSTGRES_DB", _uniqueDbName)
                 .WithEnvironment("POSTGRES_USER", "testuser")
                 .WithEnvironment("POSTGRES_PASSWORD", "testpass")
                 .WithPortBinding(5432, true)
@@ -43,8 +48,21 @@ public class BidRepositoryTests : IAsyncLifetime
         }
         else
         {
-            // CI/CD: use pre-configured PostgreSQL service
-            _postgresConnectionString = ciPostgresConnection!;
+            // CI/CD: use pre-configured PostgreSQL service with unique database name
+            var baseConnection = ciPostgresConnection!.Split(';');
+            var modifiedConnection = new List<string>();
+            foreach (var part in baseConnection)
+            {
+                if (part.StartsWith("Database=", StringComparison.OrdinalIgnoreCase))
+                {
+                    modifiedConnection.Add($"Database={_uniqueDbName}");
+                }
+                else
+                {
+                    modifiedConnection.Add(part);
+                }
+            }
+            _postgresConnectionString = string.Join(";", modifiedConnection);
         }
     }
 
@@ -62,7 +80,7 @@ public class BidRepositoryTests : IAsyncLifetime
             // Wait for PostgreSQL to be ready with retry logic
             await WaitForPostgresReady();
 
-            _postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+            _postgresConnectionString = $"Host={_postgresContainer.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database={_uniqueDbName};Username=testuser;Password=testpass;SSL Mode=Disable";
         }
 
         // Setup database context
@@ -71,8 +89,11 @@ public class BidRepositoryTests : IAsyncLifetime
             .Options;
         _dbContext = new BiddingDbContext(dbContextOptions, _encryptionServiceMock.Object);
 
-        // Ensure database is created
+        // Ensure database exists (safe for concurrent tests)
         await _dbContext.Database.EnsureCreatedAsync();
+        
+        // Clean data instead of dropping database (avoid race conditions with concurrent tests)
+        await _dbContext.Bids.ExecuteDeleteAsync();
 
         // Create repository
         _repository = new BidRepository(_dbContext);
@@ -86,7 +107,7 @@ public class BidRepositoryTests : IAsyncLifetime
             return;
         }
 
-        var connectionString = $"Host={_postgresContainer!.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database=bidding_test;Username=testuser;Password=testpass;SSL Mode=Disable";
+        var connectionString = $"Host={_postgresContainer!.Hostname};Port={_postgresContainer.GetMappedPublicPort(5432)};Database={_uniqueDbName};Username=testuser;Password=testpass;SSL Mode=Disable";
         
         for (int i = 0; i < 30; i++) // Try for up to 30 seconds
         {
