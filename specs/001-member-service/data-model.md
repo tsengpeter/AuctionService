@@ -20,15 +20,21 @@
 | Email | string | 是 | 電子郵件地址 | 唯一，最大長度 255，符合電子郵件格式 |
 | PasswordHash | string | 是 | bcrypt 雜湊後的密碼 | 包含 bcrypt(password + snowflakeId) |
 | Username | string | 是 | 使用者顯示名稱 | 長度 3-50 字元，僅允許字母與空格 |
+| PhoneNumber | string | 是 | 手機號碼 | 唯一，符合 E.164 格式（+[國碼][號碼]），最大長度 15 |
+| PhoneNumberVerified | bool | 是 | 手機號碼是否已驗證 | 預設 false，註冊時必須驗證 |
+| EmailVerified | bool | 是 | 電子郵件是否已驗證 | 預設 false，註冊時必須驗證 |
 | CreatedAt | DateTime | 是 | 帳號建立時間 | UTC 時間，自動設定 |
 | UpdatedAt | DateTime | 是 | 最後更新時間 | UTC 時間，自動更新 |
 
 **關聯關係**:
 - 一對多: `User` → `RefreshToken` (一個使用者可有多個 Refresh Token)
+- 一對多: `User` → `VerificationToken` (一個使用者可有多個驗證權杖)
+- 一對多: `User` → `PasswordResetToken` (一個使用者可有多個密碼重設權杖)
 
 **索引**:
 - 主鍵索引: `Id` (BIGINT)
 - 唯一索引: `Email` (用於登入查詢與唯一性驗證)
+- 唯一索引: `PhoneNumber` (用於忘記密碼驗證與唯一性)
 
 **Entity Framework 配置**:
 
@@ -51,11 +57,23 @@ public class User
     [RegularExpression(@"^[\p{L}\s]+$")]
     public required string Username { get; set; }
     
+    [Required]
+    [Phone]
+    [MaxLength(15)]
+    [RegularExpression(@"^\+[1-9]\d{1,14}$")]
+    public required string PhoneNumber { get; set; }
+    
+    public bool PhoneNumberVerified { get; set; } = false;
+    
+    public bool EmailVerified { get; set; } = false;
+    
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     
     // 導航屬性
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<VerificationToken> VerificationTokens { get; set; } = new List<VerificationToken>();
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 }
 ```
 
@@ -67,11 +85,15 @@ CREATE TABLE "Users" (
     "Email" VARCHAR(255) NOT NULL UNIQUE,
     "PasswordHash" TEXT NOT NULL,
     "Username" VARCHAR(50) NOT NULL,
+    "PhoneNumber" VARCHAR(15) NOT NULL UNIQUE,
+    "PhoneNumberVerified" BOOLEAN NOT NULL DEFAULT FALSE,
+    "EmailVerified" BOOLEAN NOT NULL DEFAULT FALSE,
     "CreatedAt" TIMESTAMP WITH TIME ZONE NOT NULL,
     "UpdatedAt" TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE INDEX "IX_Users_Email" ON "Users" ("Email");
+CREATE INDEX "IX_Users_PhoneNumber" ON "Users" ("PhoneNumber");
 ```
 
 ---
@@ -151,6 +173,261 @@ CREATE TABLE "RefreshTokens" (
 CREATE INDEX "IX_RefreshTokens_Token" ON "RefreshTokens" ("Token");
 CREATE INDEX "IX_RefreshTokens_UserId" ON "RefreshTokens" ("UserId");
 CREATE INDEX "IX_RefreshTokens_UserId_ExpiresAt" ON "RefreshTokens" ("UserId", "ExpiresAt");
+```
+
+---
+
+### VerificationToken (通用驗證權杖)
+
+**用途**: 通用驗證權杖系統，支援多種驗證場景（註冊驗證、電子郵件更新驗證、手機號碼更新驗證等）。
+
+**屬性**:
+
+| 欄位 | 型別 | 必填 | 說明 | 驗證規則 |
+|------|------|------|------|----------|
+| Id | Guid | 是 | 權杖唯一識別碼 | 主鍵，自動生成 GUID |
+| UserId | long | 是 | 所屬使用者 ID（外鍵） | 關聯到 User.Id |
+| VerificationType | enum | 是 | 驗證類型 | Registration, EmailUpdate, PhoneUpdate |
+| Code | string | 是 | 6 位數驗證碼 | 數字字串，例如 "123456" |
+| DeliveryMethod | enum | 是 | 傳送方式 | Email 或 Sms |
+| Target | string | 是 | 驗證目標 | 電子郵件地址或手機號碼（E.164 格式） |
+| ExpiresAt | DateTime | 是 | 驗證碼過期時間 | UTC 時間，生成後 10 分鐘 |
+| IsVerified | bool | 是 | 是否已驗證成功 | 預設 false，驗證成功後設為 true |
+| AttemptCount | int | 是 | 嘗試次數 | 預設 0，最多允許 3 次 |
+| CreatedAt | DateTime | 是 | 權杖建立時間 | UTC 時間，自動設定 |
+
+**VerificationType 列舉**:
+
+```csharp
+public enum VerificationType
+{
+    Registration = 1,      // 註冊驗證
+    EmailUpdate = 2,       // 更新電子郵件驗證
+    PhoneUpdate = 3        // 更新手機號碼驗證
+}
+```
+
+**DeliveryMethod 列舉**:
+
+```csharp
+public enum DeliveryMethod
+{
+    Email = 1,
+    Sms = 2
+}
+```
+
+**關聯關係**:
+- 多對一: `VerificationToken` → `User` (多個驗證權杖屬於一個使用者)
+
+**索引**:
+- 主鍵索引: `Id` (GUID)
+- 複合索引: `(UserId, VerificationType, DeliveryMethod, ExpiresAt)` (用於查詢使用者的有效驗證碼)
+- 複合索引: `(Code, ExpiresAt, IsVerified)` (用於驗證碼驗證)
+- 複合索引: `(Target, VerificationType, ExpiresAt)` (用於查詢特定目標的驗證碼)
+- 外鍵索引: `UserId` (關聯查詢最佳化)
+
+**業務規則**:
+- 每個使用者在相同 VerificationType 和 DeliveryMethod 下，同一時間只能有一個未驗證且未過期的驗證碼
+- 驗證碼錯誤超過 3 次後，該驗證碼失效
+- 驗證成功後，該驗證碼標記為 IsVerified = true，且同類型未驗證的驗證碼全部失效
+- 驗證碼生成後有 60 秒冷卻時間，期間無法重新產生相同類型的驗證碼
+- 註冊驗證需要同時完成 Email 和 Sms 兩個 DeliveryMethod 的驗證
+- Target 欄位記錄驗證的目標，便於追蹤和防止濫用
+
+**Entity Framework 配置**:
+
+```csharp
+public class VerificationToken
+{
+    public Guid Id { get; set; }
+    
+    [Required]
+    public long UserId { get; set; }
+    
+    [Required]
+    public VerificationType VerificationType { get; set; }
+    
+    [Required]
+    [StringLength(6, MinimumLength = 6)]
+    [RegularExpression(@"^\d{6}$")]
+    public required string Code { get; set; }
+    
+    [Required]
+    public DeliveryMethod DeliveryMethod { get; set; }
+    
+    [Required]
+    [MaxLength(255)]
+    public required string Target { get; set; }
+    
+    public DateTime ExpiresAt { get; set; }
+    
+    public bool IsVerified { get; set; } = false;
+    
+    public int AttemptCount { get; set; } = 0;
+    
+    public DateTime CreatedAt { get; set; }
+    
+    // 導航屬性
+    [ForeignKey(nameof(UserId))]
+    public User User { get; set; } = null!;
+    
+    // 計算屬性
+    [NotMapped]
+    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+    
+    [NotMapped]
+    public bool IsValid => !IsVerified && !IsExpired && AttemptCount < 3;
+    
+    [NotMapped]
+    public int RemainingAttempts => Math.Max(0, 3 - AttemptCount);
+}
+```
+
+**資料庫映射** (PostgreSQL):
+
+```sql
+CREATE TABLE "VerificationTokens" (
+    "Id" UUID PRIMARY KEY,
+    "UserId" BIGINT NOT NULL,
+    "VerificationType" INTEGER NOT NULL,
+    "Code" VARCHAR(6) NOT NULL,
+    "DeliveryMethod" INTEGER NOT NULL,
+    "Target" VARCHAR(255) NOT NULL,
+    "ExpiresAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "IsVerified" BOOLEAN NOT NULL DEFAULT FALSE,
+    "AttemptCount" INTEGER NOT NULL DEFAULT 0,
+    "CreatedAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    
+    CONSTRAINT "FK_VerificationTokens_Users_UserId" 
+        FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") 
+        ON DELETE CASCADE,
+    
+    CONSTRAINT "CK_VerificationTokens_Code" CHECK ("Code" ~ '^\d{6}$'),
+    CONSTRAINT "CK_VerificationTokens_AttemptCount" CHECK ("AttemptCount" >= 0 AND "AttemptCount" <= 3)
+);
+
+CREATE INDEX "IX_VerificationTokens_UserId_VerificationType_DeliveryMethod_ExpiresAt" 
+    ON "VerificationTokens" ("UserId", "VerificationType", "DeliveryMethod", "ExpiresAt");
+CREATE INDEX "IX_VerificationTokens_Code_ExpiresAt_IsVerified" 
+    ON "VerificationTokens" ("Code", "ExpiresAt", "IsVerified");
+CREATE INDEX "IX_VerificationTokens_Target_VerificationType_ExpiresAt" 
+    ON "VerificationTokens" ("Target", "VerificationType", "ExpiresAt");
+CREATE INDEX "IX_VerificationTokens_UserId" ON "VerificationTokens" ("UserId");
+```
+
+---
+
+### PasswordResetToken (密碼重設權杖)
+
+**用途**: 代表使用者忘記密碼時產生的驗證碼，支援電子郵件與手機號碼兩種傳送方式。
+
+**備註**: 此實體功能與 VerificationToken 重疊，未來可考慮整合到 VerificationToken（新增 PasswordReset 類型）以簡化架構。
+
+**屬性**:
+
+| 欄位 | 型別 | 必填 | 說明 | 驗證規則 |
+|------|------|------|------|----------|
+| Id | Guid | 是 | 權杖唯一識別碼 | 主鍵，自動生成 GUID |
+| UserId | long | 是 | 所屬使用者 ID（外鍵） | 關聯到 User.Id |
+| Code | string | 是 | 6 位數驗證碼 | 數字字串，例如 "123456" |
+| DeliveryMethod | enum | 是 | 傳送方式 | Email 或 Sms |
+| ExpiresAt | DateTime | 是 | 驗證碼過期時間 | UTC 時間，生成後 10 分鐘 |
+| IsUsed | bool | 是 | 是否已使用 | 預設 false，重設密碼後設為 true |
+| AttemptCount | int | 是 | 嘗試次數 | 預設 0，最多允許 3 次 |
+| CreatedAt | DateTime | 是 | 權杖建立時間 | UTC 時間，自動設定 |
+
+**DeliveryMethod 列舉**:
+
+```csharp
+public enum DeliveryMethod
+{
+    Email = 1,
+    Sms = 2
+}
+```
+
+**關聯關係**:
+- 多對一: `PasswordResetToken` → `User` (多個密碼重設權杖屬於一個使用者)
+
+**索引**:
+- 主鍵索引: `Id` (GUID)
+- 複合索引: `(UserId, ExpiresAt)` (用於查詢使用者的有效驗證碼)
+- 複合索引: `(Code, ExpiresAt)` (用於驗證碼驗證)
+- 外鍵索引: `UserId` (關聯查詢最佳化)
+
+**業務規則**:
+- 每個使用者同一時間只能有一個未使用且未過期的驗證碼（相同 DeliveryMethod）
+- 驗證碼錯誤超過 3 次後，該驗證碼失效
+- 成功重設密碼後，該使用者所有未使用的驗證碼全部標記為已使用
+- 驗證碼生成後有 60 秒冷卻時間，期間無法重新產生
+
+**Entity Framework 配置**:
+
+```csharp
+public class PasswordResetToken
+{
+    public Guid Id { get; set; }
+    
+    [Required]
+    public long UserId { get; set; }
+    
+    [Required]
+    [StringLength(6, MinimumLength = 6)]
+    [RegularExpression(@"^\d{6}$")]
+    public required string Code { get; set; }
+    
+    [Required]
+    public DeliveryMethod DeliveryMethod { get; set; }
+    
+    public DateTime ExpiresAt { get; set; }
+    
+    public bool IsUsed { get; set; } = false;
+    
+    public int AttemptCount { get; set; } = 0;
+    
+    public DateTime CreatedAt { get; set; }
+    
+    // 導航屬性
+    [ForeignKey(nameof(UserId))]
+    public User User { get; set; } = null!;
+    
+    // 計算屬性
+    [NotMapped]
+    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+    
+    [NotMapped]
+    public bool IsValid => !IsUsed && !IsExpired && AttemptCount < 3;
+    
+    [NotMapped]
+    public int RemainingAttempts => Math.Max(0, 3 - AttemptCount);
+}
+```
+
+**資料庫映射** (PostgreSQL):
+
+```sql
+CREATE TABLE "PasswordResetTokens" (
+    "Id" UUID PRIMARY KEY,
+    "UserId" BIGINT NOT NULL,
+    "Code" VARCHAR(6) NOT NULL,
+    "DeliveryMethod" INTEGER NOT NULL,
+    "ExpiresAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "IsUsed" BOOLEAN NOT NULL DEFAULT FALSE,
+    "AttemptCount" INTEGER NOT NULL DEFAULT 0,
+    "CreatedAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    
+    CONSTRAINT "FK_PasswordResetTokens_Users_UserId" 
+        FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") 
+        ON DELETE CASCADE,
+    
+    CONSTRAINT "CK_PasswordResetTokens_Code" CHECK ("Code" ~ '^\d{6}$'),
+    CONSTRAINT "CK_PasswordResetTokens_AttemptCount" CHECK ("AttemptCount" >= 0 AND "AttemptCount" <= 3)
+);
+
+CREATE INDEX "IX_PasswordResetTokens_UserId_ExpiresAt" ON "PasswordResetTokens" ("UserId", "ExpiresAt");
+CREATE INDEX "IX_PasswordResetTokens_Code_ExpiresAt" ON "PasswordResetTokens" ("Code", "ExpiresAt");
+CREATE INDEX "IX_PasswordResetTokens_UserId" ON "PasswordResetTokens" ("UserId");
 ```
 
 ---
