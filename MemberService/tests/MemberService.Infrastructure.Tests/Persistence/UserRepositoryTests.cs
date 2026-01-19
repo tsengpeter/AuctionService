@@ -35,7 +35,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com").Value;
         var username = Username.Create("testuser").Value;
         var passwordHash = "hashedpassword";
-        var user = new User(12345L, email, passwordHash, username);
+        var user = new User(12345L, email, "1234567890", passwordHash, username);
 
         // Act
         await _repository.AddAsync(user);
@@ -55,7 +55,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com").Value;
         var username = Username.Create("testuser").Value;
         var passwordHash = "hashedpassword";
-        var user = new User(12345L, email, passwordHash, username);
+        var user = new User(12345L, email, "1234567890", passwordHash, username);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
 
@@ -85,7 +85,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com").Value;
         var username = Username.Create("testuser").Value;
         var passwordHash = "hashedpassword";
-        var user = new User(12345L, email, passwordHash, username);
+        var user = new User(12345L, email, "1234567890", passwordHash, username);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
 
@@ -117,7 +117,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com").Value;
         var username = Username.Create("testuser").Value;
         var passwordHash = "hashedpassword";
-        var user = new User(12345L, email, passwordHash, username);
+        var user = new User(12345L, email, "1234567890", passwordHash, username);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
 
@@ -148,7 +148,7 @@ public class UserRepositoryTests : IDisposable
         var email = Email.Create("test@example.com").Value;
         var username = Username.Create("testuser").Value;
         var passwordHash = "hashedpassword";
-        var user = new User(12345L, email, passwordHash, username);
+        var user = new User(12345L, email, "1234567890", passwordHash, username);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
 

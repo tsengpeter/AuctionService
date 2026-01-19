@@ -9,8 +9,11 @@ public class User
 {
     public long Id { get; private set; }
     public Email Email { get; private set; } = null!;
+    public string PhoneNumber { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
     public Username Username { get; private set; } = null!;
+    public bool EmailVerified { get; private set; } = false;
+    public bool PhoneNumberVerified { get; private set; } = false;
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
@@ -19,12 +22,15 @@ public class User
 
     private User() { } // EF Core constructor
 
-    public User(long id, Email email, string passwordHash, Username username)
+    public User(long id, Email email, string phoneNumber, string passwordHash, Username username)
     {
         Id = id;
         Email = email;
+        PhoneNumber = phoneNumber;
         PasswordHash = passwordHash;
         Username = username;
+        EmailVerified = false;
+        PhoneNumberVerified = false;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -44,6 +50,18 @@ public class User
     public void UpdateEmail(Email newEmail)
     {
         Email = newEmail;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void VerifyEmail()
+    {
+        EmailVerified = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void VerifyPhoneNumber()
+    {
+        PhoneNumberVerified = true;
         UpdatedAt = DateTime.UtcNow;
     }
 }

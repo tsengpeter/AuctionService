@@ -67,4 +67,114 @@ public class AuthController : ControllerBase
         // Always return 200 OK with TokenValidationResponse
         return Ok(response);
     }
+
+    [HttpPost("request-email-verification")]
+    [Authorize]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> RequestEmailVerification()
+    {
+        try
+        {
+            var userId = long.Parse(User.FindFirst("sub")?.Value ?? throw new UnauthorizedAccessException());
+            var response = await _authService.RequestEmailVerificationAsync(userId);
+            return Ok(response);
+        }
+        catch (Domain.Exceptions.VerificationCodeCooldownException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new
+                {
+                    code = "VERIFICATION_CODE_COOLDOWN",
+                    message = ex.Message,
+                    remainingSeconds = ex.RemainingSeconds
+                }
+            });
+        }
+    }
+
+    [HttpPost("verify-email")]
+    [Authorize]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
+    {
+        try
+        {
+            var userId = long.Parse(User.FindFirst("sub")?.Value ?? throw new UnauthorizedAccessException());
+            var response = await _authService.VerifyEmailAsync(userId, request.Code);
+            return Ok(response);
+        }
+        catch (Domain.Exceptions.InvalidVerificationCodeException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new
+                {
+                    code = "INVALID_VERIFICATION_CODE",
+                    message = ex.Message
+                }
+            });
+        }
+    }
+
+    [HttpPost("request-phone-verification")]
+    [Authorize]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> RequestPhoneVerification()
+    {
+        try
+        {
+            var userId = long.Parse(User.FindFirst("sub")?.Value ?? throw new UnauthorizedAccessException());
+            var response = await _authService.RequestPhoneVerificationAsync(userId);
+            return Ok(response);
+        }
+        catch (Domain.Exceptions.VerificationCodeCooldownException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new
+                {
+                    code = "VERIFICATION_CODE_COOLDOWN",
+                    message = ex.Message,
+                    remainingSeconds = ex.RemainingSeconds
+                }
+            });
+        }
+    }
+
+    [HttpPost("verify-phone")]
+    [Authorize]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> VerifyPhone([FromBody] VerifyPhoneRequest request)
+    {
+        try
+        {
+            var userId = long.Parse(User.FindFirst("sub")?.Value ?? throw new UnauthorizedAccessException());
+            var response = await _authService.VerifyPhoneAsync(userId, request.Code);
+            return Ok(response);
+        }
+        catch (Domain.Exceptions.InvalidVerificationCodeException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new
+                {
+                    code = "INVALID_VERIFICATION_CODE",
+                    message = ex.Message
+                }
+            });
+        }
+    }
 }

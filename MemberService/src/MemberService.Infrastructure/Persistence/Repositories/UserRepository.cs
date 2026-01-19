@@ -34,6 +34,12 @@ public class UserRepository : IUserRepository
             .AnyAsync(u => u.Email == email);
     }
 
+    public async Task<bool> ExistsByPhoneNumberAsync(string phoneNumber)
+    {
+        return await _context.Users
+            .AnyAsync(u => u.PhoneNumber == phoneNumber);
+    }
+
     public async Task AddAsync(User user)
     {
         await _context.Users.AddAsync(user);
