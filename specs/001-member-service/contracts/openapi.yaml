@@ -174,12 +174,12 @@ paths:
                   summary: 電子郵件驗證碼已發送
                   value:
                     success: true
-                    message: 驗證碼已發送至您的電子郵件，請在 10 分鐘內完成驗證
+                    message: 驗證碼已發送至您的電子郵件，請在 5 分鐘內完成驗證
                 smsSent:
                   summary: 手機驗證碼已發送
                   value:
                     success: true
-                    message: 驗證碼已發送至您的手機號碼，請在 10 分鐘內完成驗證
+                    message: 驗證碼已發送至您的手機號碼，請在 5 分鐘內完成驗證
         '400':
           description: 驗證請求失敗
           content:
@@ -227,8 +227,9 @@ paths:
         - PhoneVerification: 驗證手機號碼，成功後設置 PhoneNumberVerified=true
         
         **驗證規則**:
-        - 驗證碼有效期 10 分鐘
+        - 驗證碼有效期 5 分鐘
         - 每個驗證碼最多 3 次錯誤嘗試
+        - 驗證碼儲存在 Redis，過期或失敗3次後自動清除
         - 需要已登入（提供有效的 JWT token）
       security:
         - BearerAuth: []
@@ -563,9 +564,10 @@ paths:
         
         **安全性考量**:
         - 無論帳號是否存在，一律回傳成功（防止帳號列舉攻擊）
-        - 驗證碼有效期 10 分鐘
+        - 驗證碼有效期 5 分鐘
         - 每個驗證碼最多允許 3 次錯誤嘗試
         - 60 秒冷卻時間，期間無法重新產生驗證碼
+        - 驗證碼儲存在 Redis，過期或失敗3次後自動清除
         
         **傳送方式**:
         - `email`: 透過 AWS SES 或 SMTP 發送至註冊信箱
@@ -602,7 +604,7 @@ paths:
                   summary: 驗證碼發送成功
                   value:
                     success: true
-                    message: 驗證碼已發送，請查收並在 10 分鐘內完成驗證
+                    message: 驗證碼已發送，請查收並在 5 分鐘內完成驗證
         '400':
           description: 驗證失敗
           content:

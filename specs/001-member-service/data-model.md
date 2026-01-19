@@ -28,7 +28,6 @@
 
 **關聯關係**:
 - 一對多: `User` → `RefreshToken` (一個使用者可有多個 Refresh Token)
-- 一對多: `User` → `VerificationToken` (一個使用者可有多個驗證權杖)
 - 一對多: `User` → `PasswordResetToken` (一個使用者可有多個密碼重設權杖)
 
 **索引**:
@@ -72,7 +71,6 @@ public class User
     
     // 導航屬性
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
-    public ICollection<VerificationToken> VerificationTokens { get; set; } = new List<VerificationToken>();
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 }
 ```
@@ -177,144 +175,141 @@ CREATE INDEX "IX_RefreshTokens_UserId_ExpiresAt" ON "RefreshTokens" ("UserId", "
 
 ---
 
-### VerificationToken (通用驗證權杖)
+### 驗證碼儲存機制 (Redis)
 
-**用途**: 通用驗證權杖系統，支援多種驗證場景（註冊驗證、電子郵件更新驗證、手機號碼更新驗證等）。
+**用途**: 電子郵件與手機號碼驗證碼的暂存儲存，使用 Redis TTL 機制自動清除過期資料。
 
-**屬性**:
+**Redis Key 格式**:
 
-| 欄位 | 型別 | 必填 | 說明 | 驗證規則 |
-|------|------|------|------|----------|
-| Id | Guid | 是 | 權杖唯一識別碼 | 主鍵，自動生成 GUID |
-| UserId | long | 是 | 所屬使用者 ID（外鍵） | 關聯到 User.Id |
-| VerificationType | enum | 是 | 驗證類型 | Registration, EmailUpdate, PhoneUpdate |
-| Code | string | 是 | 6 位數驗證碼 | 數字字串，例如 "123456" |
-| DeliveryMethod | enum | 是 | 傳送方式 | Email 或 Sms |
-| Target | string | 是 | 驗證目標 | 電子郵件地址或手機號碼（E.164 格式） |
-| ExpiresAt | DateTime | 是 | 驗證碼過期時間 | UTC 時間，生成後 10 分鐘 |
-| IsVerified | bool | 是 | 是否已驗證成功 | 預設 false，驗證成功後設為 true |
-| AttemptCount | int | 是 | 嘗試次數 | 預設 0，最多允許 3 次 |
-| CreatedAt | DateTime | 是 | 權杖建立時間 | UTC 時間，自動設定 |
+```
+verification:{userId}:{verificationType}:{deliveryMethod}
+```
 
-**VerificationType 列舉**:
+**範例**:
+- 電子郵件驗證: `verification:1234567890123456789:email:verification`
+- 手機驗證: `verification:1234567890123456789:phone:verification`
 
-```csharp
-public enum VerificationType
+**Value 結構** (JSON):
+
+```json
 {
-    Registration = 1,      // 註冊驗證
-    EmailUpdate = 2,       // 更新電子郵件驗證
-    PhoneUpdate = 3        // 更新手機號碼驗證
+  "code": "123456",
+  "attemptCount": 0,
+  "createdAt": "2026-01-19T10:00:00Z",
+  "target": "user@example.com"
 }
 ```
 
-**DeliveryMethod 列舉**:
+**欄位說明**:
 
-```csharp
-public enum DeliveryMethod
-{
-    Email = 1,
-    Sms = 2
-}
-```
+| 欄位 | 型別 | 說明 |
+|------|------|------|
+| code | string | 6 位數字驗證碼 |
+| attemptCount | int | 驗證失敗次數，預設 0，最多 3 次 |
+| createdAt | string | 驗證碼生成時間 (ISO 8601 格式) |
+| target | string | 驗證目標（電子郵件位址或手機號碼 E.164 格式） |
 
-**關聯關係**:
-- 多對一: `VerificationToken` → `User` (多個驗證權杖屬於一個使用者)
-
-**索引**:
-- 主鍵索引: `Id` (GUID)
-- 複合索引: `(UserId, VerificationType, DeliveryMethod, ExpiresAt)` (用於查詢使用者的有效驗證碼)
-- 複合索引: `(Code, ExpiresAt, IsVerified)` (用於驗證碼驗證)
-- 複合索引: `(Target, VerificationType, ExpiresAt)` (用於查詢特定目標的驗證碼)
-- 外鍵索引: `UserId` (關聯查詢最佳化)
+**TTL 設定**:
+- 有效期: **5 分鐘** (300 秒)
+- Redis 會在 TTL 過期後自動刪除 Key
 
 **業務規則**:
-- 每個使用者在相同 VerificationType 和 DeliveryMethod 下，同一時間只能有一個未驗證且未過期的驗證碼
-- 驗證碼錯誤超過 3 次後，該驗證碼失效
-- 驗證成功後，該驗證碼標記為 IsVerified = true，且同類型未驗證的驗證碼全部失效
-- 驗證碼生成後有 60 秒冷卻時間，期間無法重新產生相同類型的驗證碼
-- 註冊驗證需要同時完成 Email 和 Sms 兩個 DeliveryMethod 的驗證
-- Target 欄位記錄驗證的目標，便於追蹤和防止濫用
 
-**Entity Framework 配置**:
+1. **生成驗證碼** (POST /api/auth/request-verification):
+   - 生成 6 位隨機數字驗證碼
+   - 儲存到 Redis，設定 TTL 5 分鐘
+   - 發送驗證碼到電子郵件或手機
+   - 每個 userId + verificationType + deliveryMethod 組合同時間只能有一個有效驗證碼
+
+2. **驗證驗證碼** (POST /api/auth/verify):
+   - 從 Redis 讀取驗證碼資料
+   - 比對使用者輸入的驗證碼
+   - **驗證成功**:
+     - 刪除 Redis 中的驗證碼
+     - 更新 User 表的 EmailVerified 或 PhoneNumberVerified 欄位為 true
+   - **驗證失敗**:
+     - attemptCount++
+     - 如果 attemptCount >= 3，刪除 Redis 中的驗證碼
+     - 否則更新 Redis 中的 attemptCount
+
+3. **自動清除機制**:
+   - 5 分鐘未驗證：Redis TTL 自動清除
+   - 3 次驗證失敗：手動刪除 Redis Key
+   - 驗證成功：手動刪除 Redis Key
+
+4. **冷卻時間**:
+   - 驗證碼發送後 60 秒內不可重新發送同類型驗證碼
+   - 透過 createdAt 欄位檢查
+
+**Redis 命令示例**:
+
+```bash
+# 儲存驗證碼 (有效期 5 分鐘)
+SETEX verification:1234567890123456789:email:verification 300 '{"code":"123456","attemptCount":0,"createdAt":"2026-01-19T10:00:00Z","target":"user@example.com"}'
+
+# 讀取驗證碼
+GET verification:1234567890123456789:email:verification
+
+# 更新 attemptCount
+SET verification:1234567890123456789:email:verification '{"code":"123456","attemptCount":1,"createdAt":"2026-01-19T10:00:00Z","target":"user@example.com"}' KEEPTTL
+
+# 刪除驗證碼
+DEL verification:1234567890123456789:email:verification
+
+# 檢查剩餘 TTL
+TTL verification:1234567890123456789:email:verification
+```
+
+**C# 實作示例**:
 
 ```csharp
-public class VerificationToken
+public class VerificationCode
 {
-    public Guid Id { get; set; }
-    
-    [Required]
-    public long UserId { get; set; }
-    
-    [Required]
-    public VerificationType VerificationType { get; set; }
-    
-    [Required]
-    [StringLength(6, MinimumLength = 6)]
-    [RegularExpression(@"^\d{6}$")]
+    [JsonPropertyName("code")]
     public required string Code { get; set; }
     
-    [Required]
-    public DeliveryMethod DeliveryMethod { get; set; }
-    
-    [Required]
-    [MaxLength(255)]
-    public required string Target { get; set; }
-    
-    public DateTime ExpiresAt { get; set; }
-    
-    public bool IsVerified { get; set; } = false;
-    
+    [JsonPropertyName("attemptCount")]
     public int AttemptCount { get; set; } = 0;
     
+    [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; set; }
     
-    // 導航屬性
-    [ForeignKey(nameof(UserId))]
-    public User User { get; set; } = null!;
+    [JsonPropertyName("target")]
+    public required string Target { get; set; }
     
-    // 計算屬性
-    [NotMapped]
-    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+    [JsonIgnore]
+    public bool IsValid => AttemptCount < 3;
     
-    [NotMapped]
-    public bool IsValid => !IsVerified && !IsExpired && AttemptCount < 3;
-    
-    [NotMapped]
+    [JsonIgnore]
     public int RemainingAttempts => Math.Max(0, 3 - AttemptCount);
+}
+
+public enum VerificationType
+{
+    Email,
+    Phone
+}
+
+public interface IVerificationCodeService
+{
+    Task<string> GenerateAndStoreAsync(long userId, VerificationType type, string target);
+    Task<VerificationCode?> GetAsync(long userId, VerificationType type);
+    Task<bool> ValidateAsync(long userId, VerificationType type, string code);
+    Task DeleteAsync(long userId, VerificationType type);
+    Task IncrementAttemptAsync(long userId, VerificationType type);
 }
 ```
 
-**資料庫映射** (PostgreSQL):
+**優點**:
+- ✅ 高效能：Redis 內存儲存，讀寫極快
+- ✅ 自動清除：TTL 機制無需手動維護
+- ✅ 簡化架構：無需複雜的資料庫查詢
+- ✅ 減輕資料庫負擔：暑存資料不入庫
 
-```sql
-CREATE TABLE "VerificationTokens" (
-    "Id" UUID PRIMARY KEY,
-    "UserId" BIGINT NOT NULL,
-    "VerificationType" INTEGER NOT NULL,
-    "Code" VARCHAR(6) NOT NULL,
-    "DeliveryMethod" INTEGER NOT NULL,
-    "Target" VARCHAR(255) NOT NULL,
-    "ExpiresAt" TIMESTAMP WITH TIME ZONE NOT NULL,
-    "IsVerified" BOOLEAN NOT NULL DEFAULT FALSE,
-    "AttemptCount" INTEGER NOT NULL DEFAULT 0,
-    "CreatedAt" TIMESTAMP WITH TIME ZONE NOT NULL,
-    
-    CONSTRAINT "FK_VerificationTokens_Users_UserId" 
-        FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") 
-        ON DELETE CASCADE,
-    
-    CONSTRAINT "CK_VerificationTokens_Code" CHECK ("Code" ~ '^\d{6}$'),
-    CONSTRAINT "CK_VerificationTokens_AttemptCount" CHECK ("AttemptCount" >= 0 AND "AttemptCount" <= 3)
-);
-
-CREATE INDEX "IX_VerificationTokens_UserId_VerificationType_DeliveryMethod_ExpiresAt" 
-    ON "VerificationTokens" ("UserId", "VerificationType", "DeliveryMethod", "ExpiresAt");
-CREATE INDEX "IX_VerificationTokens_Code_ExpiresAt_IsVerified" 
-    ON "VerificationTokens" ("Code", "ExpiresAt", "IsVerified");
-CREATE INDEX "IX_VerificationTokens_Target_VerificationType_ExpiresAt" 
-    ON "VerificationTokens" ("Target", "VerificationType", "ExpiresAt");
-CREATE INDEX "IX_VerificationTokens_UserId" ON "VerificationTokens" ("UserId");
-```
+**注意事項**:
+- ⚠️ Redis 重啟會消失所有驗證碼（使用者需重新請求）
+- ⚠️ 建議配置 Redis 持久化 (AOF/RDB) 或使用 Redis Sentinel/Cluster
+- ⚠️ 驗證碼為敏感資料，考慮對 code 欄位加密儲存
 
 ---
 
@@ -332,7 +327,7 @@ CREATE INDEX "IX_VerificationTokens_UserId" ON "VerificationTokens" ("UserId");
 | UserId | long | 是 | 所屬使用者 ID（外鍵） | 關聯到 User.Id |
 | Code | string | 是 | 6 位數驗證碼 | 數字字串，例如 "123456" |
 | DeliveryMethod | enum | 是 | 傳送方式 | Email 或 Sms |
-| ExpiresAt | DateTime | 是 | 驗證碼過期時間 | UTC 時間，生成後 10 分鐘 |
+| ExpiresAt | DateTime | 是 | 驗證碼過期時間 | UTC 時間，生成後 5 分鐘 |
 | IsUsed | bool | 是 | 是否已使用 | 預設 false，重設密碼後設為 true |
 | AttemptCount | int | 是 | 嘗試次數 | 預設 0，最多允許 3 次 |
 | CreatedAt | DateTime | 是 | 權杖建立時間 | UTC 時間，自動設定 |
