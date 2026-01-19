@@ -119,59 +119,97 @@
 
 ## Phase 3: User Story 1 - 讓使用者註冊與登入 (Priority: P1) 【含 MVP】
 
-**目的**: 使用者可以註冊新帳號並自動登入，取得 JWT 存取權杖以使用其他功能
+**目的**: 使用者可以註冊新帳號並立即登入，取得 JWT 存取權杖以使用基本功能。電子郵件和手機號碼驗證為獨立功能，可在註冊後任何時候完成，驗證後解鎖更多業務權限。
 
-**驗收測試**: 提交完整註冊訊息（電子郵件、密碼、使用者名稱），驗證系統建立帳號並返傳 JWT + Refresh Token
+**驗收測試**: 
+1. 提交完整註冊資訊（電子郵件、手機號碼、密碼、使用者名稱），系統建立帳號並立即返回 JWT + Refresh Token
+2. 透過 /api/auth/request-verification 請求發送驗證碼到電子郵件或手機
+3. 透過 /api/auth/verify 驗證驗證碼並更新驗證狀態
+4. 登入時返回完整使用者資料（包含驗證狀態）
 
 **對應端點**: 
-- POST /api/auth/register
-- POST /api/auth/login
+- POST /api/auth/register (註冊並立即返回 tokens)
+- POST /api/auth/login (登入，返回驗證狀態)
+- POST /api/auth/request-verification (請求發送驗證碼)
+- POST /api/auth/verify (驗證驗證碼)
 
-**對應實體**: User, RefreshToken
+**對應實體**: User (含 EmailVerified, PhoneNumberVerified), RefreshToken, 驗證碼 (Redis 儲存，5分鐘TTL)
 
 ### 測試 (TDD - 先寫測試)
 
 - [X] T078 [P] [US1] 先寫 RegisterRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RegisterRequestValidatorTests.cs
+- [ ] T078-1 [P] [US1] 先寫 RequestVerificationRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/RequestVerificationRequestValidatorTests.cs
+- [ ] T078-2 [P] [US1] 先寫 VerifyRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/VerifyRequestValidatorTests.cs
+- [ ] T078-2 [P] [US1] 先寫 ResendVerificationRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/ResendVerificationRequestValidatorTests.cs
 - [X] T079 [P] [US1] 先寫 LoginRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/LoginRequestValidatorTests.cs
 - [X] T080 [P] [US1] 先寫 AuthService.Register 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
-- [X] T081 [P] [US1] 先寫 AuthService.Login 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [ ] T080-1 [P] [US1] 先寫 AuthService.VerifyRegistration 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [ ] T080-2 [P] [US1] 先寫 AuthService.ResendVerification 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs
+- [X] T081 [P] [US1] 先寫 AuthService.Login 測試於 MemberService/tests/MemberService.Application.Tests/Services/AuthServiceTests.cs（需加入驗證狀態檢查）
 - [X] T082 [P] [US1] 先寫 AuthController.Register 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
-- [X] T083 [P] [US1] 先寫 AuthController.Login 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+- [ ] T082-1 [P] [US1] 先寫 AuthController.VerifyRegistration 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+- [ ] T082-2 [P] [US1] 先寫 AuthController.ResendVerification 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs
+- [X] T083 [P] [US1] 先寫 AuthController.Login 整合測試於 MemberService/tests/MemberService.IntegrationTests/API/AuthControllerTests.cs（需加入未驗證帳號測試）
+
+### Domain 層
+
+- [ ] T083-1 [P] [US1] 實作 VerificationCode 值物件於 MemberService/src/MemberService.Domain/ValueObjects/VerificationCode.cs（Redis 储存用）
+- [ ] T083-2 [P] [US1] 測試 VerificationCode 值物件於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/VerificationCodeTests.cs
+- [ ] T083-3 [P] [US1] 定義 IVerificationCodeService 介面於 MemberService/src/MemberService.Domain/Interfaces/IVerificationCodeService.cs
 
 ### DTOs
 
-- [X] T084 [P] [US1] 建立 RegisterRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/RegisterRequest.cs
+- [X] T084 [P] [US1] 建立 RegisterRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/RegisterRequest.cs（需加入 phoneNumber 欄位）
+- [ ] T084-1 [P] [US1] 建立 RequestVerificationRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/RequestVerificationRequest.cs
+- [ ] T084-2 [P] [US1] 建立 VerifyRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/VerifyRequest.cs
 - [X] T085 [P] [US1] 建立 LoginRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/LoginRequest.cs
 - [X] T086 [P] [US1] 建立 AuthResponse DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/AuthResponse.cs
 
 ### Validators (FluentValidation)
 
-- [X] T087 [US1] 實作 RegisterRequestValidator 於 MemberService/src/MemberService.Application/Validators/RegisterRequestValidator.cs (依賴 T084)
+- [X] T087 [US1] 實作 RegisterRequestValidator 於 MemberService/src/MemberService.Application/Validators/RegisterRequestValidator.cs (依賴 T084，需加入手機號碼驗證)
+- [ ] T087-1 [US1] 實作 RequestVerificationRequestValidator 於 MemberService/src/MemberService.Application/Validators/RequestVerificationRequestValidator.cs (依賴 T084-1)
+- [ ] T087-2 [US1] 實作 VerifyRequestValidator 於 MemberService/src/MemberService.Application/Validators/VerifyRequestValidator.cs (依賴 T084-2)
 - [X] T088 [US1] 實作 LoginRequestValidator 於 MemberService/src/MemberService.Application/Validators/LoginRequestValidator.cs (依賴 T085)
 
 ### 異常例外
 
 - [X] T089 [P] [US1] 實作 EmailAlreadyExistsException 於 MemberService/src/MemberService.Domain/Exceptions/EmailAlreadyExistsException.cs
+- [ ] T089-1 [P] [US1] 實作 PhoneAlreadyExistsException 於 MemberService/src/MemberService.Domain/Exceptions/PhoneAlreadyExistsException.cs
 - [X] T090 [P] [US1] 實作 InvalidCredentialsException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidCredentialsException.cs
+
+### Infrastructure 層
+
+- [ ] T090-1 [US1] 實作 VerificationCodeService 於 MemberService/src/MemberService.Infrastructure/Services/VerificationCodeService.cs (使用 Redis，依賴 T083-3)
+- [ ] T090-2 [US1] 配置 Redis 連線與服務註冊於 MemberService/src/MemberService.API/Program.cs
+- [ ] T090-3 [US1] 建立 Database Migration 移除 VerificationTokens 表（如果已存在）
+- [ ] T090-4 [US1] 更新 User 實體移除 VerificationTokens 導航屬性
 
 ### Services
 
-- [X] T091 [US1] 定義 IAuthService 介面於 MemberService/src/MemberService.Application/Services/IAuthService.cs
-- [X] T092 [US1] 實作 AuthService.Register 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T087, T089)
-- [X] T093 [US1] 實作 AuthService.Login 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T088, T090)
+- [X] T091 [US1] 定義 IAuthService 介面於 MemberService/src/MemberService.Application/Services/IAuthService.cs（需加入 RequestVerification 和 Verify 方法）
+- [X] T092 [US1] 實作 AuthService.Register 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T087, T089，註冊立即成功)
+- [ ] T092-1 [US1] 實作 AuthService.RequestVerification 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T087-1, T090-1)
+- [ ] T092-2 [US1] 實作 AuthService.Verify 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T087-2, T090-1)
+- [X] T093 [US1] 實作 AuthService.Login 方法於 MemberService/src/MemberService.Application/Services/AuthService.cs (依賴 T088, T090，未驗證也可登入)
 
 ### Controllers
 
-- [X] T094 [US1] 實作 AuthController.Register 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T092)
-- [X] T095 [US1] 實作 AuthController.Login 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T093)
+- [X] T094 [US1] 實作 AuthController.Register 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T092，註冊立即成功並返回 tokens)
+- [ ] T094-1 [US1] 實作 AuthController.RequestVerification 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T092-1)
+- [ ] T094-2 [US1] 實作 AuthController.Verify 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T092-2)
+- [X] T095 [US1] 實作 AuthController.Login 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T093，返回驗證狀態)
 
 ### 驗證
 
 - [X] T096 [US1] 執行所有 US1 測試並確保通過 (覆蓋率 >80%)
 - [X] T097 [US1] 手動測試註冊與登入流程（Postman/curl）
+- [ ] T097-1 [US1] 手動測試完整驗證流程（註冊 → 請求驗證碼 → 驗證 → 登入）
+- [ ] T097-2 [US1] 手動測試重新請求驗證碼流程（冷卻時間 60 秒限制）
 - [X] T098 [US1] 驗證錯誤處理：重複電子郵件、密碼太短、無效電子郵件格式、錯誤憑證
+- [ ] T098-1 [US1] 驗證錯誤處理：重複手機號碼、無效手機號碼格式、驗證碼錯誤、3 次失敗後失效、驗證碼過期 (5 分鐘)
 
-**檢查點**: 此時 User Story 1 功能可運行並可進行測試
+**檢查點**: 此時 User Story 1 功能可運行並可進行測試（含雙重驗證流程）
 
 ---
 
@@ -373,6 +411,81 @@
 
 ---
 
+## Phase 6.5: User Story 5 (P2) - 忘記密碼 (T176-T210)
+
+**目的**: 實作忘記密碼功能，包含電子郵件與手機號碼驗證
+
+### 測試（紅燈階段 - TDD）
+
+- [ ] T176 [P] [US5] 先寫 ForgotPasswordRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/ForgotPasswordRequestValidatorTests.cs
+- [ ] T177 [P] [US5] 先寫 ResetPasswordRequestValidator 測試於 MemberService/tests/MemberService.Application.Tests/Validators/ResetPasswordRequestValidatorTests.cs
+- [ ] T178 [P] [US5] 先寫 PasswordResetService.RequestPasswordReset 測試於 MemberService/tests/MemberService.Application.Tests/Services/PasswordResetServiceTests.cs
+- [ ] T179 [P] [US5] 先寫 PasswordResetService.ValidateCode 測試於 MemberService/tests/MemberService.Application.Tests/Services/PasswordResetServiceTests.cs
+- [ ] T180 [P] [US5] 先寫 PasswordResetService.ResetPassword 測試於 MemberService/tests/MemberService.Application.Tests/Services/PasswordResetServiceTests.cs
+- [ ] T181 [P] [US5] 先寫 AuthController.ForgotPassword 整合測試於 MemberService/tests/MemberService.IntegrationTests/Controllers/AuthControllerForgotPasswordTests.cs
+- [ ] T182 [P] [US5] 先寫 AuthController.ResetPassword 整合測試於 MemberService/tests/MemberService.IntegrationTests/Controllers/AuthControllerResetPasswordTests.cs
+- [ ] T183 [P] [US5] 先寫 EmailNotificationService 測試於 MemberService/tests/MemberService.Infrastructure.Tests/Notifications/EmailNotificationServiceTests.cs
+- [ ] T184 [P] [US5] 先寫 SmsNotificationService 測試於 MemberService/tests/MemberService.Infrastructure.Tests/Notifications/SmsNotificationServiceTests.cs
+
+### Domain 層
+
+- [ ] T185 [P] [US5] 實作 PasswordResetToken 實體於 MemberService/src/MemberService.Domain/Entities/PasswordResetToken.cs
+- [ ] T186 [P] [US5] 測試 PasswordResetToken 實體於 MemberService/tests/MemberService.Domain.Tests/Entities/PasswordResetTokenTests.cs
+- [ ] T187 [P] [US5] 實作 PhoneNumber Value Object 於 MemberService/src/MemberService.Domain/ValueObjects/PhoneNumber.cs
+- [ ] T188 [P] [US5] 測試 PhoneNumber Value Object 於 MemberService/tests/MemberService.Domain.Tests/ValueObjects/PhoneNumberTests.cs
+- [ ] T189 [P] [US5] 定義 IPasswordResetTokenRepository 介面於 MemberService/src/MemberService.Domain/Interfaces/IPasswordResetTokenRepository.cs
+- [ ] T190 [P] [US5] 定義 INotificationService 介面於 MemberService/src/MemberService.Domain/Interfaces/INotificationService.cs
+
+### 異常例外
+
+- [ ] T191 [P] [US5] 實作 VerificationCodeExpiredException 於 MemberService/src/MemberService.Domain/Exceptions/VerificationCodeExpiredException.cs
+- [ ] T192 [P] [US5] 實作 InvalidVerificationCodeException 於 MemberService/src/MemberService.Domain/Exceptions/InvalidVerificationCodeException.cs
+- [ ] T193 [P] [US5] 實作 TooManyAttemptsException 於 MemberService/src/MemberService.Domain/Exceptions/TooManyAttemptsException.cs
+- [ ] T194 [P] [US5] 實作 RateLimitExceededException 於 MemberService/src/MemberService.Domain/Exceptions/RateLimitExceededException.cs
+
+### DTOs
+
+- [ ] T195 [P] [US5] 建立 ForgotPasswordRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/ForgotPasswordRequest.cs
+- [ ] T196 [P] [US5] 建立 ResetPasswordRequest DTO 於 MemberService/src/MemberService.Application/DTOs/Auth/ResetPasswordRequest.cs
+
+### Validators
+
+- [ ] T197 [US5] 實作 ForgotPasswordRequestValidator 於 MemberService/src/MemberService.Application/Validators/ForgotPasswordRequestValidator.cs (依賴 T195)
+- [ ] T198 [US5] 實作 ResetPasswordRequestValidator 於 MemberService/src/MemberService.Application/Validators/ResetPasswordRequestValidator.cs (依賴 T196)
+
+### Infrastructure 層
+
+- [ ] T199 [US5] 實作 PasswordResetTokenRepository 於 MemberService/src/MemberService.Infrastructure/Persistence/Repositories/PasswordResetTokenRepository.cs (依賴 T189)
+- [ ] T200 [US5] 實作 EmailNotificationService (AWS SES/SMTP) 於 MemberService/src/MemberService.Infrastructure/Notifications/EmailNotificationService.cs (依賴 T190)
+- [ ] T201 [US5] 實作 SmsNotificationService (AWS SNS/Twilio) 於 MemberService/src/MemberService.Infrastructure/Notifications/SmsNotificationService.cs (依賴 T190)
+- [ ] T202 [US5] 更新 ApplicationDbContext 加入 PasswordResetTokens DbSet 於 MemberService/src/MemberService.Infrastructure/Persistence/ApplicationDbContext.cs
+- [ ] T203 [US5] 建立 PasswordResetToken EF Configuration 於 MemberService/src/MemberService.Infrastructure/Persistence/Configurations/PasswordResetTokenConfiguration.cs
+- [ ] T204 [US5] 建立 Database Migration 新增 PasswordResetTokens 表
+
+### Application 層
+
+- [ ] T205 [US5] 實作 PasswordResetService.RequestPasswordReset 方法於 MemberService/src/MemberService.Application/Services/PasswordResetService.cs (依賴 T197, T199, T200, T201)
+- [ ] T206 [US5] 實作 PasswordResetService.ValidateCode 方法於 MemberService/src/MemberService.Application/Services/PasswordResetService.cs (依賴 T191, T192, T193)
+- [ ] T207 [US5] 實作 PasswordResetService.ResetPassword 方法於 MemberService/src/MemberService.Application/Services/PasswordResetService.cs (依賴 T198, T206)
+
+### Controllers
+
+- [ ] T208 [US5] 實作 AuthController.ForgotPassword 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T205)
+- [ ] T209 [US5] 實作 AuthController.ResetPassword 端點於 MemberService/src/MemberService.API/Controllers/AuthController.cs (依賴 T207)
+
+### 驗證
+
+- [ ] T210 [US5] 執行所有 US5 測試並確保通過 (覆蓋率 >80%)
+- [ ] T211 [US5] 手動測試電子郵件忘記密碼流程（發送驗證碼 → 驗證 → 重設密碼）
+- [ ] T212 [US5] 手動測試手機號碼忘記密碼流程（發送驗證碼 → 驗證 → 重設密碼）
+- [ ] T213 [US5] 驗證錯誤處理：驗證碼過期、驗證碼錯誤、嘗試次數超限、請求頻率限制
+- [ ] T214 [US5] 驗證安全性：帳號列舉防護（無論帳號是否存在皆回傳成功）
+- [ ] T215 [US5] 驗證密碼重設後所有 Refresh Token 被撤銷
+
+**檢查點**: 忘記密碼功能完整且經過測試
+
+---
+
 ## Phase 7: Polish & Cross-Cutting Concerns (打磨與跨領域關注)
 
 **目的**: 影響多個使用者故事的功能
@@ -414,6 +527,7 @@
 - **User Story 2 (P2)**: Foundational 完成後可開始 - 和 US1 弱依賴但可獨立測試
 - **User Story 3 (P2)**: Foundational 完成後可開始 - 和 US1 弱依賴但可獨立測試
 - **User Story 4 (P3)**: Foundational 完成後可開始 - 和 US1/US2 弱依賴但可獨立測試
+- **User Story 5 (P2)**: Foundational 完成後可開始 - 和 US1 弱依賴但可獨立測試，需要額外的通知服務整合
 
 ### Within Each User Story
 
@@ -493,28 +607,41 @@ Task: "實作 InvalidCredentialsException" (T090)
 
 ## Task Summary
 
-**總任務數**: 175 個任務 ✅ **100% 完成**
+**總任務數**: 238 個任務 ✅ **74% 完成** (175/238)
 **依使用者故事分類**:
 - Setup (Phase 1): 38 個任務 ✅
 - Foundational (Phase 2): 39 個任務（T039-T077）✅
-- User Story 1 (P1): 21 個任務（T078-T098）註冊與登入 【含 MVP】✅
+- User Story 1 (P1): 44 個任務（T078-T098-1）註冊與登入**含雙重驗證** 【含 MVP】⏳ **部分完成，需補充驗證功能**
 - User Story 2 (P2): 16 個任務（T099-T114）權杖更新 ✅
 - User Story 2.5 (P1): 9 個任務（T167-T175）JWT Token 驗證 ✅
 - User Story 3 (P2): 15 個任務（T115-T129）個人資訊查詢 ✅
 - User Story 4 (P3): 20 個任務（T130-T149）資訊更新與密碼變更 ✅
+- User Story 5 (P2): 40 個任務（T176-T215）忘記密碼 ⏳ **待實作**
 - Polish (Phase 7): 17 個任務（T150-T166）✅
+
+**新增功能**:
+- 📧 電子郵件驗證（6位數驗證碼，5分鐘有效，Redis儲存）
+- 📱 手機號碼驗證（6位數驗證碼，5分鐘有效，Redis儲存）
+- 🔓 註冊立即成功，未驗證帳號可登入但業務功能受限
+- 🔄 驗證碼重新發送功能（60秒冷卻時間）
+- ✅ 驗證碼3次失敗或5分鐘過期自動清除
 
 **平行機會**: 
 - Phase 1 有 31 個任務可平行開發
 - Phase 2 有 22 個任務可平行開發
+- User Story 1 有 23 個新增任務待實作（註冊驗證相關）
+- User Story 5 有 9 個測試任務可平行撰寫（T176-T184）
+- User Story 5 有 6 個 Domain 任務可平行開發（T185-T190）
+- User Story 5 有 4 個異常例外可平行開發（T191-T194）
 - 每個使用者故事內的測試任務可平行撰寫
 - 每個使用者故事內的 DTOs 與例外可平行執行
-- Foundational 完成後，4 個使用者故事可由不同開發者平行開發
+- Foundational 完成後，5 個使用者故事可由不同開發者平行開發
 
-**MVP 範圍建議**: 
-- Phase 1 (Setup) + Phase 2 (Foundational) + Phase 3 (User Story 1)
-- 共 98 個任務
-- 提供完整的註冊與登入功能
+**MVP 範圍更新**: 
+- Phase 1 (Setup) + Phase 2 (Foundational) + Phase 3 (User Story 1 含雙重驗證)
+- 共 121 個任務（原 98 個 + 23 個新增驗證任務）
+- 提供完整的註冊、雙重驗證與登入功能
+- 確保帳號安全性與真實性
 - 可獨立部署並展示價值
 
 **測試覆蓋率目標**: >80% (符合 Constitution 要求)

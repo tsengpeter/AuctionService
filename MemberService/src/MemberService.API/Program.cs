@@ -6,10 +6,13 @@ using MemberService.Infrastructure.IdGeneration;
 using MemberService.Infrastructure.Persistence;
 using MemberService.Infrastructure.Persistence.Repositories;
 using MemberService.Infrastructure.Security;
+using MemberService.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using StackExchange.Redis;
+using Amazon.SimpleNotificationService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +54,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddDbContext<MemberDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MemberDb")));
 
+// Add Redis
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+
 // Register domain services
 builder.Services.AddScoped<IIdGenerator, SnowflakeIdGenerator>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
@@ -68,6 +75,30 @@ builder.Services.AddScoped<ITokenGenerator>(sp =>
 builder.Services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IVerificationCodeService, VerificationCodeService>();
+
+// Register Email and SMS services
+builder.Services.AddScoped<IEmailService, GmailSmtpService>();
+
+// Choose one SMS service implementation:
+// Option 1: AWS SNS (uncomment to use)
+builder.Services.AddSingleton<IAmazonSimpleNotificationService>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var awsOptions = new Amazon.Extensions.NETCore.Setup.AWSOptions
+    {
+        Credentials = new Amazon.Runtime.BasicAWSCredentials(
+            config["Aws:AccessKey"],
+            config["Aws:SecretKey"]
+        ),
+        Region = Amazon.RegionEndpoint.GetBySystemName(config["Aws:Region"] ?? "ap-northeast-1")
+    };
+    return awsOptions.CreateServiceClient<IAmazonSimpleNotificationService>();
+});
+builder.Services.AddScoped<ISmsService, AwsSnsService>();
+
+// Option 2: AliCloud SMS (uncomment to use instead of AWS)
+// builder.Services.AddHttpClient<ISmsService, AliCloudSmsService>();
 
 // Register application services
 builder.Services.AddScoped<IAuthService, AuthService>();

@@ -23,7 +23,16 @@ paths:
       tags:
         - Authentication
       summary: 使用者註冊
-      description: 建立新的使用者帳號，註冊成功後自動登入並回傳 JWT
+      description: |
+        新使用者註冊，立即成功並可登入。
+        
+        **流程說明**:
+        1. 提交註冊資料（email, phoneNumber, password, username）
+        2. 系統立即建立帳號（EmailVerified=false, PhoneNumberVerified=false）
+        3. 回傳註冊成功訊息與使用者資訊（不包含 JWT tokens）
+        4. 使用者可以立即使用 /api/auth/login 登入獲取 JWT tokens
+        5. 驗證功能是獨立的，可透過 /api/auth/request-verification 請求驗證碼
+        6. 未驗證的帳號可正常登入，但可能在某些業務場景下有功能限制
       operationId: register
       requestBody:
         required: true
@@ -36,28 +45,35 @@ paths:
                 summary: 有效的註冊請求
                 value:
                   email: user@example.com
+                  phoneNumber: "+886912345678"
                   password: SecurePassword123
                   username: 張三
       responses:
         '201':
-          description: 註冊成功
+          description: |
+            註冊成功，帳號已建立
+            使用者可以立即使用 /api/auth/login 登入獲取 JWT tokens
+            驗證功能是獨立的，可隨時透過 /api/auth/request-verification 請求驗證
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
+                $ref: '#/components/schemas/RegisterResponse'
               examples:
                 success:
-                  summary: 註冊成功範例
+                  summary: 註冊成功
                   value:
                     success: true
+                    message: 註冊成功，請使用您的電子郵件與密碼登入
                     data:
-                      userId: 1234567890123456
-                      email: user@example.com
+                      userId: 1234567890123456789
                       username: 張三
-                      accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                      refreshToken: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4...
+                      email: user@example.com
+                      phoneNumber: "+886912345678"
+                      emailVerified: false
+                      phoneNumberVerified: false
+                      createdAt: '2026-01-15T10:00:00Z'
         '400':
-          description: 驗證失敗或電子郵件已被使用
+          description: 驗證失敗或電子郵件/手機號碼已被使用
           content:
             application/json:
               schema:
@@ -70,7 +86,36 @@ paths:
                     error:
                       code: EMAIL_ALREADY_EXISTS
                       message: 此電子郵件已被使用
-                      timestamp: '2025-11-18T10:30:00Z'
+                      timestamp: '2026-01-14T10:30:00Z'
+                      path: /api/auth/register
+                phoneExists:
+                  summary: 手機號碼已存在
+                  value:
+                    success: false
+                    error:
+                      code: PHONE_ALREADY_EXISTS
+                      message: 此手機號碼已被使用
+                      timestamp: '2026-01-14T10:30:00Z'
+                      path: /api/auth/register
+                accountPendingVerification:
+                  summary: 帳號已建立但未完成驗證
+                  value:
+                    success: false
+                    error:
+                      code: ACCOUNT_PENDING_VERIFICATION
+                      message: 此帳號已建立但尚未完成驗證，請完成驗證或重新發送驗證碼
+                      timestamp: '2026-01-14T10:30:00Z'
+                      path: /api/auth/register
+                verificationCodeCooldown:
+                  summary: 驗證碼仍在冷卻時間內
+                  value:
+                    success: false
+                    error:
+                      code: VERIFICATION_CODE_COOLDOWN
+                      message: 驗證碼已發送，請檢查您的電子郵件和手機，或等待 45 秒後重新發送
+                      details:
+                        remainingSeconds: 45
+                      timestamp: '2026-01-14T10:30:00Z'
                       path: /api/auth/register
                 validationError:
                   summary: 驗證錯誤
@@ -79,15 +124,204 @@ paths:
                     error:
                       code: VALIDATION_ERROR
                       message: 密碼必須至少 8 個字元
-                      timestamp: '2025-11-18T10:30:00Z'
+                      timestamp: '2026-01-14T10:30:00Z'
                       path: /api/auth/register
+
+  /api/auth/request-verification:
+    post:
+      tags:
+        - Authentication
+      summary: 請求發送驗證碼
+      description: |
+        已登入的使用者可請求發送驗證碼到電子郵件或手機號碼。
+        
+        **使用場景**:
+        - 驗證電子郵件（EmailVerification）
+        - 驗證手機號碼（PhoneVerification）
+        - 未來可擴展：更新電子郵件、更新手機號碼等
+        
+        **限制**:
+        - 需要已登入（提供有效的 JWT token）
+        - 60 秒冷卻時間
+        - 如果該項目已驗證，會回傳錯誤
+      security:
+        - BearerAuth: []
+      operationId: requestVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestVerificationRequest'
+            examples:
+              emailVerification:
+                summary: 請求電子郵件驗證碼
+                value:
+                  verificationType: EmailVerification
+              phoneVerification:
+                summary: 請求手機驗證碼
+                value:
+                  verificationType: PhoneVerification
+      responses:
+        '200':
+          description: 驗證碼已發送
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                emailSent:
+                  summary: 電子郵件驗證碼已發送
+                  value:
+                    success: true
+                    message: 驗證碼已發送至您的電子郵件，請在 5 分鐘內完成驗證
+                smsSent:
+                  summary: 手機驗證碼已發送
+                  value:
+                    success: true
+                    message: 驗證碼已發送至您的手機號碼，請在 5 分鐘內完成驗證
+        '400':
+          description: 驗證請求失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                alreadyVerified:
+                  summary: 該項目已驗證
+                  value:
+                    success: false
+                    error:
+                      code: ALREADY_VERIFIED
+                      message: 您的電子郵件已經驗證過了
+                      timestamp: '2026-01-15T10:00:00Z'
+                      path: /api/auth/request-verification
+                cooldown:
+                  summary: 冷卻時間內
+                  value:
+                    success: false
+                    error:
+                      code: VERIFICATION_CODE_COOLDOWN
+                      message: 請等待 45 秒後再重新發送驗證碼
+                      details:
+                        remainingSeconds: 45
+                      timestamp: '2026-01-15T10:00:00Z'
+                      path: /api/auth/request-verification
+        '401':
+          description: 未登入或 token 無效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/verify:
+    post:
+      tags:
+        - Authentication
+      summary: 驗證驗證碼
+      description: |
+        使用者輸入驗證碼來完成驗證。
+        
+        **驗證類型**:
+        - EmailVerification: 驗證電子郵件，成功後設置 EmailVerified=true
+        - PhoneVerification: 驗證手機號碼，成功後設置 PhoneNumberVerified=true
+        
+        **驗證規則**:
+        - 驗證碼有效期 5 分鐘
+        - 每個驗證碼最多 3 次錯誤嘗試
+        - 驗證碼儲存在 Redis，過期或失敗3次後自動清除
+        - 需要已登入（提供有效的 JWT token）
+      security:
+        - BearerAuth: []
+      operationId: verify
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+            examples:
+              emailVerification:
+                summary: 驗證電子郵件
+                value:
+                  verificationType: EmailVerification
+                  code: "123456"
+              phoneVerification:
+                summary: 驗證手機號碼
+                value:
+                  verificationType: PhoneVerification
+                  code: "654321"
+      responses:
+        '200':
+          description: 驗證成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                emailVerified:
+                  summary: 電子郵件驗證成功
+                  value:
+                    success: true
+                    message: 電子郵件驗證成功
+                phoneVerified:
+                  summary: 手機號碼驗證成功
+                  value:
+                    success: true
+                    message: 手機號碼驗證成功
+        '400':
+          description: 驗證碼錯誤或已過期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCode:
+                  summary: 驗證碼錯誤
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_VERIFICATION_CODE
+                      message: 驗證碼錯誤，剩餘嘗試次數：2
+                      timestamp: '2026-01-15T10:00:00Z'
+                      path: /api/auth/verify
+                codeExpired:
+                  summary: 驗證碼已過期
+                  value:
+                    success: false
+                    error:
+                      code: VERIFICATION_CODE_EXPIRED
+                      message: 驗證碼已過期，請重新發送
+                      timestamp: '2026-01-15T10:00:00Z'
+                      path: /api/auth/verify
+                tooManyAttempts:
+                  summary: 嘗試次數過多
+                  value:
+                    success: false
+                    error:
+                      code: TOO_MANY_ATTEMPTS
+                      message: 驗證碼嘗試次數過多，請重新發送驗證碼
+                      timestamp: '2026-01-15T10:00:00Z'
+                      path: /api/auth/verify
+        '401':
+          description: 未登入或 token 無效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/auth/login:
     post:
       tags:
         - Authentication
       summary: 使用者登入
-      description: 使用電子郵件與密碼進行身份驗證
+      description: |
+        使用電子郵件與密碼進行身份驗證，登入成功後回傳 JWT tokens。
+        
+        **說明**:
+        - 已註冊的使用者都可以登入，無論是否完成驗證
+        - 未驗證的帳號可正常登入，但可能在某些業務場景下有功能限制
+        - 登入成功後回傳 access token 和 refresh token
       operationId: login
       requestBody:
         required: true
@@ -103,11 +337,26 @@ paths:
                   password: SecurePassword123
       responses:
         '200':
-          description: 登入成功
+          description: 登入成功，回傳 JWT tokens 和使用者資料（包含驗證狀態）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthSuccessResponse'
+              examples:
+                success:
+                  summary: 登入成功
+                  value:
+                    success: true
+                    data:
+                      userId: 1234567890123456789
+                      email: user@example.com
+                      username: 張三
+                      phoneNumber: "+886912345678"
+                      emailVerified: true
+                      phoneNumberVerified: false
+                      createdAt: '2026-01-15T10:00:00Z'
+                      accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9
         '401':
           description: 登入失敗（電子郵件或密碼錯誤）
           content:
@@ -122,7 +371,7 @@ paths:
                     error:
                       code: INVALID_CREDENTIALS
                       message: 電子郵件或密碼錯誤
-                      timestamp: '2025-11-18T10:30:00Z'
+                      timestamp: '2026-01-14T10:30:00Z'
                       path: /api/auth/login
 
   /api/auth/refresh-token:
@@ -217,11 +466,21 @@ paths:
     get:
       tags:
         - Authentication
-      summary: 驗證 JWT Token
+      summary: 驗證 JWT Token 並取得使用者驗證狀態
       description: |
-        驗證 JWT Access Token 是否有效，供其他微服務調用以確認使用者身份。
-        此端點主要用於服務間通訊，讓其他服務（如 BiddingService、AuctionService）
-        能夠驗證從客戶端傳來的 Token 並獲取使用者 ID。
+        驗證 JWT Access Token 是否有效，供其他微服務調用以確認使用者身份和驗證狀態。
+        
+        **返回信息**:
+        - Token 有效性
+        - 使用者 ID
+        - Token 過期時間
+        - **電子郵件驗證狀態** (emailVerified)
+        - **手機號碼驗證狀態** (phoneNumberVerified)
+        
+        **使用場景**:
+        - 其他微服務（BiddingService、AuctionService）驗證使用者身份
+        - 檢查使用者是否有權限執行特定操作（例如：未驗證用戶不能競標）
+        - 獲取最新的驗證狀態（即使 JWT 中的 claims 可能過時）
       operationId: validateToken
       security:
         - BearerAuth: []
@@ -233,14 +492,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenValidationResponse'
               examples:
-                success:
-                  summary: Token 驗證成功範例
+                successVerified:
+                  summary: Token 驗證成功（已完成雙重驗證）
                   value:
                     success: true
                     data:
                       isValid: true
-                      userId: 1234567890123456
-                      expiresAt: '2025-11-18T11:00:00Z'
+                      userId: 1234567890123456789
+                      email: user@example.com
+                      username: 張三
+                      emailVerified: true
+                      phoneNumberVerified: true
+                      expiresAt: '2026-01-15T11:00:00Z'
+                successPartialVerified:
+                  summary: Token 驗證成功（部分驗證）
+                  value:
+                    success: true
+                    data:
+                      isValid: true
+                      userId: 1234567890123456789
+                      email: user@example.com
+                      username: 張三
+                      emailVerified: true
+                      phoneNumberVerified: false
+                      expiresAt: '2026-01-15T11:00:00Z'
+                successNotVerified:
+                  summary: Token 驗證成功（未驗證）
+                  value:
+                    success: true
+                    data:
+                      isValid: true
+                      userId: 1234567890123456789
+                      email: user@example.com
+                      username: 張三
+                      emailVerified: false
+                      phoneNumberVerified: false
+                      expiresAt: '2026-01-15T11:00:00Z'
         '401':
           description: Token 無效或已過期
           content:
@@ -266,6 +553,178 @@ paths:
                       message: JWT Token 已過期，請重新登入或使用 Refresh Token 更新
                       timestamp: '2025-11-18T10:30:00Z'
                       path: /api/auth/validate
+
+  /api/auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: 忘記密碼 - 發送驗證碼
+      description: |
+        當使用者忘記密碼時，透過電子郵件或手機號碼發送 6 位數驗證碼。
+        
+        **安全性考量**:
+        - 無論帳號是否存在，一律回傳成功（防止帳號列舉攻擊）
+        - 驗證碼有效期 5 分鐘
+        - 每個驗證碼最多允許 3 次錯誤嘗試
+        - 60 秒冷卻時間，期間無法重新產生驗證碼
+        - 驗證碼儲存在 Redis，過期或失敗3次後自動清除
+        
+        **傳送方式**:
+        - `email`: 透過 AWS SES 或 SMTP 發送至註冊信箱
+        - `sms`: 透過 AWS SNS 或 Twilio 發送至註冊手機
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            examples:
+              emailRequest:
+                summary: 使用電子郵件發送驗證碼
+                value:
+                  identifier: user@example.com
+                  deliveryMethod: email
+              smsRequest:
+                summary: 使用手機號碼發送驗證碼
+                value:
+                  identifier: +886912345678
+                  deliveryMethod: sms
+      responses:
+        '200':
+          description: |
+            驗證碼已發送（無論帳號是否存在皆回傳此訊息）
+            實際驗證碼只會發送給有效的註冊帳號
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success:
+                  summary: 驗證碼發送成功
+                  value:
+                    success: true
+                    message: 驗證碼已發送，請查收並在 5 分鐘內完成驗證
+        '400':
+          description: 驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidFormat:
+                  summary: 識別碼格式錯誤
+                  value:
+                    success: false
+                    error:
+                      code: VALIDATION_ERROR
+                      message: 電子郵件或手機號碼格式錯誤
+                      timestamp: '2025-01-14T10:30:00Z'
+                      path: /api/auth/forgot-password
+        '429':
+          description: 請求過於頻繁（60 秒冷卻時間）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rateLimitExceeded:
+                  summary: 請求過於頻繁
+                  value:
+                    success: false
+                    error:
+                      code: RATE_LIMIT_EXCEEDED
+                      message: 請求過於頻繁，請稍後再試
+                      timestamp: '2025-01-14T10:30:00Z'
+                      path: /api/auth/forgot-password
+
+  /api/auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: 重設密碼
+      description: |
+        使用驗證碼重設密碼。
+        
+        **驗證流程**:
+        1. 驗證 6 位數驗證碼是否正確且未過期
+        2. 檢查嘗試次數是否超過 3 次
+        3. 驗證成功後更新密碼並撤銷所有 Refresh Token
+        
+        **安全措施**:
+        - 驗證碼錯誤次數達 3 次後自動失效
+        - 成功重設密碼後，該使用者所有未使用的驗證碼全部失效
+        - 撤銷所有現有的 Refresh Token（強制重新登入）
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            examples:
+              validRequest:
+                summary: 有效的重設密碼請求
+                value:
+                  identifier: user@example.com
+                  code: "123456"
+                  newPassword: NewSecurePassword123
+      responses:
+        '200':
+          description: 密碼重設成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success:
+                  summary: 密碼重設成功
+                  value:
+                    success: true
+                    message: 密碼已成功重設，請使用新密碼登入
+        '400':
+          description: 驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCode:
+                  summary: 驗證碼錯誤
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_VERIFICATION_CODE
+                      message: 驗證碼錯誤，剩餘嘗試次數：2
+                      timestamp: '2025-01-14T10:30:00Z'
+                      path: /api/auth/reset-password
+                codeExpired:
+                  summary: 驗證碼已過期
+                  value:
+                    success: false
+                    error:
+                      code: VERIFICATION_CODE_EXPIRED
+                      message: 驗證碼已過期，請重新發送
+                      timestamp: '2025-01-14T10:30:00Z'
+                      path: /api/auth/reset-password
+                tooManyAttempts:
+                  summary: 嘗試次數過多
+                  value:
+                    success: false
+                    error:
+                      code: TOO_MANY_ATTEMPTS
+                      message: 驗證碼嘗試次數過多，請重新發送驗證碼
+                      timestamp: '2025-01-14T10:30:00Z'
+                      path: /api/auth/reset-password
+                passwordTooWeak:
+                  summary: 密碼強度不足
+                  value:
+                    success: false
+                    error:
+                      code: VALIDATION_ERROR
+                      message: 密碼必須至少 8 個字元，包含英文與數字
+                      timestamp: '2025-01-14T10:30:00Z'
+                      path: /api/auth/reset-password
 
   /api/users/me:
     get:
@@ -476,6 +935,7 @@ components:
       type: object
       required:
         - email
+        - phoneNumber
         - password
         - username
       properties:
@@ -485,6 +945,12 @@ components:
           maxLength: 255
           description: 電子郵件地址（唯一）
           example: user@example.com
+        phoneNumber:
+          type: string
+          maxLength: 15
+          pattern: '^\+[1-9]\d{1,14}$'
+          description: 手機號碼（E.164 格式，唯一）
+          example: "+886912345678"
         password:
           type: string
           minLength: 8
@@ -498,6 +964,54 @@ components:
           pattern: '^[\p{L}\s]+$'
           description: 使用者名稱（僅允許字母與空格）
           example: 張三
+
+    VerifyRegistrationRequest:
+      type: object
+      required:
+        - email
+        - emailCode
+        - smsCode
+      properties:
+        email:
+          type: string
+          format: email
+          description: 註冊時使用的電子郵件地址
+          example: user@example.com
+        emailCode:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^\d{6}$'
+          description: 電子郵件驗證碼（6 位數）
+          example: "123456"
+        smsCode:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^\d{6}$'
+          description: 手機簡訊驗證碼（6 位數）
+          example: "654321"
+
+    ResendVerificationRequest:
+      type: object
+      required:
+        - email
+        - deliveryMethods
+      properties:
+        email:
+          type: string
+          format: email
+          description: 註冊時使用的電子郵件地址
+          example: user@example.com
+        deliveryMethods:
+          type: array
+          items:
+            type: string
+            enum:
+              - email
+              - sms
+          description: 要重新發送的驗證碼類型
+          example: ["email", "sms"]
 
     LoginRequest:
       type: object
@@ -534,6 +1048,49 @@ components:
           type: string
           description: 要撤銷的 Refresh Token
           example: c4e5a8b9d2f3e1a7b6c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - identifier
+        - deliveryMethod
+      properties:
+        identifier:
+          type: string
+          description: 電子郵件地址或手機號碼（E.164 格式）
+          example: user@example.com
+        deliveryMethod:
+          type: string
+          enum:
+            - email
+            - sms
+          description: 驗證碼傳送方式
+          example: email
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - identifier
+        - code
+        - newPassword
+      properties:
+        identifier:
+          type: string
+          description: 發送驗證碼時使用的電子郵件地址或手機號碼
+          example: user@example.com
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^\d{6}$'
+          description: 6 位數驗證碼
+          example: "123456"
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: 新密碼（至少 8 個字元）
+          example: NewSecurePassword123
 
     UpdateProfileRequest:
       type: object
@@ -584,6 +1141,10 @@ components:
             - userId
             - email
             - username
+            - phoneNumber
+            - emailVerified
+            - phoneNumberVerified
+            - createdAt
             - accessToken
             - refreshToken
           properties:
@@ -591,7 +1152,7 @@ components:
               type: integer
               format: int64
               description: 使用者的雪花ID
-              example: 1234567890123456
+              example: 1234567890123456789
             email:
               type: string
               format: email
@@ -601,6 +1162,23 @@ components:
               type: string
               description: 使用者名稱
               example: 張三
+            phoneNumber:
+              type: string
+              description: 手機號碼（E.164 格式）
+              example: "+886912345678"
+            emailVerified:
+              type: boolean
+              description: 電子郵件是否已驗證
+              example: true
+            phoneNumberVerified:
+              type: boolean
+              description: 手機號碼是否已驗證
+              example: false
+            createdAt:
+              type: string
+              format: date-time
+              description: 帳號建立時間（UTC）
+              example: '2026-01-15T10:00:00Z'
             accessToken:
               type: string
               description: JWT Access Token（有效期限 15 分鐘）
@@ -717,6 +1295,11 @@ components:
           required:
             - isValid
             - userId
+            - email
+            - username
+            - emailVerified
+            - phoneNumberVerified
+            - expiresAt
           properties:
             isValid:
               type: boolean
@@ -726,16 +1309,43 @@ components:
               type: integer
               format: int64
               description: 使用者的雪花ID
-              example: 1234567890123456
+              example: 1234567890123456789
+            email:
+              type: string
+              format: email
+              description: 使用者的電子郵件
+              example: user@example.com
+            username:
+              type: string
+              description: 使用者名稱
+              example: 張三
+            emailVerified:
+              type: boolean
+              description: 電子郵件是否已驗證（從資料庫查詢的最新狀態）
+              example: true
+            phoneNumberVerified:
+              type: boolean
+              description: 手機號碼是否已驗證（從資料庫查詢的最新狀態）
+              example: true
             expiresAt:
               type: string
               format: date-time
-              description: Token 過期時間（UTC，選填）
-              example: '2025-11-18T11:00:00Z'
-            errorMessage:
-              type: string
-              description: 驗證失敗時的錯誤訊息（選填）
-              example: 'Token has expired'
+              description: Token 過期時間（UTC）
+              example: '2026-01-15T11:00:00Z'
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          description: 成功訊息
+          example: 操作成功
 
     ErrorResponse:
       type: object
@@ -759,6 +1369,9 @@ components:
               description: 錯誤代碼
               enum:
                 - EMAIL_ALREADY_EXISTS
+                - PHONE_ALREADY_EXISTS
+                - ACCOUNT_PENDING_VERIFICATION
+                - VERIFICATION_CODE_COOLDOWN
                 - INVALID_CREDENTIALS
                 - INVALID_TOKEN
                 - TOKEN_EXPIRED
@@ -767,6 +1380,11 @@ components:
                 - VALIDATION_ERROR
                 - USER_NOT_FOUND
                 - INVALID_OLD_PASSWORD
+                - INVALID_VERIFICATION_CODE
+                - VERIFICATION_CODE_EXPIRED
+                - TOO_MANY_ATTEMPTS
+                - RATE_LIMIT_EXCEEDED
+                - ACCOUNT_NOT_VERIFIED
               example: EMAIL_ALREADY_EXISTS
             message:
               type: string

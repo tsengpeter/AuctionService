@@ -20,15 +20,20 @@
 | Email | string | 是 | 電子郵件地址 | 唯一，最大長度 255，符合電子郵件格式 |
 | PasswordHash | string | 是 | bcrypt 雜湊後的密碼 | 包含 bcrypt(password + snowflakeId) |
 | Username | string | 是 | 使用者顯示名稱 | 長度 3-50 字元，僅允許字母與空格 |
+| PhoneNumber | string | 是 | 手機號碼 | 唯一，符合 E.164 格式（+[國碼][號碼]），最大長度 15 |
+| PhoneNumberVerified | bool | 是 | 手機號碼是否已驗證 | 預設 false，註冊時必須驗證 |
+| EmailVerified | bool | 是 | 電子郵件是否已驗證 | 預設 false，註冊時必須驗證 |
 | CreatedAt | DateTime | 是 | 帳號建立時間 | UTC 時間，自動設定 |
 | UpdatedAt | DateTime | 是 | 最後更新時間 | UTC 時間，自動更新 |
 
 **關聯關係**:
 - 一對多: `User` → `RefreshToken` (一個使用者可有多個 Refresh Token)
+- 一對多: `User` → `PasswordResetToken` (一個使用者可有多個密碼重設權杖)
 
 **索引**:
 - 主鍵索引: `Id` (BIGINT)
 - 唯一索引: `Email` (用於登入查詢與唯一性驗證)
+- 唯一索引: `PhoneNumber` (用於忘記密碼驗證與唯一性)
 
 **Entity Framework 配置**:
 
@@ -51,11 +56,22 @@ public class User
     [RegularExpression(@"^[\p{L}\s]+$")]
     public required string Username { get; set; }
     
+    [Required]
+    [Phone]
+    [MaxLength(15)]
+    [RegularExpression(@"^\+[1-9]\d{1,14}$")]
+    public required string PhoneNumber { get; set; }
+    
+    public bool PhoneNumberVerified { get; set; } = false;
+    
+    public bool EmailVerified { get; set; } = false;
+    
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     
     // 導航屬性
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 }
 ```
 
@@ -67,11 +83,15 @@ CREATE TABLE "Users" (
     "Email" VARCHAR(255) NOT NULL UNIQUE,
     "PasswordHash" TEXT NOT NULL,
     "Username" VARCHAR(50) NOT NULL,
+    "PhoneNumber" VARCHAR(15) NOT NULL UNIQUE,
+    "PhoneNumberVerified" BOOLEAN NOT NULL DEFAULT FALSE,
+    "EmailVerified" BOOLEAN NOT NULL DEFAULT FALSE,
     "CreatedAt" TIMESTAMP WITH TIME ZONE NOT NULL,
     "UpdatedAt" TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE INDEX "IX_Users_Email" ON "Users" ("Email");
+CREATE INDEX "IX_Users_PhoneNumber" ON "Users" ("PhoneNumber");
 ```
 
 ---
@@ -151,6 +171,258 @@ CREATE TABLE "RefreshTokens" (
 CREATE INDEX "IX_RefreshTokens_Token" ON "RefreshTokens" ("Token");
 CREATE INDEX "IX_RefreshTokens_UserId" ON "RefreshTokens" ("UserId");
 CREATE INDEX "IX_RefreshTokens_UserId_ExpiresAt" ON "RefreshTokens" ("UserId", "ExpiresAt");
+```
+
+---
+
+### 驗證碼儲存機制 (Redis)
+
+**用途**: 電子郵件與手機號碼驗證碼的暂存儲存，使用 Redis TTL 機制自動清除過期資料。
+
+**Redis Key 格式**:
+
+```
+verification:{userId}:{verificationType}:{deliveryMethod}
+```
+
+**範例**:
+- 電子郵件驗證: `verification:1234567890123456789:email:verification`
+- 手機驗證: `verification:1234567890123456789:phone:verification`
+
+**Value 結構** (JSON):
+
+```json
+{
+  "code": "123456",
+  "attemptCount": 0,
+  "createdAt": "2026-01-19T10:00:00Z",
+  "target": "user@example.com"
+}
+```
+
+**欄位說明**:
+
+| 欄位 | 型別 | 說明 |
+|------|------|------|
+| code | string | 6 位數字驗證碼 |
+| attemptCount | int | 驗證失敗次數，預設 0，最多 3 次 |
+| createdAt | string | 驗證碼生成時間 (ISO 8601 格式) |
+| target | string | 驗證目標（電子郵件位址或手機號碼 E.164 格式） |
+
+**TTL 設定**:
+- 有效期: **5 分鐘** (300 秒)
+- Redis 會在 TTL 過期後自動刪除 Key
+
+**業務規則**:
+
+1. **生成驗證碼** (POST /api/auth/request-verification):
+   - 生成 6 位隨機數字驗證碼
+   - 儲存到 Redis，設定 TTL 5 分鐘
+   - 發送驗證碼到電子郵件或手機
+   - 每個 userId + verificationType + deliveryMethod 組合同時間只能有一個有效驗證碼
+
+2. **驗證驗證碼** (POST /api/auth/verify):
+   - 從 Redis 讀取驗證碼資料
+   - 比對使用者輸入的驗證碼
+   - **驗證成功**:
+     - 刪除 Redis 中的驗證碼
+     - 更新 User 表的 EmailVerified 或 PhoneNumberVerified 欄位為 true
+   - **驗證失敗**:
+     - attemptCount++
+     - 如果 attemptCount >= 3，刪除 Redis 中的驗證碼
+     - 否則更新 Redis 中的 attemptCount
+
+3. **自動清除機制**:
+   - 5 分鐘未驗證：Redis TTL 自動清除
+   - 3 次驗證失敗：手動刪除 Redis Key
+   - 驗證成功：手動刪除 Redis Key
+
+4. **冷卻時間**:
+   - 驗證碼發送後 60 秒內不可重新發送同類型驗證碼
+   - 透過 createdAt 欄位檢查
+
+**Redis 命令示例**:
+
+```bash
+# 儲存驗證碼 (有效期 5 分鐘)
+SETEX verification:1234567890123456789:email:verification 300 '{"code":"123456","attemptCount":0,"createdAt":"2026-01-19T10:00:00Z","target":"user@example.com"}'
+
+# 讀取驗證碼
+GET verification:1234567890123456789:email:verification
+
+# 更新 attemptCount
+SET verification:1234567890123456789:email:verification '{"code":"123456","attemptCount":1,"createdAt":"2026-01-19T10:00:00Z","target":"user@example.com"}' KEEPTTL
+
+# 刪除驗證碼
+DEL verification:1234567890123456789:email:verification
+
+# 檢查剩餘 TTL
+TTL verification:1234567890123456789:email:verification
+```
+
+**C# 實作示例**:
+
+```csharp
+public class VerificationCode
+{
+    [JsonPropertyName("code")]
+    public required string Code { get; set; }
+    
+    [JsonPropertyName("attemptCount")]
+    public int AttemptCount { get; set; } = 0;
+    
+    [JsonPropertyName("createdAt")]
+    public DateTime CreatedAt { get; set; }
+    
+    [JsonPropertyName("target")]
+    public required string Target { get; set; }
+    
+    [JsonIgnore]
+    public bool IsValid => AttemptCount < 3;
+    
+    [JsonIgnore]
+    public int RemainingAttempts => Math.Max(0, 3 - AttemptCount);
+}
+
+public enum VerificationType
+{
+    Email,
+    Phone
+}
+
+public interface IVerificationCodeService
+{
+    Task<string> GenerateAndStoreAsync(long userId, VerificationType type, string target);
+    Task<VerificationCode?> GetAsync(long userId, VerificationType type);
+    Task<bool> ValidateAsync(long userId, VerificationType type, string code);
+    Task DeleteAsync(long userId, VerificationType type);
+    Task IncrementAttemptAsync(long userId, VerificationType type);
+}
+```
+
+**優點**:
+- ✅ 高效能：Redis 內存儲存，讀寫極快
+- ✅ 自動清除：TTL 機制無需手動維護
+- ✅ 簡化架構：無需複雜的資料庫查詢
+- ✅ 減輕資料庫負擔：暑存資料不入庫
+
+**注意事項**:
+- ⚠️ Redis 重啟會消失所有驗證碼（使用者需重新請求）
+- ⚠️ 建議配置 Redis 持久化 (AOF/RDB) 或使用 Redis Sentinel/Cluster
+- ⚠️ 驗證碼為敏感資料，考慮對 code 欄位加密儲存
+
+---
+
+### PasswordResetToken (密碼重設權杖)
+
+**用途**: 代表使用者忘記密碼時產生的驗證碼，支援電子郵件與手機號碼兩種傳送方式。
+
+**備註**: 此實體功能與 VerificationToken 重疊，未來可考慮整合到 VerificationToken（新增 PasswordReset 類型）以簡化架構。
+
+**屬性**:
+
+| 欄位 | 型別 | 必填 | 說明 | 驗證規則 |
+|------|------|------|------|----------|
+| Id | Guid | 是 | 權杖唯一識別碼 | 主鍵，自動生成 GUID |
+| UserId | long | 是 | 所屬使用者 ID（外鍵） | 關聯到 User.Id |
+| Code | string | 是 | 6 位數驗證碼 | 數字字串，例如 "123456" |
+| DeliveryMethod | enum | 是 | 傳送方式 | Email 或 Sms |
+| ExpiresAt | DateTime | 是 | 驗證碼過期時間 | UTC 時間，生成後 5 分鐘 |
+| IsUsed | bool | 是 | 是否已使用 | 預設 false，重設密碼後設為 true |
+| AttemptCount | int | 是 | 嘗試次數 | 預設 0，最多允許 3 次 |
+| CreatedAt | DateTime | 是 | 權杖建立時間 | UTC 時間，自動設定 |
+
+**DeliveryMethod 列舉**:
+
+```csharp
+public enum DeliveryMethod
+{
+    Email = 1,
+    Sms = 2
+}
+```
+
+**關聯關係**:
+- 多對一: `PasswordResetToken` → `User` (多個密碼重設權杖屬於一個使用者)
+
+**索引**:
+- 主鍵索引: `Id` (GUID)
+- 複合索引: `(UserId, ExpiresAt)` (用於查詢使用者的有效驗證碼)
+- 複合索引: `(Code, ExpiresAt)` (用於驗證碼驗證)
+- 外鍵索引: `UserId` (關聯查詢最佳化)
+
+**業務規則**:
+- 每個使用者同一時間只能有一個未使用且未過期的驗證碼（相同 DeliveryMethod）
+- 驗證碼錯誤超過 3 次後，該驗證碼失效
+- 成功重設密碼後，該使用者所有未使用的驗證碼全部標記為已使用
+- 驗證碼生成後有 60 秒冷卻時間，期間無法重新產生
+
+**Entity Framework 配置**:
+
+```csharp
+public class PasswordResetToken
+{
+    public Guid Id { get; set; }
+    
+    [Required]
+    public long UserId { get; set; }
+    
+    [Required]
+    [StringLength(6, MinimumLength = 6)]
+    [RegularExpression(@"^\d{6}$")]
+    public required string Code { get; set; }
+    
+    [Required]
+    public DeliveryMethod DeliveryMethod { get; set; }
+    
+    public DateTime ExpiresAt { get; set; }
+    
+    public bool IsUsed { get; set; } = false;
+    
+    public int AttemptCount { get; set; } = 0;
+    
+    public DateTime CreatedAt { get; set; }
+    
+    // 導航屬性
+    [ForeignKey(nameof(UserId))]
+    public User User { get; set; } = null!;
+    
+    // 計算屬性
+    [NotMapped]
+    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+    
+    [NotMapped]
+    public bool IsValid => !IsUsed && !IsExpired && AttemptCount < 3;
+    
+    [NotMapped]
+    public int RemainingAttempts => Math.Max(0, 3 - AttemptCount);
+}
+```
+
+**資料庫映射** (PostgreSQL):
+
+```sql
+CREATE TABLE "PasswordResetTokens" (
+    "Id" UUID PRIMARY KEY,
+    "UserId" BIGINT NOT NULL,
+    "Code" VARCHAR(6) NOT NULL,
+    "DeliveryMethod" INTEGER NOT NULL,
+    "ExpiresAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "IsUsed" BOOLEAN NOT NULL DEFAULT FALSE,
+    "AttemptCount" INTEGER NOT NULL DEFAULT 0,
+    "CreatedAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+    
+    CONSTRAINT "FK_PasswordResetTokens_Users_UserId" 
+        FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") 
+        ON DELETE CASCADE,
+    
+    CONSTRAINT "CK_PasswordResetTokens_Code" CHECK ("Code" ~ '^\d{6}$'),
+    CONSTRAINT "CK_PasswordResetTokens_AttemptCount" CHECK ("AttemptCount" >= 0 AND "AttemptCount" <= 3)
+);
+
+CREATE INDEX "IX_PasswordResetTokens_UserId_ExpiresAt" ON "PasswordResetTokens" ("UserId", "ExpiresAt");
+CREATE INDEX "IX_PasswordResetTokens_Code_ExpiresAt" ON "PasswordResetTokens" ("Code", "ExpiresAt");
+CREATE INDEX "IX_PasswordResetTokens_UserId" ON "PasswordResetTokens" ("UserId");
 ```
 
 ---

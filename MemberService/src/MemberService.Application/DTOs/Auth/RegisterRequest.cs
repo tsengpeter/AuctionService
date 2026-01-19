@@ -19,4 +19,9 @@ public class RegisterRequest
     /// User's username
     /// </summary>
     public required string Username { get; set; }
+
+    /// <summary>
+    /// User's phone number in E.164 format (e.g., +886912345678)
+    /// </summary>
+    public required string PhoneNumber { get; set; }
 }

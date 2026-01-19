@@ -13,11 +13,12 @@ public class UserTests
         // Arrange
         var id = 123456789L;
         var email = Email.Create("test@example.com").Value!;
+        var phoneNumber = "+886912345678";
         var passwordHash = "hashedpassword";
         var username = Username.Create("Test User").Value!;
 
         // Act
-        var user = new User(id, email, passwordHash, username);
+        var user = new User(id, email, phoneNumber, passwordHash, username);
 
         // Assert
         user.Id.Should().Be(id);
@@ -66,8 +67,9 @@ public class UserTests
     {
         var id = 123456789L;
         var email = Email.Create("test@example.com").Value!;
+        var phoneNumber = "+886912345678";
         var passwordHash = "hashedpassword";
         var username = Username.Create("Test User").Value!;
-        return new User(id, email, passwordHash, username);
+        return new User(id, email, phoneNumber, passwordHash, username);
     }
 }
