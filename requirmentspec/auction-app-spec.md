@@ -2,7 +2,7 @@
 
 ## 1. 簡介
 
-本拍賣程式提供一個線上拍賣平台，讓使用者可輕鬆瀏覽、競標與管理商品，支援手機與網頁版，並強調良好體驗。
+本拍賣程式提供一個線上拍賣平台，讓使用者可輕鬆瀏覽、競標與管理商品，支援手機與網頁版，並強調良好體驗。系統採用模組化單體架構，整合競標、訂單與金流服務。
 
 ## 2. 功能需求
 
@@ -44,6 +44,20 @@
 - 在網站右上角應有通知 icon，點擊後可透過 API 讀取歷史通知，例如「您追蹤的商品已上架」、「恭喜您得標」等。
 - 未讀通知應有紅點提示。
 
+### 2.8 訂單管理頁 (New)
+
+- **買家視角**:
+    - 查看「我的訂單」列表，包含狀態 (待付款、待出貨、已完成)。
+    - 對於「待付款」訂單，提供「前往結帳」按鈕。
+- **賣家視角**:
+    - 查看「銷售訂單」列表。
+    - 對於「已付款」訂單，提供「更新出貨狀態」功能。
+
+### 2.9 結帳與支付 (New)
+
+- 使用者點擊「前往結帳」後，系統導向第三方支付頁面 (如 Stripe/ECPay)。
+- 支付成功後，自動跳轉回訂單完成頁面，並顯示交易成功訊息。
+
 ## 3. 系統架構
 
 ### 3.1 NX 專案結構
@@ -52,30 +66,36 @@
 - 專案分為：
   - 前端 Web（Next.js）
   - 行動版（Next.js）
-  - 共用函式庫（API、hooks、i18n、redux、樣式、UI 元件等）
-- 共用函式庫（libs/）統一管理跨專案可重用程式碼。
+  - 共用函式庫（libs/）：統一管理 API 定義、UI 元件、i18n 等。
 
 ### 3.2 前端
 
 - 使用 Next.js（基於 React）實現 SPA 與多頁面路由。
-- 路由規劃：/auctions、/mybids、/account、/follow、/history 等。
+- 路由規劃：/auctions、/mybids、/orders (訂單)、/account、/follow 等。
 - 樣式採 SCSS Toolkit，統一設計與排版。
 - 支援 RWD 響應式設計與無障礙（a11y）。
 - 國際化（i18n）：支援多語系切換，預設 zh-TW。
 
 ### 3.3 後端
   
-- 採用 ASP.NET Core 10（C#）開發 RESTful API，處理商品、使用者、出價等資料。
-- API 提供標準 CRUD、驗證（JWT）、權限控管。
-- 日誌與錯誤監控（如 Sentry）。
+- **單一專案架構 (Modular Monolith)**: 採用 ASP.NET Core 10 (C#) 開發單一的 Web API 應用程式。
+- **核心模組**:
+    - **Member**: 會員管理。
+    - **Auction**: 商品與競標活動。
+    - **Bidding**: 出價處理。
+    - **Ordering**: 訂單生命週期管理。
+    - **Payment**: 金流交易處理。
+    - **Notification**: 訊息推播。
+- **API 設計**: RESTful 風格，使用 Swagger/OpenAPI 產生文件。
+- **安全性**: 使用 JWT 進行身份驗證與授權。
 
 ### 3.4 資料庫
 
-- 使用 PostgreSQL 儲存商品、使用者、出價等資料，確保資料一致性與效能。
+- 使用 PostgreSQL 作為主要資料庫，利用 **Schemas** (`member`, `auction`, `ordering`, `payment`...) 隔離不同模組的資料表。
 
 ## 4. 使用者角色
 
-- **一般使用者**：可瀏覽、追蹤、出價商品與管理個人帳號。
+- **一般使用者**：可瀏覽、追蹤、出價商品、下單付款與管理個人帳號。
 - **管理員**：可管理商品資料與使用者帳號，具備後台管理權限。
 
 ## 5. 技術規格
@@ -86,7 +106,7 @@
 - 框架：Next.js
 - 樣式：Ant Design, SCSS
 - 狀態管理：Redux Toolkit
-- API 通訊：Fetch
+- API 通訊：Fetch / Axios
 - 程式碼品質：ESLint、Prettier
 - 測試：Jest（單元）、Playwright（E2E）
 
@@ -95,13 +115,16 @@
 - 程式語言：C#
 - 框架：ASP.NET Core 10
 - 資料庫：PostgreSQL
+- ORM：Entity Framework Core
 - 測試：xUnit
 
 ### 5.3 其他
 
 - 容器化：Docker
-- CI/CD：GitHub Actions，NX affected 指令加速建構
-- 部署：前端（Vercel/Netlify）、後端（Azure App Service 或等同平台）
+- CI/CD：GitHub Actions
+- 部署：
+  - 前端：Vercel / Netlify
+  - 後端：Azure App Service / AWS Elastic Beanstalk / Docker Host
 - 版本管理：Git，採 Git flow 分支策略
 
 ## 6. API 規格
@@ -114,8 +137,8 @@
 
 ### 6.2 新增追蹤商品
 
-- `POST /api/follow`
-  - 參數：`itemId`（必填）
+- `POST /api/auctions/{id}/follow`
+  - 參數：`id` (Path Parameter)
   - 回應：201 Created，400 Bad Request
 
 ### 6.3 取得商品詳細
@@ -125,23 +148,23 @@
 
 ### 6.4 出價
 
-- `POST /api/bid`
-  - 參數：`itemId`、`amount`
+- `POST /api/bids`
+  - Body：`{ "auctionId": "...", "amount": 1000 }`
   - 回應：201 Created，400 Bad Request，403 Forbidden
 
 ### 6.5 取得我的出價紀錄
 
-- `GET /api/mybids`
+- `GET /api/me/bids`
   - 回應：200 OK（出價紀錄）
 
 ### 6.6 取得追蹤清單
 
-- `GET /api/follow`
+- `GET /api/me/follows`
   - 回應：200 OK（追蹤商品清單）
 
 ### 6.7 帳號管理
 
-- `GET /api/account`、`PUT /api/account`、`POST /api/account/password`
+- `GET /api/members/me`、`PUT /api/members/me`
   - 回應：200 OK，400 Bad Request
 
 ### 6.8 取得通知紀錄
@@ -149,50 +172,43 @@
 - `GET /api/notifications/history`
   - 回應：200 OK（該使用者的通知歷史紀錄），401 Unauthorized
 
+### 6.9 訂單管理 (New)
+
+- `GET /api/orders`: 取得我的訂單列表 (支援 filter: role=buyer|seller)。
+- `GET /api/orders/{id}`: 取得單筆訂單詳情。
+
+### 6.10 支付 (New)
+
+- `POST /api/payments/checkout`: 針對訂單建立付款 Session。
+  - Body: `{ "orderId": "..." }`
+  - Response: `{ "checkoutUrl": "https://stripe.com/..." }`
+
 ## 7. 測試計畫
 
 - **單元測試**：涵蓋各函式、元件與模組，Jest（前端）、xUnit（後端）。
-- **整合測試**：驗證前後端互動。
+- **整合測試**：驗證 API 端點與資料庫互動，特別是 **結標 -> 訂單 -> 支付** 的流程。
 - **E2E 測試**：Playwright，模擬實際情境。
-- **使用者測試**：確保功能符合需求。
-- 覆蓋率目標：單元測試 80%、E2E 測試 70%。
+- 覆蓋率目標：單元測試 80%。
 
 ## 8. 部署計畫
 
 - 前端：Vercel 或 Netlify
-- 後端：Azure App Service 或等同平台
-- 容器化：Docker
-- CI/CD：GitHub Actions，含 lint、test、build、deploy
+- 後端：Azure App Service 或單一 Docker 容器
+- CI/CD：GitHub Actions，自動化建構與測試
 
 ## 9. 安全性與效能
 
 - 防範 XSS/CSRF，API rate limit。
-- 前端效能優化：圖片壓縮、Lazy load、Code splitting。
-- 利用 NX 快取與分散式建構提升延展性。
+- 前端效能優化：圖片壓縮、Lazy load。
+- 後端效能：使用 Async/Await，資料庫索引優化，Redis 快取（可選）。
 
 ## 10. 日誌與監控
 
-- 前後端日誌收集、錯誤回報與監控（如 Sentry、LogRocket）。
+- 統一輸出日誌 (Structured Logging)。
+- 使用 Application Insights 或類似工具監控應用程式健康狀態。
 
 ## 11. 參考文件
 
-- SCSS Toolkit 官方文件
-- React 官方文件
-- ASP.NET Core 官方文件
-- NX 官方文件
-- Playwright 官方文件
-- PostgreSQL 官方文件
-  redux-toolkit.js.org/)
-- [Sass (SCSS)](https://sass-lang.com/documentation/)
-
-### 後端 (Backend)
-
 - [ASP.NET Core](https://dotnet.microsoft.com/apps/aspnet)
 - [PostgreSQL](https://www.postgresql.org/docs/)
-
-### 工具與理念 (Tools & Concepts)
-
-- [NX](https://nx.dev/)
-- [Playwright](https://playwright.dev/)
-- [Atomic Design (Brad Frost)](https://bradfrost.com/blog/post/atomic-web-design/)
-- [Web Components (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Web_components)
+- [Next.js](https://nextjs.org/)
