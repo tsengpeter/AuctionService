@@ -51,21 +51,13 @@
 
   IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
 
-### 使用者故事 1 - 讓使用者註冊與登入 (優先順序: P1)  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
+### 使用者故事 1 - 讓使用者註冊與登入 (優先順序: P1)
 
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
+新使用者透過提供電子郵件、手機號碼、密碼與使用者名稱提交註冊申請，系統立即建立帳號（EmailVerified=false, PhoneNumberVerified=false）並回傳成功訊息。使用者可以馬上使用帳號密碼登入系統取得 JWT 存取權杖與 Refresh Token，開始使用基本功能。電子郵件和手機號碼的驗證是獨立功能，使用者可在註冊後任何時候執行（見使用者故事 2.6）。
 
-新使用者透過提供電子郵件、手機號碼、密碼與使用者名稱提交註冊申請，系統建立待驗證帳號並同時發送驗證碼至電子郵件和手機號碼，使用者必須成功驗證兩個驗證碼才能完成註冊，完成註冊後方可登入系統取得存取權杖。未完成驗證的帳號無法登入，且處於待驗證狀態。  
+**優先順序理由**: 這是會員服務的核心價值，沒有註冊與登入功能，其他所有功能都無法使用。立即註冊機制降低使用門檻，讓使用者快速開始使用系統。這是最小可行產品（MVP）的基礎。
 
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-
-**優先順序理由**: 這是會員服務的核心價值，沒有註冊與登入功能，其他所有功能都無法使用。電子郵件和手機號碼的雙重驗證確保帳號安全性和真實性。這是最小可行產品（MVP）的基礎。  Think of each story as a standalone slice of functionality that can be:
-
-  - Developed independently
-
-**獨立測試**: 可透過提供有效的註冊資訊（電子郵件、手機號碼、密碼、使用者名稱）提交註冊，驗證系統發送雙驗證碼，然後輸入正確的驗證碼完成註冊。註冊完成後再使用帳號密碼登入並獲取 JWT tokens，完整測試註冊、驗證與登入流程。  - Tested independently
-
-  - Deployed independently
+**獨立測試**: 可透過提供有效的註冊資訊（電子郵件、手機號碼、密碼、使用者名稱）提交註冊，驗證系統立即建立帳號並回傳成功訊息。註冊完成後使用帳號密碼登入並獲取 JWT tokens，驗證可以正常使用需要認證的端點。
 
 **驗收情境**:
 

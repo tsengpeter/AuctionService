@@ -54,9 +54,13 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddDbContext<MemberDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MemberDb")));
 
-// Add Redis
+// Add Redis with retry support
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+var redisConfigOptions = ConfigurationOptions.Parse(redisConnectionString);
+redisConfigOptions.AbortOnConnectFail = false; // Allow background retries
+redisConfigOptions.ConnectTimeout = 5000; // 5 second timeout
+redisConfigOptions.SyncTimeout = 5000;
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfigOptions));
 
 // Register domain services
 builder.Services.AddScoped<IIdGenerator, SnowflakeIdGenerator>();

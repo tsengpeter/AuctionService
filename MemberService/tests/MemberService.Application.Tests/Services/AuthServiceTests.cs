@@ -17,6 +17,9 @@ public class AuthServiceTests
     private readonly Mock<IPasswordHasher> _passwordHasherMock;
     private readonly Mock<ITokenGenerator> _tokenGeneratorMock;
     private readonly Mock<IIdGenerator> _idGeneratorMock;
+    private readonly Mock<IVerificationCodeService> _verificationCodeServiceMock;
+    private readonly Mock<IEmailService> _emailServiceMock;
+    private readonly Mock<ISmsService> _smsServiceMock;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
@@ -26,13 +29,19 @@ public class AuthServiceTests
         _passwordHasherMock = new Mock<IPasswordHasher>();
         _tokenGeneratorMock = new Mock<ITokenGenerator>();
         _idGeneratorMock = new Mock<IIdGenerator>();
+        _verificationCodeServiceMock = new Mock<IVerificationCodeService>();
+        _emailServiceMock = new Mock<IEmailService>();
+        _smsServiceMock = new Mock<ISmsService>();
 
         _authService = new AuthService(
             _userRepositoryMock.Object,
             _refreshTokenRepositoryMock.Object,
             _passwordHasherMock.Object,
             _tokenGeneratorMock.Object,
-            _idGeneratorMock.Object);
+            _idGeneratorMock.Object,
+            _verificationCodeServiceMock.Object,
+            _emailServiceMock.Object,
+            _smsServiceMock.Object);
     }
 
     [Fact]
@@ -43,7 +52,8 @@ public class AuthServiceTests
         {
             Email = "test@example.com",
             Password = "ValidPassword123!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         var userId = 1L;
@@ -52,6 +62,7 @@ public class AuthServiceTests
         _idGeneratorMock.Setup(x => x.GenerateId()).Returns(userId);
         _passwordHasherMock.Setup(x => x.HashPassword(request.Password, userId)).Returns(passwordHash);
         _userRepositoryMock.Setup(x => x.ExistsByEmailAsync(It.IsAny<Email>())).ReturnsAsync(false);
+        _userRepositoryMock.Setup(x => x.ExistsByPhoneNumberAsync(It.IsAny<string>())).ReturnsAsync(false);
 
         // Act
         var result = await _authService.RegisterAsync(request);
@@ -77,7 +88,8 @@ public class AuthServiceTests
         {
             Email = "existing@example.com",
             Password = "ValidPassword123!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         _userRepositoryMock.Setup(x => x.ExistsByEmailAsync(It.IsAny<Email>())).ReturnsAsync(true);
@@ -99,7 +111,7 @@ public class AuthServiceTests
             Password = "ValidPassword123!"
         };
 
-        var user = new User(1L, Email.Create(request.Email).Value!, "hashed_password", Username.Create("testuser").Value!);
+        var user = new User(1L, Email.Create(request.Email).Value!, "+886912345678", "hashed_password", Username.Create("testuser").Value!);
         var accessToken = "access_token";
         var refreshToken = "refresh_token";
 
@@ -148,7 +160,7 @@ public class AuthServiceTests
             Password = "WrongPassword123!"
         };
 
-        var user = new User(1L, Email.Create(request.Email).Value!, "hashed_password", Username.Create("testuser").Value!);
+        var user = new User(1L, Email.Create(request.Email).Value!, "+886912345678", "hashed_password", Username.Create("testuser").Value!);
 
         _userRepositoryMock.Setup(x => x.GetByEmailAsync(It.IsAny<Email>())).ReturnsAsync(user);
         _passwordHasherMock.Setup(x => x.VerifyPassword(request.Password, user.Id, user.PasswordHash)).Returns(false);
@@ -166,7 +178,7 @@ public class AuthServiceTests
         // Arrange
         var request = new RefreshTokenRequest("valid_refresh_token");
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "hash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "hash", Username.Create("testuser").Value!);
         var refreshTokenEntity = new RefreshToken(Guid.NewGuid(), "valid_refresh_token", userId, DateTime.UtcNow.AddDays(1));
         var newAccessToken = "new_access_token";
         var newRefreshToken = "new_refresh_token";

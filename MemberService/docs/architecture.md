@@ -16,24 +16,43 @@ MemberService follows Clean Architecture principles with four layers:
 - Access tokens: 15 minutes
 - Refresh tokens: 7 days
 - BCrypt password hashing with work factor 12
+- Phone number verification (6-digit code, 5 minutes validity, Redis storage)
+- Email verification (6-digit code, 5 minutes validity, Redis storage)
 
 ### ID Generation
 - Snowflake IDs for distributed uniqueness
 - 64-bit integers for better performance than GUIDs
 
 ### Database
-- PostgreSQL with EF Core Code-First
+- **PostgreSQL 16** with EF Core Code-First
 - Async operations throughout
 - Repository pattern for data access
+- Production: postgres:16 (standard)
+- Testing: postgres:16-alpine
+
+### Cache & Session
+- **Redis 7** for verification codes
+- TTL-based automatic expiration
+- Production: redis:7-alpine
+- Testing: redis:7-alpine
 
 ### Validation
 - FluentValidation for input validation
 - Domain validation in value objects
+- Phone number: E.164 format validation
+- Email: RFC 5322 format validation
+
+### Notification Services
+- Email: Gmail SMTP / AWS SES
+- SMS: AWS SNS / AliCloud SMS
+- Verification code service with rate limiting
 
 ### Testing
 - TDD approach with xUnit
-- Integration tests with Testcontainers
-- >80% code coverage target
+- Integration tests with Testcontainers (PostgreSQL + Redis)
+- 231 tests, 100% passing
+- Unit tests: Moq + FluentAssertions
+- Integration tests: Real PostgreSQL and Redis containers
 
 ## Dependencies
 

@@ -22,7 +22,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "ValidPassword123!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -43,7 +44,8 @@ public class RegisterRequestValidatorTests
         {
             Email = email!,
             Password = "ValidPassword123!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -66,7 +68,8 @@ public class RegisterRequestValidatorTests
         {
             Email = email,
             Password = "ValidPassword123!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -88,7 +91,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = password!,
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -109,7 +113,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = password,
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -128,7 +133,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "lowercaseonly123!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -147,7 +153,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "UPPERCASEONLY123!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -166,7 +173,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "PasswordOnly!",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -185,7 +193,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "Password123",
-            Username = "testuser"
+            Username = "testuser",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -207,7 +216,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "ValidPassword123!",
-            Username = username!
+            Username = username!,
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -228,7 +238,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "ValidPassword123!",
-            Username = username
+            Username = username,
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -247,7 +258,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "ValidPassword123!",
-            Username = new string('a', 51) // 51 characters
+            Username = new string('a', 51), // 51 characters
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -270,7 +282,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "ValidPassword123!",
-            Username = username
+            Username = username,
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -289,7 +302,8 @@ public class RegisterRequestValidatorTests
         {
             Email = "test@example.com",
             Password = "ValidPassword123!",
-            Username = "user name"
+            Username = "user name",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -299,3 +313,4 @@ public class RegisterRequestValidatorTests
         result.ShouldNotHaveAnyValidationErrors();
     }
 }
+

@@ -31,6 +31,7 @@ public class UsersControllerTests : IDisposable
                 // Add test configuration
                 config.AddInMemoryCollection(new Dictionary<string, string>
                 {
+                    ["ConnectionStrings:Redis"] = TestDatabaseHelper.GetRedisConnectionString(),
                     ["Jwt:Issuer"] = "MemberService",
                     ["Jwt:Audience"] = "MemberService",
                     ["Jwt:SecretKey"] = "your-super-secret-key-here-change-in-production",
@@ -62,7 +63,8 @@ public class UsersControllerTests : IDisposable
         {
             Email = "test@example.com",
             Username = "testuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
@@ -108,7 +110,8 @@ public class UsersControllerTests : IDisposable
         {
             Email = "me@example.com",
             Username = "meuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
@@ -168,7 +171,8 @@ public class UsersControllerTests : IDisposable
         {
             Email = "update@example.com",
             Username = "updateuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
@@ -215,7 +219,8 @@ public class UsersControllerTests : IDisposable
         {
             Email = "update2@example.com",
             Username = "updateuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
@@ -278,7 +283,8 @@ public class UsersControllerTests : IDisposable
         {
             Email = "password@example.com",
             Username = "passworduser",
-            Password = "OldPassword123!"
+            Password = "OldPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
@@ -324,7 +330,8 @@ public class UsersControllerTests : IDisposable
         {
             Email = "password2@example.com",
             Username = "passworduser",
-            Password = "OldPassword123!"
+            Password = "OldPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);

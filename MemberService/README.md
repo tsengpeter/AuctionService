@@ -5,7 +5,8 @@ MemberService 是拍賣系統的核心身份驗證微服務，提供使用者註
 ## 架構
 
 - **框架**: ASP.NET Core 10 Web API
-- **資料庫**: PostgreSQL 16
+- **資料庫**: PostgreSQL 16 (生產: 標準版, 測試: Alpine)
+- **快取**: Redis 7 (redis:7-alpine)
 - **ORM**: Entity Framework Core 10 (Code-First)
 - **認證**: JWT (HS256 對稱演算法)
 - **密碼雜湊**: BCrypt (work factor 12)
@@ -17,14 +18,19 @@ MemberService 是拍賣系統的核心身份驗證微服務，提供使用者註
 
 ## 功能特色
 
-- ✅ 使用者註冊與登入（分離流程）
+- ✅ 使用者註冊與登入（電子郵件 + 手機號碼）
 - ✅ JWT 認證 (15 分鐘 Access Token + 7 天 Refresh Token)
 - ✅ JWT Token 驗證端點（供其他微服務使用）
+- ✅ 電子郵件驗證（6位數驗證碼，5分鐘有效期）
+- ✅ 手機號碼驗證（6位數驗證碼，5分鐘有效期）
+- ✅ 驗證碼服務（Redis TTL 自動過期，發送冷卻 60 秒）
+- ✅ 郵件服務（Gmail SMTP / AWS SES）
+- ✅ 簡訊服務（AWS SNS / AliCloud SMS）
 - ✅ 個人資訊查詢 (認證/公開)
 - ✅ 個人資訊更新 (username/email)
 - ✅ 密碼變更 (需驗證舊密碼)
 - ✅ 健康檢查端點
-- ✅ 完整的單元測試與整合測試 (222 個測試，全部通過)
+- ✅ 完整的單元測試與整合測試 (231 個測試，全部通過)
 
 ## 系統需求
 
