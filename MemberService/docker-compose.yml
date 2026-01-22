@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   auction-service-db:
-    image: postgres:16-alpine
+    image: postgres:16
     container_name: auction-service-db
     environment:
       POSTGRES_USER: memberservice
@@ -18,6 +18,19 @@ services:
       timeout: 5s
       retries: 5
 
+  auction-service-redis:
+    image: redis:7-alpine
+    container_name: auction-service-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   memberservice-api:
     build:
       context: .
@@ -29,6 +42,7 @@ services:
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
       ASPNETCORE_Kestrel__Certificates__Default__Path: /app/https/aspnetapp.pfx
       ConnectionStrings__MemberDb: Host=auction-service-db;Port=5432;Database=memberservice_dev;Username=memberservice;Password=Dev@Password123
+      ConnectionStrings__Redis: auction-service-redis:6379
       Jwt__SecretKey: your-super-secret-jwt-key-min-32-chars-long-for-hs256-algorithm
       Jwt__Issuer: MemberService
       Jwt__Audience: MemberService
@@ -39,8 +53,11 @@ services:
     depends_on:
       auction-service-db:
         condition: service_healthy
+      auction-service-redis:
+        condition: service_healthy
     volumes:
       - ~/.aspnet/https:/app/https:ro
 
 volumes:
   postgres_data:
+  redis_data:

@@ -37,6 +37,7 @@ public class AuthControllerTests : IDisposable
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:MemberDb"] = TestDatabaseHelper.GetConnectionString(_testDatabaseName),
+                    ["ConnectionStrings:Redis"] = TestDatabaseHelper.GetRedisConnectionString(),
                     ["Jwt:Issuer"] = "MemberService",
                     ["Jwt:Audience"] = "MemberService",
                     ["Jwt:SecretKey"] = "your-super-secret-key-here-change-in-production",
@@ -66,7 +67,8 @@ public class AuthControllerTests : IDisposable
         {
             Email = "test@example.com",
             Username = "testuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         // Act
@@ -92,14 +94,16 @@ public class AuthControllerTests : IDisposable
         {
             Email = "test@example.com",
             Username = "testuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         var registerRequest2 = new RegisterRequest
         {
             Email = "test@example.com", // Same email
             Username = "anothertestuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         // First registration
@@ -123,7 +127,8 @@ public class AuthControllerTests : IDisposable
         {
             Email = "login@example.com",
             Username = "loginuser",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            PhoneNumber = "+886912345678"
         };
 
         // Register first
@@ -180,7 +185,8 @@ public class AuthControllerTests : IDisposable
         {
             Email = "validate@example.com",
             Password = "ValidPassword123!",
-            Username = "validateuser"
+            Username = "validateuser",
+            PhoneNumber = "+886912345678"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);

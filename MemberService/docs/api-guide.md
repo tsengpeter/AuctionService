@@ -12,7 +12,8 @@ Content-Type: application/json
 {
   "email": "user@example.com",
   "password": "SecurePassword123!",
-  "username": "User Name"
+  "username": "User Name",
+  "phoneNumber": "+886912345678"
 }
 ```
 
@@ -22,7 +23,10 @@ Content-Type: application/json
   "user": {
     "id": 1234567890123456,
     "email": "user@example.com",
-    "username": "User Name"
+    "username": "User Name",
+    "phoneNumber": "+886912345678",
+    "emailVerified": false,
+    "phoneNumberVerified": false
   },
   "message": "Registration successful. Please login to continue."
 }
@@ -108,6 +112,122 @@ GET /api/auth/validate?token=<jwt_token>
   "userId": null,
   "expiresAt": null,
   "errorMessage": "Token has expired"
+}
+```
+
+## Verification Endpoints
+
+### Send Email Verification Code
+發送電子郵件驗證碼。
+
+```http
+POST /api/auth/send-email-verification
+Authorization: Bearer <access_token>
+```
+
+**成功回應 (200)**:
+```json
+{
+  "message": "Verification code sent to your email",
+  "cooldownSeconds": 60
+}
+```
+
+### Verify Email
+驗證電子郵件。
+
+```http
+POST /api/auth/verify-email
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "code": "123456"
+}
+```
+
+**成功回應 (200)**:
+```json
+{
+  "message": "Email verified successfully",
+  "emailVerified": true
+}
+```
+
+### Send Phone Verification Code
+發送手機簡訊驗證碼。
+
+```http
+POST /api/auth/send-phone-verification
+Authorization: Bearer <access_token>
+```
+
+**成功回應 (200)**:
+```json
+{
+  "message": "Verification code sent to your phone",
+  "cooldownSeconds": 60
+}
+```
+
+### Verify Phone
+驗證手機號碼。
+
+```http
+POST /api/auth/verify-phone
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "code": "123456"
+}
+```
+
+**成功回應 (200)**:
+```json
+{
+  "message": "Phone number verified successfully",
+  "phoneNumberVerified": true
+}
+```
+
+## User Endpoints
+
+### Get Current User
+取得當前已認證使用者的完整資訊。
+
+```http
+GET /api/users/me
+Authorization: Bearer <access_token>
+```
+
+**成功回應 (200)**:
+```json
+{
+  "id": 1234567890123456,
+  "email": "user@example.com",
+  "username": "User Name",
+  "phoneNumber": "+886912345678",
+  "emailVerified": true,
+  "phoneNumberVerified": true,
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-22T00:00:00Z"
+}
+```
+
+### Get User By ID
+取得其他使用者的公開資訊（不需認證）。
+
+```http
+GET /api/users/{id}
+```
+
+**成功回應 (200)**:
+```json
+{
+  "id": 1234567890123456,
+  "username": "User Name",
+  "createdAt": "2026-01-01T00:00:00Z"
 }
 ```
 

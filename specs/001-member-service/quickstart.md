@@ -61,11 +61,26 @@ git clone https://github.com/tsengpeter/AuctionService.git
 cd AuctionService\src\MemberService
 ```
 
-### 2. 啟動 PostgreSQL 資料庫
+### 2. 啟動資料庫與快取服務
 
-> **重要**：本指南使用**本地資料庫**進行開發。正式環境部署時會使用**雲端資料庫**（Azure Database for PostgreSQL / AWS RDS PostgreSQL），詳見 [plan.md - Database Strategy](plan.md#database-strategy)。
+> **重要**：本指南使用**本地資料庫與快取**進行開發。正式環境部署時會使用**雲端服務**（Azure Database for PostgreSQL + Azure Cache for Redis / AWS RDS + ElastiCache），詳見 [plan.md - Database Strategy](plan.md#database-strategy)。
 
-#### 方法 A：使用 Docker（推薦）
+#### 方法 A：使用 Docker Compose（推薦）
+
+```powershell
+# 啟動 PostgreSQL 16 + Redis 7
+docker-compose up -d
+
+# 驗證服務狀態
+docker-compose ps
+```
+
+**包含服務**：
+- PostgreSQL 16 (標準版，生產環境配置)
+- Redis 7 (Alpine 版，驗證碼儲存)
+- MemberService API
+
+#### 方法 B：使用單獨的 Docker 容器
 
 ```powershell
 # 啟動 PostgreSQL 容器
@@ -75,27 +90,36 @@ docker run -d `
   -e POSTGRES_PASSWORD=Dev@Password123 `
   -e POSTGRES_DB=memberservice_dev `
   -p 5432:5432 `
-  postgres:16-alpine
+  postgres:16
+
+# 啟動 Redis 容器
+docker run -d `
+  --name memberservice-redis `
+  -p 6379:6379 `
+  redis:7-alpine
 
 # 驗證容器狀態
-docker ps | Select-String memberservice-db
+docker ps | Select-String "memberservice"
 ```
 
 **優點**：
 - ✅ 快速啟動（秒級）
-- ✅ 完全隔離（不影響系統其他 PostgreSQL 安裝）
-- ✅ 可隨時刪除重建（`docker rm -f memberservice-db`）
+- ✅ 完全隔離（不影響系統其他服務）
+- ✅ 可隨時刪除重建（`docker rm -f memberservice-db memberservice-redis`）
 - ✅ 跨平台一致性（Windows/Linux/macOS）
 
-#### 方法 B：本機安裝的 PostgreSQL
+#### 方法 C：本機安裝的 PostgreSQL 與 Redis
 
 ```powershell
-# 建立資料庫
+# 建立 PostgreSQL 資料庫
 psql -U postgres -c "CREATE DATABASE memberservice_dev;"
 
 # 建立專用使用者
 psql -U postgres -c "CREATE USER memberservice WITH PASSWORD 'Dev@Password123';"
 psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE memberservice_dev TO memberservice;"
+
+# 啟動 Redis（如果已安裝）
+redis-server
 ```
 
 #### 正式環境（參考用，不在本指南執行）

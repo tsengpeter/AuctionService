@@ -30,7 +30,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "hash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "hash", Username.Create("testuser").Value!);
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
@@ -65,7 +65,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "hash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "hash", Username.Create("testuser").Value!);
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
@@ -98,7 +98,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "hash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "hash", Username.Create("testuser").Value!);
         var request = new UpdateProfileRequest { Username = "newusername" };
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
@@ -120,7 +120,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "hash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "hash", Username.Create("testuser").Value!);
         var request = new UpdateProfileRequest { Email = "newemail@example.com" };
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
@@ -143,7 +143,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "hash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "hash", Username.Create("testuser").Value!);
         var request = new UpdateProfileRequest { Username = "newusername", Email = "newemail@example.com" };
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
@@ -182,7 +182,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "hash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "hash", Username.Create("testuser").Value!);
         var request = new UpdateProfileRequest { Email = "existing@example.com" };
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
@@ -200,7 +200,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "oldhash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "oldhash", Username.Create("testuser").Value!);
         var request = new ChangePasswordRequest { OldPassword = "oldpass", NewPassword = "newpass" };
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
@@ -224,7 +224,7 @@ public class UserServiceTests
     {
         // Arrange
         var userId = 1L;
-        var user = new User(userId, Email.Create("test@example.com").Value!, "oldhash", Username.Create("testuser").Value!);
+        var user = new User(userId, Email.Create("test@example.com").Value!, "+886912345678", "oldhash", Username.Create("testuser").Value!);
         var request = new ChangePasswordRequest { OldPassword = "wrongpass", NewPassword = "newpass" };
 
         _userRepositoryMock.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
