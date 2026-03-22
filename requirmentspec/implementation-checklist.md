@@ -28,55 +28,55 @@ git checkout -b 001-backend-scaffold
 
 ### 1-B. SpecKit 流程（在 VS Code Copilot Chat 依序執行）
 
-- [ ] **Specify** — 貼上以下指令到 Copilot Chat：
+- [x] **Specify** — 貼上以下指令到 Copilot Chat：
   ```
   /speckit.specify 建立 ASP.NET Core 10 Modular Monolith 後端骨架，包含 Member、Auction、Bidding、Ordering、Notification 五個模組，每模組採 Domain/Application/Infrastructure 三層結構，使用 PostgreSQL Schema 隔離（各模組對應 schema: member, auction, bidding, ordering, notification），MediatR 作為模組間 In-Memory 事件匯流排，JWT HS256 身份驗證，FluentValidation 輸入驗證，Swagger/OpenAPI 文件，xUnit + Testcontainers 整合測試，統一 ApiResponse<T> 回應格式
   ```
 
-- [ ] **Clarify** — 貼上以下指令到 Copilot Chat：
+- [x] **Clarify** — 貼上以下指令到 Copilot Chat：
   ```
   /speckit.clarify
   ```
   回答問題時確認以下細節：
-  - [ ] PostgreSQL 連線字串用 `IConfiguration`，從 `appsettings.Development.json` 讀取，不 hardcode
-  - [ ] JWT Secret 從 `appsettings.Development.json` 的 `Jwt:Secret` 讀取，長度 >= 32 字元
-  - [ ] Namespace 格式：`AuctionService.Modules.{ModuleName}.{Domain|Application|Infrastructure}`
-  - [ ] 所有模組共用 `AuctionService.Api` 入口點，Controller 放 `src/AuctionService.Api/Controllers/{Module}/`
+  - [x] PostgreSQL 連線字串用 `IConfiguration`，從 `appsettings.Development.json` 讀取，不 hardcode
+  - [x] JWT Secret 從 `appsettings.Development.json` 的 `Jwt:Secret` 讀取，長度 >= 32 字元
+  - [x] Namespace 格式：`AuctionService.Modules.{ModuleName}.{Domain|Application|Infrastructure}`
+  - [x] 所有模組共用 `AuctionService.Api` 入口點，Controller 放 `src/AuctionService.Api/Controllers/{Module}/`
 
-- [ ] **Plan** — 貼上以下指令到 Copilot Chat：
+- [x] **Plan** — 貼上以下指令到 Copilot Chat：
   ```
   /speckit.plan
   ```
   確認 plan.md 產出包含：
-  - [ ] Solution 結構圖（sln + 各 csproj）
-  - [ ] NuGet 套件清單（EF Core Npgsql、MediatR、JWT、Swagger、FluentValidation、xUnit、Testcontainers）
-  - [ ] Docker Compose 服務：PostgreSQL 5432、pgAdmin 5050
-  - [ ] `AuctionService.Shared` 需包含：`BaseEntity`、`IEvent`、`ApiResponse<T>`、`GlobalExceptionMiddleware`
+  - [x] Solution 結構圖（sln + 各 csproj）
+  - [x] NuGet 套件清單（EF Core Npgsql、MediatR、JWT、Swagger、FluentValidation、xUnit、Testcontainers）
+  - [x] Docker Compose 服務：PostgreSQL 5432、pgAdmin 5050
+  - [x] `AuctionService.Shared` 需包含：`BaseEntity`、`IEvent`、`ApiResponse<T>`、`GlobalExceptionMiddleware`
 
-- [ ] **Tasks** — 貼上以下指令到 Copilot Chat：
+- [x] **Tasks** — 貼上以下指令到 Copilot Chat：
   ```
   /speckit.tasks
   ```
   確認 tasks.md 包含以下任務：
-  - [ ] `dotnet new sln -n AuctionService`
-  - [ ] `dotnet new webapi -n AuctionService.Api`
-  - [ ] `dotnet new classlib` × 3（Domain/Application/Infrastructure）× 5 模組 = 15 個 csproj
-  - [ ] `dotnet new classlib -n AuctionService.Shared`
-  - [ ] 所有 csproj 加入 sln：`dotnet sln add`
-  - [ ] 建立各模組間 project reference（Api → 各模組 Application；各模組 Infrastructure → Domain + Application）
-  - [ ] 建立 `docker-compose.yml`
-  - [ ] 建立 `Dockerfile`（multi-stage build: `sdk:10.0` → `aspnet:10.0`，非 root 使用者 `appuser`，EXPOSE 8080）
-  - [ ] 建立 `appsettings.Development.json`（含 DB 連線字串、JWT config）
-  - [ ] 建立 `.gitignore`（含 `bin/`, `obj/`, `*.user`, `*.suo`, `.env`, `appsettings.*.json`）
-  - [ ] 建立 `.env.example`（說明所有必填環境變數）
-  - [ ] 在 `Program.cs` 設定 Swagger、JWT middleware、各模組 DI 註冊、全域 exception handler
+  - [x] `dotnet new sln -n AuctionService`
+  - [x] `dotnet new webapi -n AuctionService.Api`
+  - [x] `dotnet new classlib` × 3（Domain/Application/Infrastructure）× 5 模組 = 15 個 csproj
+  - [x] `dotnet new classlib -n AuctionService.Shared`
+  - [x] 所有 csproj 加入 sln：`dotnet sln add`
+  - [x] 建立各模組間 project reference（Api → 各模組 Application；各模組 Infrastructure → Domain + Application）
+  - [x] 建立 `docker-compose.yml`
+  - [x] 建立 `Dockerfile`（multi-stage build: `sdk:10.0` → `aspnet:10.0`，非 root 使用者 `appuser`，EXPOSE 8080）
+  - [x] 建立 `appsettings.Development.json`（含 DB 連線字串、JWT config）
+  - [x] 建立 `.gitignore`（含 `bin/`, `obj/`, `*.user`, `*.suo`, `.env`, `appsettings.*.json`）
+  - [x] 建立 `.env.example`（說明所有必填環境變數）
+  - [x] 在 `Program.cs` 設定 Swagger、JWT middleware、各模組 DI 註冊、全域 exception handler
 
-- [ ] **Implement** — 貼上以下指令到 Copilot Chat：
+- [x] **Implement** — 貼上以下指令到 Copilot Chat：
   ```
   /speckit.implement
   ```
 
-- [ ] **Checklist** — 貼上以下指令到 Copilot Chat：
+- [x] **Checklist** — 貼上以下指令到 Copilot Chat：
   ```
   /speckit.checklist
   ```
@@ -99,11 +99,11 @@ dotnet run --project src/AuctionService.Api
 ```
 
 驗收檢查：
-- [ ] `dotnet build` 零錯誤、零 warning（或 warning 全部為已知可接受項）
-- [ ] `docker compose up -d` PostgreSQL port 5432 正常啟動
-- [ ] `https://localhost:5001/swagger` Swagger UI 可開啟，顯示所有模組 Controller
-- [ ] Health check endpoint `GET /health` 回傳 200
-- [ ] `dotnet test` 全綠（即使只有少量測試）
+- [x] `dotnet build` 零錯誤、零 warning（或 warning 全部為已知可接受項）
+- [x] `docker compose up -d` PostgreSQL port 5432 正常啟動
+- [x] `https://localhost:5001/swagger` Swagger UI 可開啟，顯示所有模組 Controller
+- [x] Health check endpoint `GET /health` 回傳 200
+- [x] `dotnet test` 全綠（即使只有少量測試）
 
 ### 1-D. Commit & PR
 
