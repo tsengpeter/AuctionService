@@ -20,7 +20,7 @@ public class OrderingDbContext : DbContext
             builder.Property(x => x.AuctionId).IsRequired();
             builder.Property(x => x.BuyerId).IsRequired();
             builder.Property(x => x.Amount).HasPrecision(18, 2).IsRequired();
-            builder.Property(x => x.Status).HasConversion<string>().IsRequired();
+            builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
             // No foreign keys to other schemas - logical references only
             builder.HasIndex(x => x.AuctionId);
         });

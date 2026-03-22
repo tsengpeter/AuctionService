@@ -38,6 +38,7 @@ public class GlobalExceptionMiddleware
 
     private static async Task WriteJsonResponse(HttpContext context, int statusCode, object response)
     {
+        if (context.Response.HasStarted) return;
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
         var json = JsonSerializer.Serialize(response, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });

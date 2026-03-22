@@ -19,7 +19,7 @@ public class AuctionDbContext : DbContext
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Title).HasMaxLength(200).IsRequired();
             builder.Property(x => x.StartingPrice).HasPrecision(18, 2).IsRequired();
-            builder.Property(x => x.Status).HasConversion<string>().IsRequired();
+            builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
             builder.Property(x => x.EndsAt).IsRequired();
         });
     }

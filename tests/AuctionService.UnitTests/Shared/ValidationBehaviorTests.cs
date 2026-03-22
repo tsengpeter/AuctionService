@@ -29,7 +29,7 @@ public class ValidationBehaviorTests
     public async Task Handle_WhenValidationPasses_ShouldCallNext()
     {
         var validator = Substitute.For<IValidator<TestRequest>>();
-        validator.Validate(Arg.Any<ValidationContext<TestRequest>>())
+        validator.ValidateAsync(Arg.Any<ValidationContext<TestRequest>>(), Arg.Any<CancellationToken>())
             .Returns(new ValidationResult());
 
         var behavior = new ValidationBehavior<TestRequest, string>([validator]);
@@ -50,7 +50,7 @@ public class ValidationBehaviorTests
             new("Name", "Name is too short")
         };
         var validator = Substitute.For<IValidator<TestRequest>>();
-        validator.Validate(Arg.Any<ValidationContext<TestRequest>>())
+        validator.ValidateAsync(Arg.Any<ValidationContext<TestRequest>>(), Arg.Any<CancellationToken>())
             .Returns(new ValidationResult(failures));
 
         var behavior = new ValidationBehavior<TestRequest, string>([validator]);
@@ -72,7 +72,7 @@ public class ValidationBehaviorTests
             new("Field2", "Error 2")
         };
         var validator = Substitute.For<IValidator<TestRequest>>();
-        validator.Validate(Arg.Any<ValidationContext<TestRequest>>())
+        validator.ValidateAsync(Arg.Any<ValidationContext<TestRequest>>(), Arg.Any<CancellationToken>())
             .Returns(new ValidationResult(failures));
 
         var behavior = new ValidationBehavior<TestRequest, string>([validator]);

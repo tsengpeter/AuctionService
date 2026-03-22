@@ -2,10 +2,15 @@ using System.Text;
 using AuctionService.Api.Middleware;
 using AuctionService.Shared;
 using Member;
+using Member.Infrastructure.Persistence;
 using Auction;
+using Auction.Infrastructure.Persistence;
 using Bidding;
+using Bidding.Infrastructure.Persistence;
 using Ordering;
+using Ordering.Infrastructure.Persistence;
 using Notification;
+using Notification.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -84,7 +89,12 @@ builder.Services
 builder.Services.AddAuthorization();
 
 // ── Health Checks (T020) ─────────────────────────────────────────────────
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<MemberDbContext>("member-db")
+    .AddDbContextCheck<AuctionDbContext>("auction-db")
+    .AddDbContextCheck<BiddingDbContext>("bidding-db")
+    .AddDbContextCheck<OrderingDbContext>("ordering-db")
+    .AddDbContextCheck<NotificationDbContext>("notification-db");
 
 // ── Swagger (T048) — Non-Production only ─────────────────────────────────
 if (!builder.Environment.IsProduction())
