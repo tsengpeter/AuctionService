@@ -1,0 +1,307 @@
+openapi: "3.1.0"
+info:
+  title: AuctionService API
+  description: |
+    AuctionService 模組化單體後端 API。
+    所有端點回應均遵循統一 ApiResponse<T> 格式。
+  version: "1.0.0"
+  contact:
+    name: AuctionService Team
+
+servers:
+  - url: https://localhost:5001
+    description: 本機開發環境
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponseSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          description: 回應資料（型別依端點而異）
+        statusCode:
+          type: integer
+          example: 200
+
+    ApiResponseError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Unauthorized"
+        statusCode:
+          type: integer
+          example: 401
+
+    ApiResponseValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"
+        statusCode:
+          type: integer
+          example: 422
+
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          example: "email"
+        message:
+          type: string
+          example: "Email 格式不正確"
+
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [Healthy, Degraded, Unhealthy]
+          example: Healthy
+        duration:
+          type: string
+          example: "00:00:00.0054321"
+        entries:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+              duration:
+                type: string
+
+paths:
+  /health:
+    get:
+      summary: 健康檢查
+      description: |
+        回報服務整體狀態及各依賴項目（資料庫等）的連線狀態。
+        回應時間應 < 100ms（SC-006）。
+      operationId: getHealth
+      tags: [Infrastructure]
+      responses:
+        "200":
+          description: 服務健康
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheckResponse"
+        "503":
+          description: 服務不健康
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheckResponse"
+
+  /api/member/register:
+    post:
+      summary: 使用者註冊（骨架端點）
+      description: |
+        建立新使用者帳號。骨架階段僅驗證 API 回應格式，完整業務邏輯在 002-member-module 分支實作。
+      operationId: memberRegister
+      tags: [Member]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  example: "johndoe"
+                password:
+                  type: string
+                  minLength: 8
+                  example: "P@ssword123"
+      responses:
+        "201":
+          description: 註冊成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponseSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          email:
+                            type: string
+                          username:
+                            type: string
+                      statusCode:
+                        example: 201
+        "422":
+          description: 驗證錯誤
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseValidationError"
+
+  /api/member/login:
+    post:
+      summary: 使用者登入（骨架端點）
+      operationId: memberLogin
+      tags: [Member]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: 登入成功，回傳 JWT token
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponseSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                          expiresAt:
+                            type: string
+                            format: date-time
+        "401":
+          description: 認證失敗
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseError"
+        "422":
+          description: 驗證錯誤
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseValidationError"
+
+  /api/auction:
+    get:
+      summary: 取得拍賣清單（骨架端點）
+      operationId: listAuctions
+      tags: [Auction]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseSuccess"
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseError"
+
+  /api/auction/{id}/bids:
+    get:
+      summary: 取得拍賣出價紀錄（骨架端點）
+      operationId: getAuctionBids
+      tags: [Bidding]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseSuccess"
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseError"
+        "404":
+          description: 找不到拍賣
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseError"
+
+  /api/orders:
+    get:
+      summary: 取得目前使用者訂單（骨架端點）
+      operationId: listOrders
+      tags: [Ordering]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseSuccess"
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseError"

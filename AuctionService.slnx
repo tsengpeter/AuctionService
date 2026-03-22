@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AuctionService.Api/AuctionService.Api.csproj" />
+    <Project Path="src/AuctionService.Shared/AuctionService.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/Auction/Auction.csproj" />
+    <Project Path="src/Modules/Bidding/Bidding.csproj" />
+    <Project Path="src/Modules/Member/Member.csproj" />
+    <Project Path="src/Modules/Notification/Notification.csproj" />
+    <Project Path="src/Modules/Ordering/Ordering.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AuctionService.IntegrationTests/AuctionService.IntegrationTests.csproj" />
+    <Project Path="tests/AuctionService.UnitTests/AuctionService.UnitTests.csproj" />
+  </Folder>
+</Solution>
