@@ -33,8 +33,12 @@ RUN dotnet publish src/AuctionService.Api/AuctionService.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Install curl for healthcheck / 安裝 curl 供健康檢查使用
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user for security / 建立非 root 使用者以提升安全性
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+RUN groupadd --system appgroup && useradd --system --gid appgroup --no-create-home appuser
 
 COPY --from=build /app/publish .
 

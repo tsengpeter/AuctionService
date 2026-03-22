@@ -1,0 +1,25 @@
+**/.vs
+**/.git
+**/.idea
+**/.vscode
+
+# Build outputs — must be excluded so host obj/bin don't pollute the Linux build
+**/bin/
+**/obj/
+
+# Test projects — not needed in the runtime image
+tests/
+
+# Environment files
+.env
+.env.*
+
+# Docker files themselves
+docker-compose*.yml
+Dockerfile*
+
+# Docs
+docs/
+specs/
+requirmentspec/
+*.md
