@@ -36,16 +36,18 @@ public class DomainEventRoutingTests
         await using var provider = BuildProvider();
         var publisher = provider.GetRequiredService<IPublisher>();
 
-        var @event = new SampleDomainEvent(Guid.NewGuid());
+        // MediatR Publish() does NOT throw when no handler exists — must assert
+        // handler registration explicitly to avoid false-green.
+        var handler = provider.GetService<INotificationHandler<SampleDomainEvent>>();
+        handler.Should().NotBeNull("SampleDomainEventHandler must be registered via Notification assembly scan");
 
-        // Assert: event is routed to SampleDomainEventHandler without throwing.
-        // Publisher (Member/Auction/etc.) has no reference to Notification module.
+        var @event = new SampleDomainEvent(Guid.NewGuid());
         var act = async () => await publisher.Publish(@event);
         await act.Should().NotThrowAsync();
     }
 
     [Fact]
-    public async Task Publish_SampleDomainEvent_WithMultipleSubscribers_ShouldNotThrow()
+    public async Task Publish_SampleDomainEvent_Repeatedly_ShouldNotThrow()
     {
         await using var provider = BuildProvider();
         var publisher = provider.GetRequiredService<IPublisher>();
