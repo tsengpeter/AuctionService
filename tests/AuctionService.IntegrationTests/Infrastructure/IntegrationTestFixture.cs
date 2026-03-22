@@ -4,7 +4,6 @@ using Member.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Notification.Infrastructure.Persistence;
 using Ordering.Infrastructure.Persistence;
@@ -30,20 +29,19 @@ public class IntegrationTestFixture : IAsyncLifetime
         await _dbContainer.StartAsync();
         ConnectionString = _dbContainer.GetConnectionString();
 
+        // Environment variables must be set BEFORE WebApplicationFactory is created.
+        // Program.cs reads configuration inside WebApplication.CreateBuilder(), which
+        // runs before WithWebHostBuilder.ConfigureAppConfiguration is applied.
+        // Environment variables are the only injection point that works in time.
+        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", ConnectionString);
+        Environment.SetEnvironmentVariable("JWT_SECRET", "test_jwt_secret_at_least_32_chars_long");
+        Environment.SetEnvironmentVariable("JWT_ISSUER", "AuctionService");
+        Environment.SetEnvironmentVariable("JWT_AUDIENCE", "AuctionService");
+
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
                 builder.UseEnvironment("Testing");
-                builder.ConfigureAppConfiguration((_, config) =>
-                {
-                    config.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        ["ConnectionStrings:DefaultConnection"] = ConnectionString,
-                        ["JWT_SECRET"] = "test_jwt_secret_at_least_32_chars_long",
-                        ["JWT_ISSUER"] = "AuctionService",
-                        ["JWT_AUDIENCE"] = "AuctionService",
-                    });
-                });
                 builder.ConfigureServices(services =>
                 {
                     // Override all DbContext registrations with test container connection
@@ -68,6 +66,11 @@ public class IntegrationTestFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", null);
+        Environment.SetEnvironmentVariable("JWT_SECRET", null);
+        Environment.SetEnvironmentVariable("JWT_ISSUER", null);
+        Environment.SetEnvironmentVariable("JWT_AUDIENCE", null);
+
         Client?.Dispose();
         await Factory.DisposeAsync();
         await _dbContainer.DisposeAsync();
