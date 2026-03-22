@@ -69,7 +69,7 @@
 
 - [x] T016b [P] 實作 `ApiResponseTests`：檔案 `tests/AuctionService.UnitTests/Shared/ApiResponseTests.cs`（測試 `Ok<T>()`、`Fail()`、`ValidationFail()` 正確序列化；驗證 StatusCode 範圍；測試 null data 和重複 errors）
 - [x] T016c [P] 實作 `ValidationBehaviorTests`：檔案 `tests/AuctionService.UnitTests/Shared/ValidationBehaviorTests.cs`（測試有效請求通過；測試無效請求拋出 `ValidationException`；測試例外包含完整的欄位錯誤）
-- [ ] T016d [P] 實作 `GlobalExceptionMiddlewareTests`：檔案 `tests/AuctionService.UnitTests/API/GlobalExceptionMiddlewareTests.cs`（測試 `ValidationException` → 422 ApiResponse mapping；測試泛用 Exception → 500；測試 middleware 記錄例外）
+- [x] T016d [P] 實作 `GlobalExceptionMiddlewareTests`：檔案 `tests/AuctionService.UnitTests/API/GlobalExceptionMiddlewareTests.cs`（測試 `ValidationException` → 422 ApiResponse mapping；測試泛用 Exception → 500；測試 middleware 記錄例外）
 
 ---
 
@@ -97,13 +97,13 @@
 - [x] T022 [P] 實作 `MemberUser` Entity：檔案 `src/Modules/Member/Domain/Entities/MemberUser.cs`（繼承 `BaseEntity`，含 Email, Username, PasswordHash 欄位，含驗證規則註解）
 - [x] T022b [P] 實作 `MemberUserTests`：檔案 `tests/AuctionService.UnitTests/Member/MemberUserTests.cs`（測試 Entity 建構子；測試 Email 驗證規則；測試 PasswordHash 不可為空）
 - [x] T023 [P] 實作 `MemberDbContext`：檔案 `src/Modules/Member/Infrastructure/Persistence/MemberDbContext.cs`（繼承 DbContext，`HasDefaultSchema("member")`，DbSet<MemberUser>，Email unique index）
-- [ ] T023b [P] 實作 `MemberDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Member/MemberDbContextTests.cs`（測試 Schema 名稱為 "member"；測試 Email unique constraint；測試可透過 DbContext 建立/讀取實體）
+- [x] T023b [P] 實作 `MemberDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Member/MemberDbContextTests.cs`（測試 Schema 名稱為 "member"；測試 Email unique constraint；測試可透過 DbContext 建立/讀取實體）
 - [x] T024 [P] 建立初始 Migration：執行 `dotnet ef migrations add InitialCreate --project src/Modules/Member/Member.csproj --startup-project src/AuctionService.Api/AuctionService.Api.csproj --output-dir Infrastructure/Persistence/Migrations`（驗收：Migration 檔案存在於 `Infrastructure/Persistence/Migrations/`，檔名符合 `yyyyMMddHHmmss_InitialCreate.cs` 格式）
 
 ### Member DI & Module Registration
 
 - [x] T025 [P] 實作 `MemberDependencyInjection.cs`：檔案 `src/Modules/Member/Application/DependencyInjection.cs`（靜態類別含 `AddMemberModule()` 方法，註冊 MemberDbContext, MediatR handlers, FluentValidation validators）
-- [ ] T025b [P] 實作 `MemberDependencyInjectionTests`：檔案 `tests/AuctionService.UnitTests/Member/MemberDependencyInjectionTests.cs`（測試 DI 容器可正確註冊所有服務）
+- [x] T025b [P] 實作 `MemberDependencyInjectionTests`：檔案 `tests/AuctionService.UnitTests/Member/MemberDependencyInjectionTests.cs`（測試 DI 容器可正確註冊所有服務）
 
 ---
 
@@ -115,10 +115,10 @@
 - [x] T027 [P] 實作 `AuctionStatus` enum 和 `AuctionItem` Entity：檔案 `src/Modules/Auction/Domain/Entities/AuctionItem.cs`（ID, Title, StartingPrice, Status, EndsAt）
 - [x] T027b [P] 實作 `AuctionItemTests`：檔案 `tests/AuctionService.UnitTests/Auction/AuctionItemTests.cs`（測試狀態轉移；測試 StartingPrice > 0 驗證）
 - [x] T028 [P] 實作 `AuctionDbContext`：檔案 `src/Modules/Auction/Infrastructure/Persistence/AuctionDbContext.cs`（schema: "auction"）
-- [ ] T028b [P] 實作 `AuctionDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Auction/AuctionDbContextTests.cs`
+- [x] T028b [P] 實作 `AuctionDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Auction/AuctionDbContextTests.cs`
 - [x] T029 [P] 建立 Auction Migration：`dotnet ef migrations add InitialCreate --project src/Modules/Auction/Auction.csproj --startup-project src/AuctionService.Api/AuctionService.Api.csproj --output-dir Infrastructure/Persistence/Migrations`（驗收：Migration 檔案存在）
 - [x] T030 [P] 實作 `AuctionDependencyInjection.cs`
-- [ ] T030b [P] 實作 `AuctionDependencyInjectionTests`
+- [x] T030b [P] 實作 `AuctionDependencyInjectionTests`
 
 ### Bidding Module
 
@@ -126,10 +126,10 @@
 - [x] T032 [P] 實作 `Bid` Entity：檔案 `src/Modules/Bidding/Domain/Entities/Bid.cs`（AuctionId 邏輯 ID, BidderId 邏輯 ID, Amount, PlacedAt，無資料庫 FK）
 - [x] T032b [P] 實作 `BidTests`：檔案 `tests/AuctionService.UnitTests/Bidding/BidTests.cs`
 - [x] T033 [P] 實作 `BiddingDbContext`：schema: "bidding"
-- [ ] T033b [P] 實作 `BiddingDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Bidding/BiddingDbContextTests.cs`
+- [x] T033b [P] 實作 `BiddingDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Bidding/BiddingDbContextTests.cs`
 - [x] T034 [P] 建立 Bidding Migration：驗收：Migration 檔案存在於正確路徑
 - [x] T035 [P] 實作 `BiddingDependencyInjection.cs`
-- [ ] T035b [P] 實作 `BiddingDependencyInjectionTests`
+- [x] T035b [P] 實作 `BiddingDependencyInjectionTests`
 
 ### Ordering Module
 
@@ -137,10 +137,10 @@
 - [x] T037 [P] 實作 `OrderStatus` enum 和 `Order` Entity：AuctionId, BuyerId, Amount, Status（無資料庫 FK）
 - [x] T037b [P] 實作 `OrderTests`：檔案 `tests/AuctionService.UnitTests/Ordering/OrderTests.cs`
 - [x] T038 [P] 實作 `OrderingDbContext`：schema: "ordering"
-- [ ] T038b [P] 實作 `OrderingDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Ordering/OrderingDbContextTests.cs`
+- [x] T038b [P] 實作 `OrderingDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Ordering/OrderingDbContextTests.cs`
 - [x] T039 [P] 建立 Ordering Migration：驗收：Migration 檔案存在
 - [x] T040 [P] 實作 `OrderingDependencyInjection.cs`
-- [ ] T040b [P] 實作 `OrderingDependencyInjectionTests`
+- [x] T040b [P] 實作 `OrderingDependencyInjectionTests`
 
 ### Notification Module
 
@@ -148,10 +148,10 @@
 - [x] T042 [P] 實作 `NotificationRecord` Entity：RecipientId 邏輯 ID, Type, Payload (JSON string), SentAt
 - [x] T042b [P] 實作 `NotificationRecordTests`：檔案 `tests/AuctionService.UnitTests/Notification/NotificationRecordTests.cs`
 - [x] T043 [P] 實作 `NotificationDbContext`：schema: "notification"
-- [ ] T043b [P] 實作 `NotificationDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Notification/NotificationDbContextTests.cs`
+- [x] T043b [P] 實作 `NotificationDbContextTests`：檔案 `tests/AuctionService.IntegrationTests/Notification/NotificationDbContextTests.cs`
 - [x] T044 [P] 建立 Notification Migration：驗收：Migration 檔案存在
 - [x] T045 [P] 實作 `NotificationDependencyInjection.cs`
-- [ ] T045b [P] 實作 `NotificationDependencyInjectionTests`
+- [x] T045b [P] 實作 `NotificationDependencyInjectionTests`
 
 ---
 
@@ -160,6 +160,7 @@
 ### Docker Compose & Environment
 
 - [x] T046 建立 `docker-compose.yml`：檔案 `docker-compose.yml`（PostgreSQL 16 port 5432, pgAdmin 4 port 5050；定義 service network；volumes for postgres_data；environment variables from .env；depends_on 確保連線順序；驗收：`docker compose up -d` 成功啟動兩個服務）
+- [x] T046b 建立 `Dockerfile`：Multi-stage build（Stage 1: `sdk:10.0` restore + `dotnet publish -c Release`；Stage 2: `aspnet:10.0` runtime only）；建立非 root 使用者 `appuser`；`EXPOSE 8080`；`ASPNETCORE_URLS=http://+:8080`；所有敏感設定透過環境變數注入；驗收：`docker build -t auctionservice:latest .` 成功，`docker run` 後 `GET /health` 回傳 Healthy
 - [x] T047 建立 `.env.example`：檔案 `.env.example`（所有必要環境變數：ASPNETCORE_ENVIRONMENT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, JWT_SECRET ≥32 chars, JWT_ISSUER, JWT_AUDIENCE, JWT_EXPIRY_MINUTES, PGADMIN_PASSWORD；驗收：`.env` copy from example 後，所有變數定義完整）
 
 ### API Contract & Documentation
@@ -199,13 +200,13 @@
 
 ### API & Database Validation
 
-- [ ] T060 驗證一鍵啟動流程：按 [quickstart.md](quickstart.md) 執行步驟 1-6，驗證 SC-001（< 10 分鐘）
-- [ ] T061 驗證 Swagger 可開啟：開啟 https://localhost:5001/swagger，確認列出所有模組骨架端點
-- [ ] T062 驗證健康檢查：呼叫 GET `/health`，驗證狀態 200 且 duration < 100ms，驗證 SC-006
+- [x] T060 驗證一鍵啟動流程：按 [quickstart.md](quickstart.md) 執行步驟 1-6，驗證 SC-001（< 10 分鐘）
+- [x] T061 驗證 Swagger 可開啟：開啟 https://localhost:5001/swagger，確認列出所有模組骨架端點
+- [x] T062 驗證健康檢查：呼叫 GET `/health`，驗證狀態 200 且 duration < 100ms，驗證 SC-006
 
 ### Module Isolation Validation
 
-- [ ] T063 驗證各模組 Schema 隔離：連線 PostgreSQL 驗證存在 5 個獨立 schema（member, auction, bidding, ordering, notification），驗證 SC-005
+- [x] T063 驗證各模組 Schema 隔離：連線 PostgreSQL 驗證存在 5 個獨立 schema（member, auction, bidding, ordering, notification），驗證 SC-005
 
 ---
 
@@ -213,14 +214,14 @@
 
 ### Final Documentation Updates
 
-- [ ] T064 更新 `README.md`：包含快速啟動、專案結構、開發指南連結
-- [ ] T065 新增 DEVELOPMENT.md：詳細開發者設定、常用指令、troubleshooting
-- [ ] T066 新增 ARCHITECTURE.md：系統架構圖、模組邊界、事件流程
+- [x] T064 更新 `README.md`：包含快速啟動、專案結構、開發指南連結
+- [x] T065 新增 DEVELOPMENT.md：詳細開發者設定、常用指令、troubleshooting
+- [x] T066 新增 ARCHITECTURE.md：系統架構圖、模組邊界、事件流程
 
 ### Version Control
 
-- [ ] T067 Commit 所有程式碼：`git add -A && git commit -m "..."`（遵循 Conventional Commits）
-- [ ] T068 建立 Pull Request：`001-backend-scaffold` → `develop`，描述包含完成的 SC 和 US 清單
+- [x] T067 Commit 所有程式碼：`git add -A && git commit -m "..."`（遵循 Conventional Commits）
+- [x] T068 建立 Pull Request：`001-backend-scaffold` → `develop`，描述包含完成的 SC 和 US 清單
 
 ---
 

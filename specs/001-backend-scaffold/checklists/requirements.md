@@ -17,17 +17,19 @@
 - [x] **FR-008** - 系統提供健康檢查端點，回報服務與資料庫連線狀態
 - [x] **FR-009** - 系統提供 Docker Compose 設定，一鍵啟動開發所需外部依賴
 - [x] **FR-010** - 所有模組支援單元測試（無外部依賴）與整合測試（隔離臨時資料庫）
+- [x] **FR-011** - 系統提供 `Dockerfile`，可將應用程式打包為 Docker Image，採多階段建置（multi-stage build）以最小化 Image 大小；執行階段不含 .NET SDK；容器以非 root 使用者執行；所有敏感設定透過環境變數注入
 
 ---
 
 ## Success Criteria Verification
 
-- [ ] **SC-001** - 從 clone 到 API 文件可存取時間 < 10 分鐘
+- [x] **SC-001** - 從 clone 到 API 文件可存取時間 < 10 分鐘
 - [x] **SC-002** - `dotnet build` 零錯誤，所有模組可獨立編譯
 - [x] **SC-003** - `dotnet test` 全綠，初始骨架測試通過率 100%
 - [x] **SC-004** - 所有 API 端點回應結構一致率 100%
 - [x] **SC-005** - 修改任一模組業務邏輯，不需修改其他模組任何檔案
 - [x] **SC-006** - 健康檢查端點回應時間 < 100ms
+- [x] **SC-007** - `docker build -t auctionservice:latest .` 成功，`docker run` 後 `GET /health` 回傳 Healthy
 
 ---
 

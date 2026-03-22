@@ -156,6 +156,36 @@ dotnet test
 
 ---
 
+## 步驟 8（選用）：建置 Docker Image
+
+> 適用於驗收 **SC-007** 或準備部署至測試/正式環境。
+
+確保已在專案根目錄下且 Docker Desktop 正在執行：
+
+```bash
+# 建置 Image
+docker build -t auctionservice:latest .
+
+# 執行容器（需先確認 DB 已啟動並可從容器存取）
+docker run -d -p 8080:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e ConnectionStrings__DefaultConnection="Host=host.docker.internal;Port=5432;Database=auctionservice;Username=auctionuser;Password=<your-password>" \
+  -e JWT_SECRET="<your-32-char-minimum-secret>" \
+  -e JWT_ISSUER="AuctionService" \
+  -e JWT_AUDIENCE="AuctionServiceClient" \
+  --name auctionservice \
+  auctionservice:latest
+
+# 驗證健康檢查（SC-007）
+curl http://localhost:8080/health
+```
+
+預期結果：`docker build` 零錯誤，`GET /health` 回傳 Healthy
+
+> **備註**: 容器以非 root 使用者 `appuser` 執行。Migration 需在容器啟動前透過 `dotnet ef database update` 於外部執行，容器本身不會自動套用 migration。
+
+---
+
 ## 疑難排解
 
 ### 問題：`dotnet run` 報告缺少環境變數

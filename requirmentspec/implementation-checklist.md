@@ -65,6 +65,7 @@ git checkout -b 001-backend-scaffold
   - [ ] 所有 csproj 加入 sln：`dotnet sln add`
   - [ ] 建立各模組間 project reference（Api → 各模組 Application；各模組 Infrastructure → Domain + Application）
   - [ ] 建立 `docker-compose.yml`
+  - [ ] 建立 `Dockerfile`（multi-stage build: `sdk:10.0` → `aspnet:10.0`，非 root 使用者 `appuser`，EXPOSE 8080）
   - [ ] 建立 `appsettings.Development.json`（含 DB 連線字串、JWT config）
   - [ ] 建立 `.gitignore`（含 `bin/`, `obj/`, `*.user`, `*.suo`, `.env`, `appsettings.*.json`）
   - [ ] 建立 `.env.example`（說明所有必填環境變數）

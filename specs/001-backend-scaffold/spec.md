@@ -95,6 +95,7 @@
 - **FR-011**: 系統 MUST 使用 .NET 內建 `ILogger<T>` 記錄關鍵事件（請求例外、事件 Handler 失敗），Development 環境以 JSON 格式輸出至 Console；不引入第三方 logging 套件（骨架階段）
 - **FR-009**: 系統 MUST 在開發環境提供 Docker Compose 設定，讓開發者可一鍵啟動所需的外部依賴（資料庫）
 - **FR-010**: 所有模組 MUST 支援撰寫單元測試（業務邏輯不依賴外部服務）與整合測試（使用隔離的臨時資料庫）
+- **FR-012**: 系統 MUST 提供 `Dockerfile`，使用多階段建置（multi-stage build）將應用程式打包為可部署的 Docker Image；執行階段 Image 不含 .NET SDK；容器以非 root 使用者執行；所有敏感設定透過環境變數注入，不寫入 Image
 
 ### Key Entities
 
@@ -139,4 +140,5 @@
 - **SC-004**: 任意 API 端點的回應結構一致性達 100%（所有端點均符合統一格式）
 - **SC-005**: 修改任一模組的業務邏輯，不需修改其他模組任何檔案（零跨模組副作用）
 - **SC-006**: 健康檢查端點在服務正常時回應時間 < 100ms
+- **SC-007**: `docker build -t auctionservice:latest .` 零錯誤，`docker run` 啟動後 `GET /health` 回傳 Healthy
 

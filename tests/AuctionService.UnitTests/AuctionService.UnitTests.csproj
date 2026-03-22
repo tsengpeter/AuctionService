@@ -30,6 +30,7 @@
     <ProjectReference Include="..\..\src\Modules\Bidding\Bidding.csproj" />
     <ProjectReference Include="..\..\src\Modules\Ordering\Ordering.csproj" />
     <ProjectReference Include="..\..\src\Modules\Notification\Notification.csproj" />
+    <ProjectReference Include="..\..\src\AuctionService.Api\AuctionService.Api.csproj" />
   </ItemGroup>
 
 </Project>
