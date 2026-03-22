@@ -35,6 +35,16 @@ public class NotificationRecordTests
         act.Should().Throw<ArgumentException>();
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Create_WhenPayloadIsNullOrWhitespace_ShouldThrow(string? payload)
+    {
+        var act = () => NotificationRecord.Create(Guid.NewGuid(), "Type", payload!);
+        act.Should().Throw<ArgumentException>();
+    }
+
     [Fact]
     public void MarkSent_ShouldSetSentAt()
     {

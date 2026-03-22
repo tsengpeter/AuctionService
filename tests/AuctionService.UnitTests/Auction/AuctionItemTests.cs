@@ -18,6 +18,16 @@ public class AuctionItemTests
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Create_WhenTitleIsNullOrWhitespace_ShouldThrow(string? title)
+    {
+        var act = () => AuctionItem.Create(title!, 100m, DateTimeOffset.UtcNow.AddDays(1));
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(-1)]
     [InlineData(-100)]
@@ -58,5 +68,61 @@ public class AuctionItemTests
         item.Activate();
         item.Cancel();
         item.Status.Should().Be(AuctionStatus.Cancelled);
+    }
+
+    [Fact]
+    public void End_FromActive_ShouldSetStatusToEnded()
+    {
+        var item = AuctionItem.Create("Item", 50m, DateTimeOffset.UtcNow.AddDays(1));
+        item.Activate();
+        item.End();
+        item.Status.Should().Be(AuctionStatus.Ended);
+    }
+
+    [Fact]
+    public void End_WhenNotActive_ShouldThrow()
+    {
+        var item = AuctionItem.Create("Item", 50m, DateTimeOffset.UtcNow.AddDays(1));
+        var act = () => item.End();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void MarkSold_FromEnded_ShouldSetStatusToSold()
+    {
+        var item = AuctionItem.Create("Item", 50m, DateTimeOffset.UtcNow.AddDays(1));
+        item.Activate();
+        item.End();
+        item.MarkSold();
+        item.Status.Should().Be(AuctionStatus.Sold);
+    }
+
+    [Fact]
+    public void MarkSold_WhenNotEnded_ShouldThrow()
+    {
+        var item = AuctionItem.Create("Item", 50m, DateTimeOffset.UtcNow.AddDays(1));
+        item.Activate();
+        var act = () => item.MarkSold();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Cancel_WhenSold_ShouldThrow()
+    {
+        var item = AuctionItem.Create("Item", 50m, DateTimeOffset.UtcNow.AddDays(1));
+        item.Activate();
+        item.End();
+        item.MarkSold();
+        var act = () => item.Cancel();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Cancel_WhenAlreadyCancelled_ShouldThrow()
+    {
+        var item = AuctionItem.Create("Item", 50m, DateTimeOffset.UtcNow.AddDays(1));
+        item.Cancel();
+        var act = () => item.Cancel();
+        act.Should().Throw<InvalidOperationException>();
     }
 }

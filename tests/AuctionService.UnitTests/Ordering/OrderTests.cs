@@ -45,6 +45,22 @@ public class OrderTests
     }
 
     [Fact]
+    public void Create_WhenBuyerIdIsEmpty_ShouldThrow()
+    {
+        var act = () => Order.Create(Guid.NewGuid(), Guid.Empty, 100m);
+        act.Should().Throw<ArgumentException>().WithParameterName("buyerId");
+    }
+
+    [Fact]
+    public void Confirm_WhenNotPending_ShouldThrow()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        order.Confirm();
+        var act = () => order.Confirm();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
     public void Cancel_FromPending_ShouldSetStatusToCancelled()
     {
         var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
@@ -53,12 +69,77 @@ public class OrderTests
     }
 
     [Fact]
+    public void Cancel_FromConfirmed_ShouldSetStatusToCancelled()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        order.Confirm();
+        order.Cancel();
+        order.Status.Should().Be(OrderStatus.Cancelled);
+    }
+
+    [Fact]
+    public void Cancel_WhenAlreadyCancelled_ShouldThrow()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        order.Cancel();
+        var act = () => order.Cancel();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Ship_FromConfirmed_ShouldSetStatusToShipped()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        order.Confirm();
+        order.Ship();
+        order.Status.Should().Be(OrderStatus.Shipped);
+    }
+
+    [Fact]
+    public void Ship_WhenNotConfirmed_ShouldThrow()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        var act = () => order.Ship();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Complete_FromShipped_ShouldSetStatusToCompleted()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        order.Confirm();
+        order.Ship();
+        order.Complete();
+        order.Status.Should().Be(OrderStatus.Completed);
+    }
+
+    [Fact]
+    public void Complete_WhenNotShipped_ShouldThrow()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        order.Confirm();
+        var act = () => order.Complete();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Cancel_WhenShipped_ShouldThrow()
+    {
+        var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
+        order.Confirm();
+        order.Ship();
+        var act = () => order.Cancel();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
     public void Cancel_WhenCompleted_ShouldThrow()
     {
         var order = Order.Create(Guid.NewGuid(), Guid.NewGuid(), 100m);
         order.Confirm();
-        // manually reach Completed not possible, but test Confirmed→Cancel as valid
-        var act = () => Order.Create(Guid.NewGuid(), Guid.NewGuid(), 0);
-        act.Should().Throw<ArgumentException>();
+        order.Ship();
+        order.Complete();
+        var act = () => order.Cancel();
+        act.Should().Throw<InvalidOperationException>();
     }
 }

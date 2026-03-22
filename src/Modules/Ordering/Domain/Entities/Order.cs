@@ -39,6 +39,22 @@ public class Order : BaseEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    public void Ship()
+    {
+        if (Status != OrderStatus.Confirmed)
+            throw new InvalidOperationException($"Cannot ship order in status {Status}.");
+        Status = OrderStatus.Shipped;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Complete()
+    {
+        if (Status != OrderStatus.Shipped)
+            throw new InvalidOperationException($"Cannot complete order in status {Status}.");
+        Status = OrderStatus.Completed;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void Cancel()
     {
         if (Status is OrderStatus.Shipped or OrderStatus.Completed or OrderStatus.Cancelled)

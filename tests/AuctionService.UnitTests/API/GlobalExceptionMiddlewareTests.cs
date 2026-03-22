@@ -119,4 +119,28 @@ public class GlobalExceptionMiddlewareTests
         doc.GetProperty("success").GetBoolean().Should().BeFalse();
         doc.GetProperty("statusCode").GetInt32().Should().Be(500);
     }
+
+    [Fact]
+    public async Task InvokeAsync_WhenResponseHasStarted_ShouldNotWriteResponse()
+    {
+        var middleware = new GlobalExceptionMiddleware(
+            next: _ => throw new InvalidOperationException("Late exception"),
+            logger: _logger);
+
+        // Mock HttpContext so HasStarted returns true
+        var context = Substitute.For<HttpContext>();
+        var response = Substitute.For<HttpResponse>();
+        var request = Substitute.For<HttpRequest>();
+        request.Path.Returns(new PathString("/test"));
+        request.Method.Returns("GET");
+        context.Request.Returns(request);
+        context.Response.Returns(response);
+        response.HasStarted.Returns(true);
+
+        // Should not throw — guard returns early
+        await middleware.InvokeAsync(context);
+
+        // StatusCode must NOT be modified because the guard short-circuited
+        response.DidNotReceiveWithAnyArgs().StatusCode = default;
+    }
 }

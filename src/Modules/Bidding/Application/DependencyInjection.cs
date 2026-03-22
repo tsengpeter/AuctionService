@@ -1,4 +1,5 @@
 using Bidding.Infrastructure.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,9 @@ public static class BiddingDependencyInjection
 
         services.AddDbContext<BiddingDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        services.AddMediatR(cfg =>
+            cfg.RegisterServicesFromAssembly(typeof(BiddingDependencyInjection).Assembly));
 
         return services;
     }

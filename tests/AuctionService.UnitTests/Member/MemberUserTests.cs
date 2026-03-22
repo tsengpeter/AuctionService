@@ -37,10 +37,29 @@ public class MemberUserTests
         act.Should().Throw<ArgumentException>();
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Create_WhenUsernameIsNullOrWhitespace_ShouldThrow(string? username)
+    {
+        var act = () => MemberUser.Create("test@example.com", username!, "hash");
+        act.Should().Throw<ArgumentException>();
+    }
+
     [Fact]
     public void Create_ShouldNormalizeEmail_ToLowercase()
     {
         var user = MemberUser.Create("UPPER@EXAMPLE.COM", "user", "hash");
         user.Email.Should().Be("upper@example.com");
+    }
+
+    [Fact]
+    public void UpdateTimestamp_ShouldUpdateUpdatedAt()
+    {
+        var user = MemberUser.Create("test@example.com", "user", "hash");
+        var before = user.UpdatedAt;
+        user.UpdateTimestamp();
+        user.UpdatedAt.Should().BeOnOrAfter(before);
     }
 }

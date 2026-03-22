@@ -1,4 +1,5 @@
 using Auction.Infrastructure.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,9 @@ public static class AuctionDependencyInjection
 
         services.AddDbContext<AuctionDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        services.AddMediatR(cfg =>
+            cfg.RegisterServicesFromAssembly(typeof(AuctionDependencyInjection).Assembly));
 
         return services;
     }

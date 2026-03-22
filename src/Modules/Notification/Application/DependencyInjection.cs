@@ -1,7 +1,8 @@
-using Notification.Infrastructure.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Notification.Infrastructure.Persistence;
 
 namespace Notification;
 
@@ -15,6 +16,9 @@ public static class NotificationDependencyInjection
 
         services.AddDbContext<NotificationDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        services.AddMediatR(cfg =>
+            cfg.RegisterServicesFromAssembly(typeof(NotificationDependencyInjection).Assembly));
 
         return services;
     }

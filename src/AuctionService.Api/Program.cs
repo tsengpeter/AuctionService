@@ -40,9 +40,9 @@ builder.Services.AddOrderingModule(builder.Configuration);
 builder.Services.AddNotificationModule(builder.Configuration);
 
 // ── T017b: JWT Authentication ────────────────────────────────────────────
-var jwtSecret = builder.Configuration["JWT_SECRET"]
-    ?? Environment.GetEnvironmentVariable("JWT_SECRET")
-    ?? throw new InvalidOperationException("JWT_SECRET is not configured.");
+var jwtSecret = builder.Configuration["JWT_SECRET"];
+if (string.IsNullOrWhiteSpace(jwtSecret))
+    throw new InvalidOperationException("JWT_SECRET is not configured.");
 
 if (jwtSecret.Length < 32)
     throw new InvalidOperationException("JWT_SECRET must be at least 32 characters.");

@@ -1,3 +1,4 @@
+using MediatR;
 using Member.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,9 @@ public static class MemberDependencyInjection
 
         services.AddDbContext<MemberDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        services.AddMediatR(cfg =>
+            cfg.RegisterServicesFromAssembly(typeof(MemberDependencyInjection).Assembly));
 
         return services;
     }
