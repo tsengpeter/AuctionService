@@ -147,3 +147,39 @@
 
 ## 7. 測試策略
 - **整合測試重點**: 模擬從 `Auction End` -> `Order Created` -> `Payment Success` -> `Order Paid` 的完整狀態流轉，確保事件驅動機制運作正常。
+
+---
+
+## 8. 容器化策略 (Containerization Strategy)
+
+### Dockerfile（多階段建置 / Multi-stage Build）
+
+| 階段 | Base Image | 用途 |
+|------|-----------|------|
+| Stage 1: build | `mcr.microsoft.com/dotnet/sdk:10.0` | `dotnet restore` + `dotnet publish -c Release` |
+| Stage 2: runtime | `mcr.microsoft.com/dotnet/aspnet:10.0` | 僅含執行時期所需檔案，不含 SDK |
+
+### 設計原則
+
+- **安全性**: 容器以非 root 使用者 `appuser` 執行，降低容器逃逸風險
+- **Port**: 容器對外監聽 port **8080**（`ASPNETCORE_URLS=http://+:8080`）
+- **設定注入**: 所有敏感設定（DB connection string、JWT secret）透過**環境變數**注入，不寫入 Image
+- **Migration**: 資料庫 Schema Migration 需在容器啟動前於外部（CI/CD pipeline 或手動）執行，容器不自動套用
+- **Image 大小**: 多階段建置確保 runtime image 不含 .NET SDK，有效縮小 image 大小
+
+### 驗收指令
+
+```bash
+# 建置 Image（SC-007）
+docker build -t auctionservice:latest .
+
+# 執行容器
+docker run -d -p 8080:8080 \
+  -e ConnectionStrings__DefaultConnection="Host=host.docker.internal;Port=5432;..." \
+  -e JWT_SECRET="<min-32-chars>" \
+  auctionservice:latest
+
+# 驗證健康檢查
+curl http://localhost:8080/health
+# 預期: { "status": "Healthy", ... }
+```
