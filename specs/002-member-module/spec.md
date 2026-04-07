@@ -123,7 +123,8 @@
 
 - Refresh Token 被同時使用兩次（競爭條件）時，只有第一次成功；第二次因 Token Rotation 已撤銷而回傳 401，不需額外舞長（如強制撤銷全部 session）——Token Rotation 機制本身已確保舊 token 不可重用
 - 地址子欄位各自有長度上限（country / city 最長 100 字元、postal_code 最長 20 字元、address_line 最長 200 字元）；超過時回傳 422 並指明對應子欄位名稱
-- 電話號碼包含非法字元（不允許 `+`、`-`、空格以外的非數字字元）時，回傳 422 並指明 phone 欄位
+- 電話號碼包含非法字元（僅接受純數字，不允許 `+`、`-`、空格或任何符號）時，回傳 422 並指明對應欄位（phoneCountryCode 或 phoneNumber）
+- 電話號碼以 `09` 開頭時，系統自動去除前導 `0` 後儲存（例如：`0912345678` → 儲存為 `912345678`）
 - 使用者嘗試透過此端點查詢其他人的個人資料：系統依據 Access Token 中的身份僅回傳請求者本人的資料，無法查詢他人
 - 帳號建立後，顯示名稱為空時預設使用 username 作為顯示名稱
 - 同一 IP 每分鐘登入失敗超過 5 次時，回傳 429 Too Many Requests；計數器在 1 分鐘後重置，不鎖定帳號
@@ -138,7 +139,7 @@
 
 ### Functional Requirements
 
-- **FR-001**: 系統 MUST 允許新訪客以 email、username、password、結構化地址（country、city、postal_code、address_line）、phone number 建立帳號；地址各子欄位均為選填
+- **FR-001**: 系統 MUST 允許新訪客以 email、username、password、phoneCountryCodeId（對應 phone_country_codes 表的 id）、phone number、結構化地址（country、city、postal_code、address_line）建立帳號；phoneCountryCodeId、phoneNumber 與 address 物件均為必填；地址各子欄位均為選填字串；提供無效 phoneCountryCodeId MUST 回傳 422
 - **FR-002**: 系統 MUST 在 email 已存在時拒絕註冊，回傳 409 Conflict，訊息為 `"Email already registered"`
 - **FR-003**: 系統 MUST 強制執行密碼複雜度規則：至少 8 字元，包含至少一個大寫字母、一個小寫字母、一個數字
 - **FR-003b**: 系統 MUST 強制執行 username 長度規則：至少 3 字元，至多 30 字元；違規回傳 422
@@ -154,10 +155,12 @@
 - **FR-013**: 系統 MUST 對登入端點實施 IP 速率限制；同一 IP 每分鐘累積失敗次數超過 5 次時回傳 429 Too Many Requests，不鎖定帳號
 - **FR-014**: 系統 MUST 定期清理已過期及已撤銷的 Refresh Token 記錄，以防止 `refresh_tokens` 資料表無限成長（例如：背景排程每日執行清理）
 - **FR-015**: 系統 MUST 允許已登入使用者透過提供正確舊密碼與符合複雜度規則的新密碼來變更密碼；變更成功後 MUST 立即撤銷該使用者所有 Refresh Token，強制所有裝置重新登入；舊密碼錯誤 MUST 回傳 401；新密碼不符規則 MUST 回傳 422；新密碼與舊密碼相同 MUST 回傳 422
+- **FR-016**: 系統 MUST 提供無需驗證的國碼查詢端點（`GET /api/phone-country-codes`），回傳全部支援的國碼資料（id、dialCode、countryName、countryIso）；資料以 seed data 初始化，不支援執行期新增
 
 ### Key Entities
 
-- **使用者（User）**: 代表已註冊的平台參與者。屬性：唯一 id、email（唯一，大小寫不敏感）、username（唯一，大小寫不敏感比對，3–30 字元）、雜湊密碼、地址（結構化子欄位：country、city、postal_code、address_line，均為選填字串；address_line 儲存街道門牌與區域等其餘資訊）、電話號碼（支援國際格式）、顯示名稱（選填，上限 50 字元，預設為 username）、角色（Member / Admin，預設 Member）、建立時間戳記、最後更新時間戳記
+- **使用者（User）**: 代表已註冊的平台參與者。屬性：唯一 id、email（唯一，大小寫不敏感）、username（唯一，大小寫不敏感比對，3–30 字元）、雜湊密碼、地址（結構化子欄位：country、city、postal_code、address_line，均為選填字串；address 物件於註冊時必填）、國碼 ID（phone_country_code_id，必填，對應 phone_country_codes 表的 id）、電話號碼（phone_number，必填，純數字，09 開頭自動去除前導 0 後儲存）、顯示名稱（選填，上限 50 字元，預設為 username）、角色（Member / Admin，預設 Member）、建立時間戳記、最後更新時間戳記
+- **國碼（PhoneCountryCode）**: 代表支援的電話國碼查詢表（seed data）。屬性：自成長 INT id、純數字國碼（dialCode，不含 `+`，唯一）、國家名稱（countryName）、ISO-2 代碼（countryIso）。資料於遷移時以 seed data 寫入，不支援執行期新增。
 - **Refresh Token**: 代表一次已發行的工作階段憑證。屬性：唯一 id、關聯的使用者 id、token 摘要（非原始 token）、到期時間戳記、撤銷旗標、發行時間戳記。同一使用者可同時持有多個有效 token（例如多裝置登入），各自獨立管理
 
 ---
@@ -167,7 +170,7 @@
 ### Session 2026-04-08
 
 - Q: address 是否需要拆分成結構化欄位（城市、郵遞區號等）？ → A: 是，地址以結構化子欄位儲存：country、city、postal_code、address_line（街道門牌與區域等其餘資訊），各欄位均為選填（*更新自原始答案：本期改為結構化儲存*)
-- Q: 電話號碼的驗證規則為何？ → A: 接受國際格式（`+886-912-345-678`、`0912345678`），允許 `+`、`-`、空格；電信業者層級驗證不在範圍內
+- Q: 電話號碼的驗證規則為何？ → A: 國碼為獨立查詢表（phone_country_codes），註冊時傳入該表的 id（phoneCountryCodeId）；phoneNumber 僅接受純數字，09 開頭自動去除前導 `0` 後儲存（`0912345678` → `912345678`）；電信業者層級驗證不在範圍內
 - Q: 顯示名稱（display_name）是否必填？ → A: 選填；未提供時預設使用 username 作為顯示名稱
 - Q: 一個使用者是否可同時在多裝置保有多個有效 Refresh Token？ → A: 是，各裝置的 token 各自獨立管理，登出只撤銷提交的那一個 token
 - Q: Access Token 的 payload 需包含哪些 claims？ → A: 至少包含 sub（使用者 id）、email、role
@@ -186,8 +189,9 @@
 
 ## Assumptions
 
-- 地址以結構化子欄位儲存（country、city、postal_code、address_line），各欄位均為選填；address_line 儲存街道門牌與區域等其餘資訊
-- 電話號碼接受國際格式（`+886-912-345-678`、`0912345678`）；電信業者層級驗證不在範圍內
+- 地址以結構化子欄位儲存（country、city、postal_code、address_line），注冊時 address 物件必填，各子欄位均為選填字串；address_line 儲存街道門牌與區域等其餘資訊
+- 國碼以獨立的 `phone_country_codes` 表管理（內含 dial_code、countryName、countryIso），以 seed data 寫入，不支援執行期新增；`users` 表儲存該表的 INT id（phone_country_code_id），同模組內可建立實際 DB FK
+- phoneNumber 必填，僅接受純數字；09 開頭的號碼自動去除前導 `0` 後儲存（`0912345678` → `912345678`）；電信業者層級驗證不在範圍內
 - 顯示名稱選填；未提供時預設值為 username
 - 同一使用者可在多裝置同時保有多個有效 Refresh Token，各自獨立管理
 - `Admin` 角色存在於領域模型中，但提升使用者為 Admin 的管理功能不在本期範圍內
