@@ -148,7 +148,7 @@ git checkout -b 002-member-module
 
 - [ ] **Specify**：
   ```
-  /speckit.specify 實作 Member 模組：使用者以 email + username + password 註冊帳號（重複 email 回 409）、以 email + password 登入取得 JWT Access Token（15分鐘）及 Refresh Token（7天）、使用 Refresh Token 換取新 Access Token（Token Rotation）、登出（使 Refresh Token 失效）、查詢自己的個人資料、更新個人資料（username、顯示名稱），密碼使用 BCrypt 雜湊儲存，schema: member，tables: users, refresh_tokens
+  /speckit.specify 實作 Member 模組：使用者以 email + username + password + address + phone number 註冊帳號（重複 email 回 409）、以 email + password 登入取得 JWT Access Token（15分鐘）及 Refresh Token（7天）、使用 Refresh Token 換取新 Access Token（Token Rotation）、登出（使 Refresh Token 失效）、查詢自己的個人資料、更新個人資料（username、顯示名稱），密碼使用 BCrypt 雜湊儲存，schema: member，tables: users, refresh_tokens
   ```
 - [ ] **Clarify**：`/speckit.clarify`
   - [ ] Access Token 有效期：15 分鐘
@@ -162,7 +162,16 @@ git checkout -b 002-member-module
     ```bash
     dotnet add src/Modules/Member/Member.csproj package BCrypt.Net-Next
     ```
-- [ ] **Plan**：`/speckit.plan`
+- [ ] **Plan**：
+  ```
+  /speckit.plan 設計 Member 模組技術架構：
+  Domain 層：MemberUser 實體新增 display_name（string?, nullable）與 role（enum: Member/Admin, 預設 Member）欄位；RefreshToken 實體（UserId: Guid, TokenHash: string, ExpiresAt: DateTimeOffset, IsRevoked: bool, CreatedAt），兩者均繼承 BaseEntity，私有建構子 + 靜態工廠；
+  Application 層：定義 IPasswordHasher（Hash(plain)/Verify(plain, hash)）、IJwtTokenService（GenerateAccessToken(userId, email, role)/GenerateRefreshToken()）於 Application/Abstractions；CQRS 命令：RegisterCommand + RegisterCommandValidator（email 格式驗證、密碼 ≥8 字元含大小寫與數字）、LoginCommand、RefreshTokenCommand、LogoutCommand（冪等）、UpdateProfileCommand；CQRS 查詢：GetMeQuery；所有 Handler 只依賴介面，不直接依賴實作；
+  Infrastructure 層：BcryptPasswordHasher（BCrypt.Net-Next, WorkFactor=12）、JwtTokenService（HS256, AccessToken exp=15min, claims: sub/email/role; RefreshToken = 64 bytes via RandomNumberGenerator, URL-safe base64, 儲存前 SHA-256 hash）；
+  EF Migration（AddRefreshTokensAndUserProfile）：users 表補 display_name、role 欄位；新建 refresh_tokens 表，UNIQUE INDEX(token_hash)，INDEX(user_id)；
+  Controller 分層：AuthController（/api/auth/*, 無需 [Authorize]）、UsersController（/api/users/*, [Authorize]）；
+  錯誤對應：重複 email → 409 Conflict，密碼強度 → 422 ValidationError，帳密錯誤 / token 無效 → 401 Unauthorized
+  ```
 - [ ] **Tasks**：`/speckit.tasks`
 - [ ] **Implement**：`/speckit.implement`
 - [ ] **Checklist**：`/speckit.checklist`
@@ -276,7 +285,15 @@ git checkout -b 003-auction-module
 - [ ] **Clarify**：`/speckit.clarify`
   - [ ] 結標排程：使用 Background Service 每分鐘掃描過期 Active 商品
   - [ ] 最高出價查詢：Auction 模組透過 `IBiddingQueryService`（Shared Interface）查詢，避免直接依賴 Bidding 模組
-- [ ] **Plan**：`/speckit.plan`
+- [ ] **Plan**：
+  ```
+  /speckit.plan 設計 Auction 模組技術架構：
+  Domain 層：Auction 實體（ownerId: Guid, title, description, startingPrice: decimal, endTime: DateTimeOffset, status: enum Draft/Active/Ended, winnerId: Guid?, soldAmount: decimal?），方法 Publish()（Draft→Active，驗證 endTime > UtcNow）、End(winnerId, soldAmount)（Active→Ended）；AuctionImage 值物件（url: string）；Category 實體（name, parentId: Guid?）；Watchlist 實體（userId: Guid, auctionId: Guid）；AuctionWonEvent : IDomainEvent（AuctionId, WinnerId, SoldAmount, SellerId）；
+  Application 層：IBiddingQueryService 介面（GetHighestBidAsync(auctionId) → decimal?）於 Application/Abstractions，實作由 Bidding 模組注入（避免直接 EF 跨 schema）；CQRS 命令：CreateAuctionCommand + Validator（endTime > UtcNow + 1min，startingPrice > 0，圖片 ≤ 5）、UpdateAuctionCommand（限 Draft 狀態）、PublishAuctionCommand（Draft→Active）、AddWatchlistCommand、RemoveWatchlistCommand（冪等）；CQRS 查詢：GetAuctionsQuery（keyword/category/page/pageSize，offset 分頁）、GetAuctionDetailQuery（含 currentHighestBid via IBiddingQueryService）、GetWatchlistQuery；
+  Background Service：AuctionEndBackgroundService（IHostedService，PeriodicTimer 60 秒，批次查詢 EndTime <= UtcNow AND Status=Active，呼叫 End()，透過 MediatR 發布 AuctionWonEvent）；
+  EF Core：auction schema，INDEX(status, end_time) 加速結標掃描，INDEX(owner_id)；
+  錯誤對應：非擁有者修改/刪除 → 403，非 Draft 狀態上架 → 409，endTime 過期 → 422
+  ```
 - [ ] **Tasks**：`/speckit.tasks`
 - [ ] **Implement**：`/speckit.implement`
 - [ ] **Checklist**：`/speckit.checklist`
@@ -352,7 +369,14 @@ git checkout -b 004-bidding-module
 - [ ] **Clarify**：`/speckit.clarify`
   - [ ] 最高出價查詢：從 `bidding.bids` 以 `MAX(amount) WHERE auction_id=?` 取得，同模組內查詢
   - [ ] 出價狀態「won/lost」在結標後更新（監聽 `AuctionWonEvent`）
-- [ ] **Plan**：`/speckit.plan`
+- [ ] **Plan**：
+  ```
+  /speckit.plan 設計 Bidding 模組技術架構：
+  Domain 層：Bid 實體（auctionId: Guid, bidderId: Guid, amount: decimal, bidTime: DateTimeOffset），無跨模組 EF Navigation，auctionId/bidderId 為邏輯 Guid 參考；BidStatus enum（Leading/Outbid/Won/Lost）儲存於 Bid 實體；
+  Application 層：IAuctionQueryService 介面（GetAuctionStatusAsync(auctionId) → AuctionStatus?, GetAuctionOwnerIdAsync(auctionId) → Guid?）於 Application/Abstractions；CQRS 命令：PlaceBidCommand（驗證：auction 狀態為 Active / 出價 > MAX(amount) WHERE auction_id / bidderId ≠ ownerId）+ Validator；CQRS 查詢：GetAuctionBidsQuery（依 bidTime 降序，offset 分頁）、GetMyBidsQuery（計算每筆 bid 的 leading/outbid/won/lost 狀態）；INotificationHandler<AuctionWonEvent>：批次更新 bids（WinnerId 對應 bid → Won，同 auctionId 其餘 → Lost）；
+  Infrastructure 層：BiddingDbContext，bidding schema，bids 表，INDEX(auction_id, amount DESC) 加速 MAX 查詢，INDEX(bidder_id) 加速 GetMyBids；IAuctionQueryService 實作透過 AuctionDbContext 或 HTTP 查詢（模組內 DI 注入）；
+  錯誤對應：出價 ≤ 當前最高出價 → 422（回傳 currentHighestBid），商品非 Active → 409，自己對自己競標 → 403
+  ```
 - [ ] **Tasks**：`/speckit.tasks`
 - [ ] **Implement**：`/speckit.implement`
 - [ ] **Checklist**：`/speckit.checklist`
@@ -424,7 +448,14 @@ git checkout -b 005-ordering-module
 - [ ] **Clarify**：`/speckit.clarify`
   - [ ] 付款狀態（PendingPayment→Paid）目前由 mock 直接觸發，Payment 模組未來才實作
   - [ ] 冪等：`orders` 表對 `auction_id` 加 UNIQUE 約束
-- [ ] **Plan**：`/speckit.plan`
+- [ ] **Plan**：
+  ```
+  /speckit.plan 設計 Ordering 模組技術架構：
+  Domain 層：Order 實體（auctionId: Guid UNIQUE, buyerId: Guid, sellerId: Guid, amount: decimal, trackingNumber: string?, shippingAddress: Address? value object, status: enum PendingPayment/Paid/Shipped/Completed/Cancelled），方法 Pay()（PendingPayment→Paid）、Ship(trackingNumber)（Paid→Shipped，trackingNumber required）、Complete()（Shipped→Completed）、Cancel()（PendingPayment/Paid→Cancelled）；非法狀態轉換拋出 DomainException；OrderStatusChangedEvent : IDomainEvent（OrderId, NewStatus, BuyerId, SellerId）；
+  Application 層：INotificationHandler<AuctionWonEvent>（冪等建立訂單：先查 auctionId 是否存在，存在則 skip，不存在則 Order.Create(auctionId, winnerId, sellerId, soldAmount)，Transaction 保護）；CQRS 命令：PayOrderCommand（mock，直接 Pay()）、ShipOrderCommand（驗證 requesterId == sellerId，填入 trackingNumber）、CompleteOrderCommand（驗證 requesterId == buyerId）；CQRS 查詢：GetOrdersQuery（role=buyer/seller，status filter，offset 分頁）、GetOrderDetailQuery（驗證 requesterId == buyerId || sellerId）；
+  Infrastructure 層：ordering schema，orders 表，UNIQUE INDEX(auction_id) 防重複建立，INDEX(buyer_id)、INDEX(seller_id) 加速角色查詢；EF Core Transaction 於 AuctionWonEvent Handler；
+  錯誤對應：非法狀態轉換 → 422，無權限訪問訂單 → 403，訂單不存在 → 404
+  ```
 - [ ] **Tasks**：`/speckit.tasks`
 - [ ] **Implement**：`/speckit.implement`
 - [ ] **Checklist**：`/speckit.checklist`
@@ -498,7 +529,14 @@ git checkout -b 006-notification-module
 - [ ] **Clarify**：`/speckit.clarify`
   - [ ] 通知不刪除，僅記錄 is_read 狀態
   - [ ] Event Handler 寫通知冪等：以 `(user_id, source_event_id, event_type)` 作為唯一鍵
-- [ ] **Plan**：`/speckit.plan`
+- [ ] **Plan**：
+  ```
+  /speckit.plan 設計 Notification 模組技術架構：
+  Domain 層：Notification 實體（userId: Guid, type: enum AuctionWon/OrderPaid/OrderShipped/OrderCompleted, message: string, isRead: bool 預設 false, sourceEventId: Guid, eventType: string），UNIQUE 約束 (userId, sourceEventId, eventType) 確保冪等；靜態工廠 Create(userId, type, message, sourceEventId)；
+  Application 層：INotificationHandler<AuctionWonEvent>（建立買家通知：type=AuctionWon, message="恭喜得標！請至訂單頁付款", userId=WinnerId, sourceEventId=AuctionId）；INotificationHandler<OrderStatusChangedEvent>（依 NewStatus 路由：Paid→賣家 OrderPaid「訂單已付款，請出貨」，Shipped→買家 OrderShipped「商品已出貨」，Completed→賣家 OrderCompleted「交易完成」，sourceEventId=OrderId）；CQRS 查詢：GetNotificationsQuery（userId from JWT sub claim，依 CreatedAt DESC，offset 分頁）、GetUnreadCountQuery（COUNT WHERE isRead=false AND userId）；CQRS 命令：MarkAsReadCommand（UPDATE isRead=true WHERE id AND userId，驗證 userId 一致，冪等—不存在或已讀仍回 204）、MarkAllAsReadCommand（UPDATE isRead=true WHERE userId AND isRead=false）；
+  Infrastructure 層：notification schema，notifications 表，UNIQUE INDEX(user_id, source_event_id, event_type) 冪等保護，INDEX(user_id, is_read) 加速未讀查詢，INDEX(user_id, created_at DESC) 加速列表查詢；
+  錯誤對應：標記他人通知 → 403（Handler 內驗證 userId == JWT sub）
+  ```
 - [ ] **Tasks**：`/speckit.tasks`
 - [ ] **Implement**：`/speckit.implement`
 - [ ] **Checklist**：`/speckit.checklist`
