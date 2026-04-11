@@ -81,14 +81,14 @@
 
 **Acceptance Scenarios**:
 
-1. **Given** 有效的 Access Token，**When** 請求個人資料，**Then** 回傳 id、email、username、顯示名稱、地址、電話號碼、角色等欄位
+1. **Given** 有效的 Access Token，**When** 請求個人資料，**Then** 回傳 id、email、username、顯示名稱、地址、角色、建立時間，以及分離欄位 `phoneDialCode`（dialCode 值，例如 `886`）與 `phoneNumber`（例如 `912345678`）
 2. **Given** 無有效 Access Token（未提供或已過期），**When** 請求個人資料，**Then** 回傳 401 Unauthorized
 
 ---
 
 ### User Story 6 - 已登入使用者更新個人資料 (Priority: P3)
 
-已登入的使用者希望更新 username、顯示名稱和地址，使個人資料保持最新。電話與信筱的變更需重新驗證，不屬於本期範圍。
+已登入的使用者希望更新 username、顯示名稱和地址，使個人資料保持最新。電話與信箱的變更需重新驗證，不屬於本期範圍。
 
 **Why this priority**: 個人資料編輯可提升使用者體驗，但不是競標參與的必要條件。
 

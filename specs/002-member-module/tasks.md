@@ -47,7 +47,7 @@
 ### Application 抽象介面與 DTO
 
 - [ ] T007 [P] 在 `src/Modules/Member/Application/Abstractions/IPasswordHasher.cs` 建立 `IPasswordHasher` 介面（`Hash`、`Verify` 方法）
-- [ ] T008 [P] 在 `src/Modules/Member/Application/Abstractions/IJwtTokenService.cs` 建立 `IJwtTokenService` 介面（`GenerateAccessToken`、`GenerateRefreshToken` 方法）
+- [ ] T008 [P] 在 `src/Modules/Member/Application/Abstractions/IJwtTokenService.cs` 建立 `IJwtTokenService` 介面（`GenerateAccessToken`、`GenerateRefreshToken`、`HashToken(string rawToken): string` 方法）
 - [ ] T009 [P] 在 `src/Modules/Member/Application/DTOs/UserDto.cs` 建立 `UserDto` record（Id、Email、Username、DisplayName、Role、AddressCountry、AddressCity、AddressPostalCode、AddressLine、DialCode、PhoneNumber、CreatedAt）；一併建立同目錄下 `TokenDto.cs`（AccessToken、RefreshToken、ExpiresIn）與 `PhoneCountryCodeDto.cs`（Id、DialCode、CountryName、CountryIso）
 
 ### EF Core 設定
@@ -65,6 +65,7 @@
 ### DI 註冊
 
 - [ ] T016 更新 `src/Modules/Member/Infrastructure/DependencyInjection.cs`，註冊 `MemberDbContext`（Npgsql）、`IPasswordHasher → BcryptPasswordHasher`、`IJwtTokenService → JwtTokenService`
+- [ ] T016b 在 `src/AuctionService.Api/Program.cs` 呼叫 `builder.Services.AddMemberModule(builder.Configuration)` 掛載 Member 模組（若已存在則確認呼叫位置在 JWT 設定之前）
 
 ### Domain 單元測試
 
@@ -74,7 +75,7 @@
 ### Migration 與整合測試基礎
 
 - [ ] T019 刪除舊 scaffold migration `InitialCreate`，以 `dotnet ef migrations add AddMemberModuleSchema` 建立新 migration（含 3 個資料表 + phone_country_codes seed 資料）
-- [ ] T020 在 `tests/AuctionService.IntegrationTests/Member/MemberIntegrationTestBase.cs` 建立 `MemberIntegrationTestBase`（Testcontainers PostgreSQL 資料庫容器、seed 輔助方法、取得 Bearer Token 輔助方法）
+- [ ] T020 在 `tests/AuctionService.IntegrationTests/Member/MemberIntegrationTestBase.cs` 建立 `MemberIntegrationTestBase`（Testcontainers PostgreSQL 資料庫容器、`OneTimeSetUp` 時呼叫 `context.Database.MigrateAsync()` 建立 schema、seed 輔助方法、取得 Bearer Token 輔助方法）
 
 **檢查點**：`dotnet test` 通過（T017 / T018 測試綠燈），Domain 與 Foundation 就緒，User Story Phase 可開始
 
@@ -110,8 +111,8 @@
 - [ ] T027 [US2] 在 `tests/AuctionService.UnitTests/Member/Application/LoginCommandHandlerTests.cs` 撰寫 `LoginCommandHandler` 單元測試（成功回傳 tokens、錯誤密碼 → 401、不存在 email → 401、同 IP 第 6 次失敗 → 429）
 - [ ] T028 [P] [US2] 在 `src/Modules/Member/Application/Commands/Login/LoginCommand.cs` 建立 `LoginCommand` record（email、password、clientIp）與 `LoginCommandResult`（TokenDto）
 - [ ] T029 [P] [US2] 在 `src/Modules/Member/Application/Commands/Login/LoginCommandValidator.cs` 實作 `LoginCommandValidator`（email 格式必填、password 非空）
-- [ ] T030 [US2] 在 `src/Modules/Member/Application/Commands/Login/LoginCommandHandler.cs` 實作 `LoginCommandHandler`（以 email 查詢使用者、透過 `IMemoryCache` 讀取 IP 失敗計數 → ≥5 則回 429、BCrypt 驗證失敗 → 401 + 累計計數、成功 → 清除計數、產生 JWT + Refresh Token、新增 `RefreshToken` 記錄、回傳 TokenDto）
-- [ ] T031 [P] [US2] 在 `src/AuctionService.Api/Controllers/AuthController.cs` 新增 `POST /api/auth/login` 動作方法，套用 `[EnableRateLimiting("login-ip")]`
+- [ ] T030 [US2] 在 `src/Modules/Member/Application/Commands/Login/LoginCommandHandler.cs` 實作 `LoginCommandHandler`（以 email 查詢使用者、透過 `IMemoryCache` 讀取 IP 失敗計數 → 計數 **> 5**（第 6 次失敗時）則回 429、BCrypt 驗證失敗 → 401 + 累計計數、成功 → 清除計數、產生 JWT + Refresh Token、新增 `RefreshToken` 記錄、回傳 TokenDto）
+- [ ] T031 [P] [US2] 在 `src/AuctionService.Api/Controllers/AuthController.cs` 新增 `POST /api/auth/login` 動作方法，套用 `[EnableRateLimiting("login-ip")]`；從 `HttpContext.Connection.RemoteIpAddress?.ToString()` 提取 Client IP 後注入 `LoginCommand.ClientIp`
 - [ ] T032 [US2] 在 `tests/AuctionService.IntegrationTests/Member/LoginEndpointTests.cs` 撰寫整合測試（200 + TokenDto、401 錯誤密碼、401 不存在 email、429 超過失敗次數）
 
 **檢查點**：Registration → Login 完整端對端驗證，US1 + US2 均可獨立測試
@@ -164,11 +165,10 @@
 
 > **TDD**：先寫 T045 單元測試並確認失敗，再實作 T047 Handler。
 
-- [ ] T045 [US5] 在 `tests/AuctionService.UnitTests/Member/Application/GetMeQueryHandlerTests.cs` 撰寫 `GetMeQueryHandler` 單元測試（成功回傳含 phoneDialCode 的 UserDto、使用者不存在 → 404）
-- [ ] T046 [P] [US5] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQuery.cs` 建立 `GetMeQuery` record（userId Guid）與 `GetMeQueryResult`（UserDto）
+- [ ] T045 [US5] 在 `tests/AuctionService.UnitTests/Member/Application/GetMeQueryHandlerTests.cs` 撰寫 `GetMeQueryHandler` 單元測試（成功回傳含 phoneDialCode 的 UserDto、使用者不存在 → 404）- [ ] T045b [P] [US5] 在 `src/Modules/Member/Application/Queries/GetPhoneCountryCodes/GetPhoneCountryCodesQuery.cs` 建立 `GetPhoneCountryCodesQuery` record 與 `GetPhoneCountryCodesQueryHandler`（查詢所有 `PhoneCountryCode` 記錄，對應 `PhoneCountryCodeDto[]` 回傳）- [ ] T046 [P] [US5] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQuery.cs` 建立 `GetMeQuery` record（userId Guid）與 `GetMeQueryResult`（UserDto）
 - [ ] T047 [US5] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQueryHandler.cs` 實作 `GetMeQueryHandler`（以 id 查詢使用者並 eager-load `CountryCode` 導覽屬性，對應到含 `phoneDialCode` 的 UserDto；不存在回 404）
 - [ ] T048 [P] [US5] 在 `src/AuctionService.Api/Controllers/UsersController.cs` 建立 `UsersController`，新增 `[Authorize]` `GET /api/users/me` 動作方法（讀取 `sub` claim 後派發 `GetMeQuery`）
-- [ ] T049 [P] [US5] 在 `src/AuctionService.Api/Controllers/PhoneCountryCodesController.cs` 建立 `PhoneCountryCodesController`，新增無需驗證的 `GET /api/phone-country-codes` 動作方法（查詢所有 `PhoneCountryCode` 記錄，對應 `PhoneCountryCodeDto[]`）
+- [ ] T049 [P] [US5] 在 `src/AuctionService.Api/Controllers/PhoneCountryCodesController.cs` 建立 `PhoneCountryCodesController`，新增無需驗證的 `GET /api/phone-country-codes` 動作方法（透過 MediatR 派發 `GetPhoneCountryCodesQuery`，回傳 `ApiResponse<PhoneCountryCodeDto[]>` 200）
 - [ ] T050 [US5] 在 `tests/AuctionService.IntegrationTests/Member/ProfileAndPhoneCodesEndpointTests.cs` 撰寫整合測試（GET `/api/users/me` 回 200 UserDto 與 401 無 token；GET `/api/phone-country-codes` 回 200 含 seed 資料，無需 auth）
 
 **檢查點**：個人資料查詢與國碼查詢可獨立測試
@@ -217,8 +217,15 @@
 
 - [ ] T063 在 `src/Modules/Member/Infrastructure/BackgroundServices/RefreshTokenCleanupService.cs` 實作 `RefreshTokenCleanupService`（繼承 `BackgroundService`，24 小時間隔，刪除所有 `expires_at < NOW() OR is_revoked = true` 的 refresh_tokens 記錄）
 - [ ] T064 在 `src/Modules/Member/Infrastructure/DependencyInjection.cs` 以 `services.AddHostedService<RefreshTokenCleanupService>()` 註冊清理服務
-- [ ] T065 [P] 在 `src/Modules/Member/Application/Commands/Login/LoginCommandHandler.cs` 新增結構化 `ILogger` 記錄（登入失敗含 IP、登入成功含 userId）；在 `src/Modules/Member/Application/Commands/ChangePassword/ChangePasswordCommandHandler.cs` 新增密碼變更成功與撤銷 token 數量記錄
-- [ ] T066 執行 `dotnet test`，確認 `AuctionService.UnitTests` 與 `AuctionService.IntegrationTests` **零失敗** — 所有測試綠燈才算功能完成
+- [ ] T065 [P] 在 `src/Modules/Member/Application/Commands/Login/LoginCommandHandler.cs` 新增結構化 `ILogger` 記錄（登入失敗含 IP、登入成功含 userId）
+- [ ] T065b [P] 在 `src/Modules/Member/Application/Commands/ChangePassword/ChangePasswordCommandHandler.cs` 新增結構化 `ILogger` 記錄（密碼變更成功含 userId、撤銷 token 數量）
+- [ ] T065c [P] 在 `src/Modules/Member/Application/Commands/Register/RegisterCommandHandler.cs` 新增結構化 `ILogger` 記錄（帳號建立成功含 userId、email 重複衝突含 email 值）
+- [ ] T065d [P] 在 `src/Modules/Member/Application/Commands/RefreshToken/RefreshTokenCommandHandler.cs` 新增結構化 `ILogger` 記錄（Token Rotation 成功含 userId、無效 token 嘗試含失敗原因）
+- [ ] T065e [P] 在 `src/Modules/Member/Application/Commands/Logout/LogoutCommandHandler.cs` 新增結構化 `ILogger` 記錄（登出撤銷 token 成功含 userId、已撤銷 token 重複登出的冪等操作）
+- [ ] T065f [P] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQueryHandler.cs` 新增結構化 `ILogger` 記錄（查詢找不到使用者時以 Warning 層級記錄含 userId）
+- [ ] T065g [P] 在 `src/Modules/Member/Application/Commands/UpdateProfile/UpdateProfileCommandHandler.cs` 新增結構化 `ILogger` 記錄（個人資料更新成功含 userId、username 衝突含衝突值）
+- [ ] T066 執行 `dotnet test --collect:"XPlat Code Coverage"`，確認 `AuctionService.UnitTests` 與 `AuctionService.IntegrationTests` **零失敗**、Application/Domain 層業務邏輯單元測試覆蓋率 **≥ 80%** — 兩項條件均滿足才算功能完成
+- [ ] T067 在 `src/AuctionService.Api/Middleware/CorrelationIdMiddleware.cs` 建立 `CorrelationIdMiddleware`（讀取請求 `X-Correlation-Id` header，若無則以 `Guid.NewGuid()` 生成，存入 `HttpContext.Items` 並寫入回應 header）；於 `src/AuctionService.Api/Program.cs` 在 `UseMiddleware<GlobalExceptionMiddleware>()` 之前呼叫 `app.UseMiddleware<CorrelationIdMiddleware>()`
 
 ---
 
@@ -262,4 +269,4 @@ Phase 2 Foundational（T003–T020）
 3. Phase 5–6：US3 + US4 → Token 管理完整（工作階段已鞏固）
 4. Phase 7–9：US5 + US6 + US7 → 完整自助式個人資料管理
 
-**總計**：66 個任務，10 個 Phase
+**總計**：75 個任務，10 個 Phase
