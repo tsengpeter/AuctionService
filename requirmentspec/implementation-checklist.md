@@ -146,23 +146,23 @@ git checkout -b 002-member-module
 
 ### 2-B. SpecKit 流程
 
-- [ ] **Specify**：
+- [x] **Specify**：
   ```
   /speckit.specify 實作 Member 模組：使用者以 email + username + password + address + phone number 註冊帳號（重複 email 回 409）、以 email + password 登入取得 JWT Access Token（15分鐘）及 Refresh Token（7天）、使用 Refresh Token 換取新 Access Token（Token Rotation）、登出（使 Refresh Token 失效）、查詢自己的個人資料、更新個人資料（username、顯示名稱），密碼使用 BCrypt 雜湊儲存，schema: member，tables: users, refresh_tokens
   ```
-- [ ] **Clarify**：`/speckit.clarify`
-  - [ ] Access Token 有效期：15 分鐘
-  - [ ] Refresh Token 有效期：7 天，旋轉策略（使用後舊 token 失效）
-  - [ ] 重複 email 回 409 Conflict，錯誤訊息：`"Email already registered"`
-  - [ ] `MemberUser` 需補 `display_name`（可為空）、`role`（enum: Member/Admin，預設 Member）欄位，需新增 EF Migration
-  - [ ] `refresh_tokens` 表為全新 Migration（現有 `InitialCreate` 只建了 `users`）
-  - [ ] Refresh Token 儲存前需 hash（SHA-256），原始值只在回應時回傳一次，DB 只存摘要
-  - [ ] `AuthController`（`/api/auth/*`）與 `UsersController`（`/api/users/*`）分為兩支 Controller
-  - [ ] 需於 `Member.csproj` 新增 NuGet 套件：`BCrypt.Net-Next`
+- [x] **Clarify**：`/speckit.clarify`
+  - [x] Access Token 有效期：15 分鐘
+  - [x] Refresh Token 有效期：7 天，旋轉策略（使用後舊 token 失效）
+  - [x] 重複 email 回 409 Conflict，錯誤訊息：`"Email already registered"`
+  - [x] `MemberUser` 需補 `display_name`（可為空）、`role`（enum: Member/Admin，預設 Member）欄位，需新增 EF Migration
+  - [x] `refresh_tokens` 表為全新 Migration（現有 `InitialCreate` 只建了 `users`）
+  - [x] Refresh Token 儲存前需 hash（SHA-256），原始值只在回應時回傳一次，DB 只存摘要
+  - [x] `AuthController`（`/api/auth/*`）與 `UsersController`（`/api/users/*`）分為兩支 Controller
+  - [x] 需於 `Member.csproj` 新增 NuGet 套件：`BCrypt.Net-Next`
     ```bash
     dotnet add src/Modules/Member/Member.csproj package BCrypt.Net-Next
     ```
-- [ ] **Plan**：
+- [x] **Plan**：
   ```
   /speckit.plan 設計 Member 模組技術架構：
   Domain 層：MemberUser 實體新增 display_name（string?, nullable）與 role（enum: Member/Admin, 預設 Member）欄位；RefreshToken 實體（UserId: Guid, TokenHash: string, ExpiresAt: DateTimeOffset, IsRevoked: bool, CreatedAt），兩者均繼承 BaseEntity，私有建構子 + 靜態工廠；
@@ -172,9 +172,9 @@ git checkout -b 002-member-module
   Controller 分層：AuthController（/api/auth/*, 無需 [Authorize]）、UsersController（/api/users/*, [Authorize]）；
   錯誤對應：重複 email → 409 Conflict，密碼強度 → 422 ValidationError，帳密錯誤 / token 無效 → 401 Unauthorized
   ```
-- [ ] **Tasks**：`/speckit.tasks`
-- [ ] **Implement**：`/speckit.implement`
-- [ ] **Checklist**：`/speckit.checklist`
+- [x] **Tasks**：`/speckit.tasks`
+- [x] **Implement**：`/speckit.implement`
+- [x] **Checklist**：`/speckit.checklist`
 
 ### 2-C. TDD 重點（實作前先寫測試）
 
@@ -186,31 +186,31 @@ dotnet test --filter "Member" # 預期初始為 Red
 ```
 
 **Step 1 — 定義介面（編譯用，無實作）**
-- [ ] 定義 `IPasswordHasher`（`Hash(plain)`、`Verify(plain, hash)`）到 Application/Abstractions
-- [ ] 定義 `IJwtTokenService`（`GenerateAccessToken`、`GenerateRefreshToken`）到 Application/Abstractions
+- [x] 定義 `IPasswordHasher`（`Hash(plain)`、`Verify(plain, hash)`）到 Application/Abstractions
+- [x] 定義 `IJwtTokenService`（`GenerateAccessToken`、`GenerateRefreshToken`）到 Application/Abstractions
 
 **Step 2 — Red（測試先行）**
-- [ ] Red: `RegisterCommandHandlerTests` — 重複 email → `DomainException` (409)
-- [ ] Red: `RegisterCommandHandlerTests` — 密碼不符複雜度規則 → 422 ValidationError
-- [ ] Red: `LoginCommandHandlerTests` — 錯誤密碼 → `UnauthorizedException` (401)
-- [ ] Red: `LoginCommandHandlerTests` — email 不存在 → `UnauthorizedException` (401)
-- [ ] Red: `RefreshTokenCommandHandlerTests` — 過期 token → 401
-- [ ] Red: `RefreshTokenCommandHandlerTests` — 已撤銷 token → 401
-- [ ] Red: `LogoutCommandHandlerTests` — 有效 token → 撤銷成功，再查詢 IsRevoked=true
-- [ ] Red: `LogoutCommandHandlerTests` — 已撤銷 token 再登出 → 仍回 204（冪等）
-- [ ] Red: `GetMeQueryHandlerTests` — 有效 UserId → 回傳 `UserProfileResponse`
-- [ ] Red: `GetMeQueryHandlerTests` — 不存在 UserId → `NotFoundException` (404)
-- [ ] Red: `UpdateProfileCommandHandlerTests` — 成功更新 username / displayName
-- [ ] Red: `UpdateProfileCommandHandlerTests` — 不存在 UserId → `NotFoundException` (404)
+- [x] Red: `RegisterCommandHandlerTests` — 重複 email → `DomainException` (409)
+- [x] Red: `RegisterCommandHandlerTests` — 密碼不符複雜度規則 → 422 ValidationError
+- [x] Red: `LoginCommandHandlerTests` — 錯誤密碼 → `UnauthorizedException` (401)
+- [x] Red: `LoginCommandHandlerTests` — email 不存在 → `UnauthorizedException` (401)
+- [x] Red: `RefreshTokenCommandHandlerTests` — 過期 token → 401
+- [x] Red: `RefreshTokenCommandHandlerTests` — 已撤銷 token → 401
+- [x] Red: `LogoutCommandHandlerTests` — 有效 token → 撤銷成功，再查詢 IsRevoked=true
+- [x] Red: `LogoutCommandHandlerTests` — 已撤銷 token 再登出 → 仍回 204（冪等）
+- [x] Red: `GetMeQueryHandlerTests` — 有效 UserId → 回傳 `UserProfileResponse`
+- [x] Red: `GetMeQueryHandlerTests` — 不存在 UserId → `NotFoundException` (404)
+- [x] Red: `UpdateProfileCommandHandlerTests` — 成功更新 username / displayName
+- [x] Red: `UpdateProfileCommandHandlerTests` — 不存在 UserId → `NotFoundException` (404)
 
 **Step 3 — Green**
-- [ ] Green: 實作 `BcryptPasswordHasher`、`JwtTokenService`（Infrastructure/Services）
-- [ ] Green: 實作 `RegisterCommandHandler`、`LoginCommandHandler`
-- [ ] Green: 實作 `RefreshTokenCommandHandler`、`LogoutCommandHandler`
-- [ ] Green: 實作 `GetMeQueryHandler`、`UpdateProfileCommandHandler`
+- [x] Green: 實作 `BcryptPasswordHasher`、`JwtTokenService`（Infrastructure/Services）
+- [x] Green: 實作 `RegisterCommandHandler`、`LoginCommandHandler`
+- [x] Green: 實作 `RefreshTokenCommandHandler`、`LogoutCommandHandler`
+- [x] Green: 實作 `GetMeQueryHandler`、`UpdateProfileCommandHandler`
 
 **Step 4 — Refactor**
-- [ ] 確認所有 Handler 只依賴 `IPasswordHasher`、`IJwtTokenService` 介面，不直接依賴實作類別
+- [x] 確認所有 Handler 只依賴 `IPasswordHasher`、`IJwtTokenService` 介面，不直接依賴實作類別
 
 ### 2-D. 本機驗收
 
@@ -230,16 +230,16 @@ curl -X POST https://localhost:5001/api/auth/login \
 # 預期：200 含 accessToken + refreshToken
 ```
 
-- [ ] `POST /api/auth/register` → 201 / 409（重複 email）/ 422（密碼不符規則）
-- [ ] `POST /api/auth/login` → 200 + token pair / 401（錯誤密碼）
-- [ ] `POST /api/auth/refresh` → 200 + 新 token（舊 token 已撤銷）
-- [ ] `POST /api/auth/refresh` → 401（已撤銷 token 再使用）
-- [ ] `POST /api/auth/logout` → 204
-- [ ] `GET /api/users/me` → 200（需 Bearer token）/ 401（無 token）
-- [ ] `PUT /api/users/me` → 200（更新成功）/ 422（驗證失敗）/ 401（無 token）
-- [ ] DB schema 驗證：`member.refresh_tokens` 表存在，token 欄位為 hash
-- [ ] 單元測試覆蓋率 > 80%
-- [ ] `dotnet test`（全套）全綠，確認不破壞既有測試
+- [x] `POST /api/auth/register` → 201 / 409（重複 email）/ 422（密碼不符規則）
+- [x] `POST /api/auth/login` → 200 + token pair / 401（錯誤密碼）
+- [x] `POST /api/auth/refresh` → 200 + 新 token（舊 token 已撤銷）
+- [x] `POST /api/auth/refresh` → 401（已撤銷 token 再使用）
+- [x] `POST /api/auth/logout` → 204
+- [x] `GET /api/users/me` → 200（需 Bearer token）/ 401（無 token）
+- [x] `PUT /api/users/me` → 200（更新成功）/ 422（驗證失敗）/ 401（無 token）
+- [x] DB schema 驗證：`member.refresh_tokens` 表存在，token 欄位為 hash
+- [x] 單元測試覆蓋率 > 80%
+- [x] `dotnet test`（全套）全綠，確認不破壞既有測試
 
 ### 2-E. Commit & PR
 
@@ -260,6 +260,8 @@ git push -u origin 002-member-module
   ```bash
   git checkout master ; git pull ; git branch -d 002-member-module
   ```
+
+> **✅ 完成日期**：2026-04-12 — 所有 80 個任務完成，`dotnet test` 全綠（Unit: 144 passed, Integration: 41 passed）
 
 ---
 
