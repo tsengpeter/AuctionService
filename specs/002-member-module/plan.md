@@ -5,7 +5,7 @@
 
 ## Summary
 
-實作 Member 模組的完整認證與個人資料管理功能：使用者以 email + username + password 註冊（BCrypt 雜湊）、以 email + password 登入取得 JWT HS256 Access Token（15 分鐘）與 Refresh Token（7 天，Token Rotation）、登出、查詢與更新個人資料（結構化地址：country/city/postal_code/address_line）、密碼變更（成功後撤銷所有 Refresh Token）。IP 速率限制（登入端點每分鐘 5 次失敗上限），Refresh Token 每日背景清理。
+實作 Member 模組的完整認證與個人資料管理功能：使用者以 email + username + password 註冊（BCrypt 雜湊）、以 email + password 登入取得 JWT HS256 Access Token（15 分鐘）與 Refresh Token（7 天，Token Rotation）、登出、查詢與更新個人資料（結構化地址：country/city/postal_code/address_line）、密碼變更（成功後撤銷所有 Refresh Token）。IP 速率限制（登入端點每分鐘超過 5 次失敗（第 6 次起）回傳 429），Refresh Token 每日背景清理。
 
 ## Technical Context
 
@@ -46,7 +46,7 @@ specs/002-member-module/
 ├── quickstart.md    ✅ Phase 1 完成
 ├── contracts/
 │   └── openapi.yaml ✅ Phase 1 完成
-└── tasks.md         ⏳ Phase 2（/speckit.tasks）
+└── tasks.md         ✅ 已完成（80 個任務）
 ```
 
 ### Source Code (repository root)
@@ -70,7 +70,8 @@ src/Modules/Member/
 │   │   ├── UpdateProfile/
 │   │   └── ChangePassword/
 │   └── Queries/
-│       └── GetMe/
+│       ├── GetMe/
+│       └── GetPhoneCountryCodes/
 └── Infrastructure/
     ├── Persistence/
     │   ├── MemberDbContext.cs
@@ -84,8 +85,11 @@ src/Modules/Member/
     └── DependencyInjection.cs
 
 src/AuctionService.Api/Controllers/
-├── AuthController.cs    # POST /api/auth/{register,login,refresh,logout}
-└── UsersController.cs   # GET/PUT /api/users/me, PUT /api/users/me/password
+├── AuthController.cs               # POST /api/auth/{register,login,refresh,logout}
+├── UsersController.cs              # GET/PUT /api/users/me, PUT /api/users/me/password
+├── PhoneCountryCodesController.cs  # GET /api/phone-country-codes
+└── Models/
+    └── UpdateProfileRequest.cs     # PUT /api/users/me request DTO（含 Phone?/Email? 防護欄位）
 
 tests/AuctionService.UnitTests/Member/
 ├── Domain/
@@ -95,3 +99,20 @@ tests/AuctionService.IntegrationTests/Member/
 ```
 
 **Structure Decision**: Modular Monolith — Member 模組獨立 C# 專案，與其他模組（Auction/Bidding）無 EF 跨模組依賴；Controller 位於 API 層，Handler 位於 Application 層。
+
+## Implementation Phases
+
+10 個實作 Phase 詳見 [`tasks.md`](./tasks.md)；各 Phase 依賴關係與實作順序已在 tasks.md 「依賴順序」章節完整定義。
+
+| Phase | 內容 | 目標 |
+|-------|------|---------|
+| 1 | Setup | NuGet 套件、RateLimiter、MemoryCache |
+| 2 | Foundational | Domain、Application 抽象、EF Core、Infrastructure、Migration |
+| 3 | US1 Register | 註冊端點（MVP 可交付）|
+| 4 | US2 Login | 登入 + JWT + Refresh Token 發行 |
+| 5 | US3 RefreshToken | Token Rotation |
+| 6 | US4 Logout | 登出冪等 |
+| 7 | US5 GetMe + FR-016 | 個人資料查詢、國碼列表 |
+| 8 | US6 UpdateProfile | 更新個人資料 |
+| 9 | US7 ChangePassword | 變更密碼 + 撤銷所有 token |
+| 10 | Polish | 清理服務、覆蓋率門檻、Logging、CorrelationId、XML docs |

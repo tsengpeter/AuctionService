@@ -48,7 +48,7 @@
 
 - [ ] T007 [P] 在 `src/Modules/Member/Application/Abstractions/IPasswordHasher.cs` 建立 `IPasswordHasher` 介面（`Hash`、`Verify` 方法）
 - [ ] T008 [P] 在 `src/Modules/Member/Application/Abstractions/IJwtTokenService.cs` 建立 `IJwtTokenService` 介面（`GenerateAccessToken`、`GenerateRefreshToken`、`HashToken(string rawToken): string` 方法）
-- [ ] T009 [P] 在 `src/Modules/Member/Application/DTOs/UserDto.cs` 建立 `UserDto` record（Id、Email、Username、DisplayName、Role、AddressCountry、AddressCity、AddressPostalCode、AddressLine、DialCode、PhoneNumber、CreatedAt）；一併建立同目錄下 `TokenDto.cs`（AccessToken、RefreshToken、ExpiresIn）與 `PhoneCountryCodeDto.cs`（Id、DialCode、CountryName、CountryIso）
+- [ ] T009 [P] 在 `src/Modules/Member/Application/DTOs/UserDto.cs` 建立 `UserDto` record（Id、Email、Username、DisplayName、Role、AddressCountry、AddressCity、AddressPostalCode、AddressLine、DialCode、PhoneNumber、CreatedAt）；一併建立同目錄下 `TokenDto.cs`（AccessToken、RefreshToken、ExpiresIn）與 `PhoneCountryCodeDto.cs`（Id、DialCode、CountryName、CountryIso）；在 `src/Modules/Member/Application/DTOs/MemberUserExtensions.cs` 建立靜態擴充方法 `ToDto(this MemberUser user)` 供所有 Handler 共用，避免重複映射邏輯
 
 ### EF Core 設定
 
@@ -56,6 +56,11 @@
 - [ ] T011 [P] 在 `src/Modules/Member/Infrastructure/Persistence/Configurations/MemberUserConfiguration.cs` 建立 `MemberUserConfiguration`（資料表 `users`、schema `member`、各欄位長度限制、Email 與 UsernameNormalized 唯一索引、phone_country_codes FK 設定 `DeleteBehavior.Restrict`）
 - [ ] T012 [P] 在 `src/Modules/Member/Infrastructure/Persistence/Configurations/RefreshTokenConfiguration.cs` 建立 `RefreshTokenConfiguration`（資料表 `refresh_tokens`、schema `member`；TokenHash 最大長度 88 唯一索引、UserId 索引）
 - [ ] T013 改寫 `src/Modules/Member/Infrastructure/Persistence/MemberDbContext.cs`（移除內聯 `OnModelCreating` 個別設定，改用 `ApplyConfiguration`，新增 `DbSet<RefreshToken>` 與 `DbSet<PhoneCountryCode>`）
+
+### Infrastructure 服務單元測試
+
+- [ ] T014b [P] 在 `tests/AuctionService.UnitTests/Member/Infrastructure/BcryptPasswordHasherTests.cs` 撰寫 `BcryptPasswordHasher` 單元測試（`Hash` 回傳非空值、相同明文不同呼叫產出不同 hash（salt 隨機）、`Verify` 正確密碼回傳 true、`Verify` 錯誤密碼回傳 false）
+- [ ] T015b [P] 在 `tests/AuctionService.UnitTests/Member/Infrastructure/JwtTokenServiceTests.cs` 撰寫 `JwtTokenService` 單元測試（`GenerateAccessToken` 包含正確 sub / email / role claims 且有效期 15 分鐘、`HashToken` 對相同輸入產生一致 SHA-256 摘要、`GenerateRefreshToken` 回傳非空 URL-safe Base64 字串）
 
 ### Infrastructure 服務
 
@@ -74,7 +79,7 @@
 
 ### Migration 與整合測試基礎
 
-- [ ] T019 刪除舊 scaffold migration `InitialCreate`，以 `dotnet ef migrations add AddMemberModuleSchema` 建立新 migration（含 3 個資料表 + phone_country_codes seed 資料）
+- [ ] T019 （若 `src/Modules/Member/Infrastructure/Persistence/Migrations/` 已存在任何舊 migration 則先刪除整個 Migrations 資料夾）再以 `dotnet ef migrations add AddMemberModuleSchema` 建立新 migration（含 3 個資料表 + phone_country_codes seed 資料）
 - [ ] T020 在 `tests/AuctionService.IntegrationTests/Member/MemberIntegrationTestBase.cs` 建立 `MemberIntegrationTestBase`（Testcontainers PostgreSQL 資料庫容器、`OneTimeSetUp` 時呼叫 `context.Database.MigrateAsync()` 建立 schema、seed 輔助方法、取得 Bearer Token 輔助方法）
 
 **檢查點**：`dotnet test` 通過（T017 / T018 測試綠燈），Domain 與 Foundation 就緒，User Story Phase 可開始
@@ -165,7 +170,10 @@
 
 > **TDD**：先寫 T045 單元測試並確認失敗，再實作 T047 Handler。
 
-- [ ] T045 [US5] 在 `tests/AuctionService.UnitTests/Member/Application/GetMeQueryHandlerTests.cs` 撰寫 `GetMeQueryHandler` 單元測試（成功回傳含 phoneDialCode 的 UserDto、使用者不存在 → 404）- [ ] T045b [P] [US5] 在 `src/Modules/Member/Application/Queries/GetPhoneCountryCodes/GetPhoneCountryCodesQuery.cs` 建立 `GetPhoneCountryCodesQuery` record 與 `GetPhoneCountryCodesQueryHandler`（查詢所有 `PhoneCountryCode` 記錄，對應 `PhoneCountryCodeDto[]` 回傳）- [ ] T046 [P] [US5] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQuery.cs` 建立 `GetMeQuery` record（userId Guid）與 `GetMeQueryResult`（UserDto）
+- [ ] T045 [US5] 在 `tests/AuctionService.UnitTests/Member/Application/GetMeQueryHandlerTests.cs` 撰寫 `GetMeQueryHandler` 單元測試（成功回傳含 phoneDialCode 的 UserDto、使用者不存在 → 404）
+- [ ] T045c [US5] 在 `tests/AuctionService.UnitTests/Member/Application/GetPhoneCountryCodesQueryHandlerTests.cs` 撰寫 `GetPhoneCountryCodesQueryHandler` 單元測試（成功回傳 `PhoneCountryCodeDto[]`、空資料表回傳空陣列）
+- [ ] T045b [P] [US5] 在 `src/Modules/Member/Application/Queries/GetPhoneCountryCodes/GetPhoneCountryCodesQuery.cs` 建立 `GetPhoneCountryCodesQuery` record 與 `GetPhoneCountryCodesQueryHandler`（查詢所有 `PhoneCountryCode` 記錄，對應 `PhoneCountryCodeDto[]` 回傳）
+- [ ] T046 [P] [US5] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQuery.cs` 建立 `GetMeQuery` record（userId Guid）與 `GetMeQueryResult`（UserDto）
 - [ ] T047 [US5] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQueryHandler.cs` 實作 `GetMeQueryHandler`（以 id 查詢使用者並 eager-load `CountryCode` 導覽屬性，對應到含 `phoneDialCode` 的 UserDto；不存在回 404）
 - [ ] T048 [P] [US5] 在 `src/AuctionService.Api/Controllers/UsersController.cs` 建立 `UsersController`，新增 `[Authorize]` `GET /api/users/me` 動作方法（讀取 `sub` claim 後派發 `GetMeQuery`）
 - [ ] T049 [P] [US5] 在 `src/AuctionService.Api/Controllers/PhoneCountryCodesController.cs` 建立 `PhoneCountryCodesController`，新增無需驗證的 `GET /api/phone-country-codes` 動作方法（透過 MediatR 派發 `GetPhoneCountryCodesQuery`，回傳 `ApiResponse<PhoneCountryCodeDto[]>` 200）
@@ -184,10 +192,10 @@
 > **TDD**：先寫 T051 單元測試並確認失敗，再實作 T054 Handler。
 
 - [ ] T051 [US6] 在 `tests/AuctionService.UnitTests/Member/Application/UpdateProfileCommandHandlerTests.cs` 撰寫 `UpdateProfileCommandHandler` 單元測試（成功更新並回傳 UserDto、username 衝突 → 409）
-- [ ] T052 [P] [US6] 在 `src/Modules/Member/Application/Commands/UpdateProfile/UpdateProfileCommand.cs` 建立 `UpdateProfileCommand` record（userId、username、displayName?、地址子欄?）與 `UpdateProfileCommandResult`（UserDto）
-- [ ] T053 [P] [US6] 在 `src/Modules/Member/Application/Commands/UpdateProfile/UpdateProfileCommandValidator.cs` 實作 `UpdateProfileCommandValidator`（username 3–30、displayName ≤50、地址子欄最大長度；拒絕非 null 的 `phone` / `email` 欄位 → 422「欄位不允許透過此端點變更」）
+- [ ] T052 [P] [US6] 在 `src/AuctionService.Api/Controllers/Models/UpdateProfileRequest.cs` 建立 `UpdateProfileRequest` record（Username、DisplayName?、AddressCountry?、AddressCity?、AddressPostalCode?、AddressLine?、Phone?、Email?，後兩個欄位用於偵測非法更新意圖）；在 `src/Modules/Member/Application/Commands/UpdateProfile/UpdateProfileCommand.cs` 建立 `UpdateProfileCommand` record（UserId、Username、DisplayName?、地址子欄?，**不包含** Phone / Email）與 `UpdateProfileCommandResult`（UserDto）
+- [ ] T053 [P] [US6] 在 `src/Modules/Member/Application/Commands/UpdateProfile/UpdateProfileCommandValidator.cs` 實作 `UpdateProfileCommandValidator`（username 3–30、displayName ≤50、地址子欄最大長度）
 - [ ] T054 [US6] 在 `src/Modules/Member/Application/Commands/UpdateProfile/UpdateProfileCommandHandler.cs` 實作 `UpdateProfileCommandHandler`（以 `UsernameNormalized` 排除自身後查詢唯一性 → 409、呼叫 `user.UpdateProfile(...)`、存檔、回傳更新後 UserDto）
-- [ ] T055 [P] [US6] 在 `src/AuctionService.Api/Controllers/UsersController.cs` 新增 `[Authorize]` `PUT /api/users/me` 動作方法（派發 `UpdateProfileCommand`，回傳 200 `ApiResponse<UserDto>`）
+- [ ] T055 [P] [US6] 在 `src/AuctionService.Api/Controllers/UsersController.cs` 新增 `[Authorize]` `PUT /api/users/me` 動作方法（接收 `UpdateProfileRequest`；若 `request.Phone != null || request.Email != null` 則以 `throw new ValidationException(new[] { new ValidationFailure("phone/email", "欄位不允許透過此端點變更") })` 讓 `GlobalExceptionMiddleware` 統一轉換為標準 422 `{ errors: [{ field, message }] }` 結構；驗證通過後映射至 `UpdateProfileCommand` 並派發，回傳 200 `ApiResponse<UserDto>`）
 - [ ] T056 [US6] 在 `tests/AuctionService.IntegrationTests/Member/UpdateProfileEndpointTests.cs` 撰寫整合測試（200 更新後 UserDto、409 username 衝突、422 username 長度超限、422 嘗試變更 phone、401 無 token）
 
 **檢查點**：個人資料更新可獨立測試
@@ -215,7 +223,8 @@
 
 ## Phase 10：Polish & 橫切關注點
 
-- [ ] T063 在 `src/Modules/Member/Infrastructure/BackgroundServices/RefreshTokenCleanupService.cs` 實作 `RefreshTokenCleanupService`（繼承 `BackgroundService`，24 小時間隔，刪除所有 `expires_at < NOW() OR is_revoked = true` 的 refresh_tokens 記錄）
+- [ ] T062b 在 `tests/AuctionService.UnitTests/Member/Infrastructure/RefreshTokenCleanupServiceTests.cs` 撰寫 `RefreshTokenCleanupService` 單元測試（刪除條件正確過濾 `expires_at < NOW() OR is_revoked = true` 的記錄、空資料表不拋例外、資料庫操作異常時以 `LogError` 記錄並繼續下一個清理週期）
+- [ ] T063 在 `src/Modules/Member/Infrastructure/BackgroundServices/RefreshTokenCleanupService.cs` 實作 `RefreshTokenCleanupService`（繼承 `BackgroundService`，24 小時間隔，刪除所有 `expires_at < NOW() OR is_revoked = true` 的 refresh_tokens 記錄；`try/catch` 包覆刪除操作，以 `ILogger.LogError` 記錄例外後繼續下一輪，不中斷服務）
 - [ ] T064 在 `src/Modules/Member/Infrastructure/DependencyInjection.cs` 以 `services.AddHostedService<RefreshTokenCleanupService>()` 註冊清理服務
 - [ ] T065 [P] 在 `src/Modules/Member/Application/Commands/Login/LoginCommandHandler.cs` 新增結構化 `ILogger` 記錄（登入失敗含 IP、登入成功含 userId）
 - [ ] T065b [P] 在 `src/Modules/Member/Application/Commands/ChangePassword/ChangePasswordCommandHandler.cs` 新增結構化 `ILogger` 記錄（密碼變更成功含 userId、撤銷 token 數量）
@@ -225,7 +234,8 @@
 - [ ] T065f [P] 在 `src/Modules/Member/Application/Queries/GetMe/GetMeQueryHandler.cs` 新增結構化 `ILogger` 記錄（查詢找不到使用者時以 Warning 層級記錄含 userId）
 - [ ] T065g [P] 在 `src/Modules/Member/Application/Commands/UpdateProfile/UpdateProfileCommandHandler.cs` 新增結構化 `ILogger` 記錄（個人資料更新成功含 userId、username 衝突含衝突值）
 - [ ] T066 執行 `dotnet test --collect:"XPlat Code Coverage"`，確認 `AuctionService.UnitTests` 與 `AuctionService.IntegrationTests` **零失敗**、Application/Domain 層業務邏輯單元測試覆蓋率 **≥ 80%** — 兩項條件均滿足才算功能完成
-- [ ] T067 在 `src/AuctionService.Api/Middleware/CorrelationIdMiddleware.cs` 建立 `CorrelationIdMiddleware`（讀取請求 `X-Correlation-Id` header，若無則以 `Guid.NewGuid()` 生成，存入 `HttpContext.Items` 並寫入回應 header）；於 `src/AuctionService.Api/Program.cs` 在 `UseMiddleware<GlobalExceptionMiddleware>()` 之前呼叫 `app.UseMiddleware<CorrelationIdMiddleware>()`
+- [ ] T067 在 `src/AuctionService.Api/Middleware/CorrelationIdMiddleware.cs` 建立 `CorrelationIdMiddleware`（讀取請求 `X-Correlation-Id` header，若無則以 `Guid.NewGuid()` 生成，存入 `HttpContext.Items` 並寫入回應 header；注入 `ILogger<CorrelationIdMiddleware>`，以 `_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId })` 建立請求範圍 log scope，使後續所有 Handler 的結構化日誌自動包含 Correlation ID）；於 `src/AuctionService.Api/Program.cs` 在 `UseMiddleware<GlobalExceptionMiddleware>()` 之前呼叫 `app.UseMiddleware<CorrelationIdMiddleware>()`
+- [ ] T068 [P] 為 `src/AuctionService.Api/Controllers/AuthController.cs`、`UsersController.cs`、`PhoneCountryCodesController.cs` 所有公開 action method 補充 XML 文件注解（`<summary>`、`<param>`、`<response>` tags），供 Swashbuckle OpenAPI 3.1 整合
 
 ---
 
@@ -269,4 +279,4 @@ Phase 2 Foundational（T003–T020）
 3. Phase 5–6：US3 + US4 → Token 管理完整（工作階段已鞏固）
 4. Phase 7–9：US5 + US6 + US7 → 完整自助式個人資料管理
 
-**總計**：75 個任務，10 個 Phase
+**總計**：80 個任務，10 個 Phase
