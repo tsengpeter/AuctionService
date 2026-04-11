@@ -1,0 +1,496 @@
+openapi: "3.1.0"
+info:
+  title: AuctionService — Member Module API
+  version: "1.0.0"
+  description: |
+    Member 模組 REST API：註冊、認證（JWT）、Refresh Token、個人資料管理與密碼變更。
+    所有回應均使用 ApiResponse<T> 包裝：{ success, data, statusCode }。
+
+servers:
+  - url: /api
+
+tags:
+  - name: Auth
+    description: 認證端點（無需 JWT）
+  - name: Users
+    description: 使用者個人資料端點（需 Bearer JWT）
+  - name: PhoneCodes
+    description: 國碼查詢（無需 JWT，供前端下拉選單使用）
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # --- Request Bodies ---
+    RegisterRequest:
+      type: object
+      required: [email, username, password, phoneCountryCodeId, phoneNumber, address]
+      properties:
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          example: alice
+        password:
+          type: string
+          minLength: 8
+          example: "Secret1!"
+        displayName:
+          type: string
+          maxLength: 50
+          nullable: true
+          example: "Alice Chen"
+        phoneCountryCodeId:
+          type: integer
+          description: phone_country_codes 表的 id
+          example: 886
+        phoneNumber:
+          type: string
+          pattern: '^[0-9]+$'
+          description: 純數字，09 開頭自動去除前導 0 後儲存
+          example: "0912345678"
+        address:
+          $ref: '#/components/schemas/AddressInput'
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    UpdateProfileRequest:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        displayName:
+          type: string
+          maxLength: 50
+          nullable: true
+        address:
+          $ref: '#/components/schemas/AddressInput'
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+
+    AddressInput:
+      type: object
+      properties:
+        country:
+          type: string
+          maxLength: 100
+          nullable: true
+        city:
+          type: string
+          maxLength: 100
+          nullable: true
+        postalCode:
+          type: string
+          maxLength: 20
+          nullable: true
+        addressLine:
+          type: string
+          maxLength: 200
+          nullable: true
+
+    # --- Response DTOs ---
+    UserDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [Member, Admin]
+        phoneCountryCodeId:
+          type: integer
+          description: 國碼 id（參照 phone_country_codes 表）
+        phoneDialCode:
+          type: string
+          description: 國碼數字（來自 phone_country_codes，純顯示用）
+          example: "886"
+        phoneNumber:
+          type: string
+          description: 純數字，09 開頭已去除前導 0 後儲存
+        address:
+          $ref: '#/components/schemas/AddressDto'
+        createdAt:
+          type: string
+          format: date-time
+
+    AddressDto:
+      type: object
+      nullable: true
+      properties:
+        country:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        postalCode:
+          type: string
+          nullable: true
+        addressLine:
+          type: string
+          nullable: true
+
+    TokenDto:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT Access Token（有效期 15 分鐘）
+        refreshToken:
+          type: string
+          description: Refresh Token（有效期 7 天，原始值僅回傳一次）
+        expiresIn:
+          type: integer
+          description: Access Token 有效秒數（900）
+          example: 900
+
+    # --- Generic ApiResponse wrapper ---
+    ApiResponseUserDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/UserDto'
+        statusCode:
+          type: integer
+
+    PhoneCountryCodeDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        dialCode:
+          type: string
+          example: "886"
+        countryName:
+          type: string
+          example: "Taiwan"
+        countryIso:
+          type: string
+          maxLength: 2
+          example: "TW"
+
+    ApiResponsePhoneCountryCodeListDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhoneCountryCodeDto'
+        statusCode:
+          type: integer
+
+    ApiResponseTokenDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/TokenDto'
+        statusCode:
+          type: integer
+
+    ApiResponseEmpty:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          nullable: true
+        statusCode:
+          type: integer
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        statusCode:
+          type: integer
+          example: 422
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        statusCode:
+          type: integer
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 新使用者註冊
+      operationId: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        "201":
+          description: 帳號建立成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserDto'
+        "409":
+          description: Email 已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Email already registered"
+                statusCode: 409
+        "422":
+          description: 欄位驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 使用者登入，取得 Access Token + Refresh Token
+      operationId: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTokenDto'
+        "401":
+          description: 帳密錯誤（不指明原因）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "429":
+          description: 同 IP 登入失敗次數超過上限（5 次/分鐘）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Too many login attempts. Please try again later."
+                statusCode: 429
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 以 Refresh Token 換取新的 Access Token（Token Rotation）
+      operationId: RefreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        "200":
+          description: Token 換取成功，舊 Refresh Token 已撤銷
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTokenDto'
+        "401":
+          description: Refresh Token 無效、已過期或已撤銷
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 登出（撤銷指定 Refresh Token，冪等）
+      operationId: Logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        "204":
+          description: 登出成功（或 token 已撤銷，冪等）
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: 查詢目前登入使用者的個人資料
+      operationId: GetMe
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 個人資料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserDto'
+        "401":
+          description: 未提供或無效的 Access Token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Users]
+      summary: 更新個人資料（username、顯示名稱、地址）
+      operationId: UpdateProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserDto'
+        "401":
+          description: 未驗證
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "409":
+          description: Username 已被使用（大小寫不敏感）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "422":
+          description: 欄位驗證失敗（包含嘗試更新 phone/email 的情況）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /users/me/password:
+    put:
+      tags: [Users]
+      summary: 變更密碼（需提供舊密碼，成功後撤銷所有 Refresh Token）
+      operationId: ChangePassword
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        "204":
+          description: 密碼變更成功，所有 Refresh Token 已撤銷
+        "401":
+          description: 舊密碼錯誤或未驗證
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "422":
+          description: 新密碼不符合複雜度規則，或與舊密碼相同
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /phone-country-codes:
+    get:
+      tags: [PhoneCodes]
+      summary: 取得所有支援的國碼清單（供前端下拉選單使用）
+      operationId: ListPhoneCountryCodes
+      responses:
+        "200":
+          description: 國碼清單
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePhoneCountryCodeListDto'

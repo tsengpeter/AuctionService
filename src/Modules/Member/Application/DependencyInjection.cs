@@ -1,5 +1,9 @@
+using FluentValidation;
 using MediatR;
+using Member.Application.Abstractions;
+using Member.Infrastructure.BackgroundServices;
 using Member.Infrastructure.Persistence;
+using Member.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +23,12 @@ public static class MemberDependencyInjection
 
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(MemberDependencyInjection).Assembly));
+
+        services.AddValidatorsFromAssembly(typeof(MemberDependencyInjection).Assembly);
+
+        services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddHostedService<RefreshTokenCleanupService>();
 
         return services;
     }
