@@ -29,16 +29,18 @@ public class MemberDbContextTests(IntegrationTestFixture fixture)
         var db = scope.ServiceProvider.GetRequiredService<MemberDbContext>();
 
         var user = MemberUser.Create(
-            $"test_{Guid.NewGuid():N}@example.com",
-            "testuser",
-            "hashedpassword");
+            email: $"test_{Guid.NewGuid():N}@example.com",
+            username: $"user{Guid.NewGuid().ToString("N")[..6]}",
+            passwordHash: "hashedpassword",
+            phoneCountryCodeId: 1,
+            phoneNumber: "912345678");
 
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
         var loaded = await db.Users.FindAsync(user.Id);
         loaded.Should().NotBeNull();
-        loaded!.Username.Should().Be("testuser");
+        loaded!.PhoneCountryCodeId.Should().Be(1);
     }
 
     [Fact]
@@ -48,14 +50,15 @@ public class MemberDbContextTests(IntegrationTestFixture fixture)
         var db = scope.ServiceProvider.GetRequiredService<MemberDbContext>();
 
         var email = $"unique_{Guid.NewGuid():N}@example.com";
-        db.Users.Add(MemberUser.Create(email, "user1", "hash"));
+        db.Users.Add(MemberUser.Create(email, "user1abc", "hash", 1, "912345678"));
         await db.SaveChangesAsync();
 
         var db2scope = fixture.Factory.Services.CreateScope();
         var db2 = db2scope.ServiceProvider.GetRequiredService<MemberDbContext>();
-        db2.Users.Add(MemberUser.Create(email, "user2", "hash"));
+        db2.Users.Add(MemberUser.Create(email, "user2abc", "hash", 1, "912345678"));
 
         var act = async () => await db2.SaveChangesAsync();
         await act.Should().ThrowAsync<Exception>();
     }
 }
+

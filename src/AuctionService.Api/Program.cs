@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using AuctionService.Api.Middleware;
 using AuctionService.Shared;
 using Member;
@@ -13,6 +14,7 @@ using Notification;
 using Notification.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text.Json;
 
@@ -31,6 +33,33 @@ if (builder.Environment.IsDevelopment())
 
 // ── Shared Services ──────────────────────────────────────────────────────
 builder.Services.AddSharedServices();
+
+// ── Memory Cache (for login failure counting) ────────────────────────────
+builder.Services.AddMemoryCache();
+
+// ── Rate Limiter ─────────────────────────────────────────────────────────
+builder.Services.AddRateLimiter(options =>
+{
+    if (builder.Environment.EnvironmentName == "Testing")
+    {
+        // Disable rate limiting in tests
+        options.AddPolicy("login-ip", _ => RateLimitPartition.GetNoLimiter("testing"));
+    }
+    else
+    {
+        options.AddPolicy("login-ip", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+    }
+    options.RejectionStatusCode = 429;
+});
 
 // ── Module DI ────────────────────────────────────────────────────────────
 builder.Services.AddMemberModule(builder.Configuration);
@@ -126,7 +155,9 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseRateLimiter();
 
 if (!app.Environment.IsProduction())
 {
@@ -158,6 +189,27 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 });
 
 app.MapControllers();
+
+// ── Auto-migrate all module DbContexts on startup ─────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var migrationLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var dbContextTypes = new[]
+    {
+        typeof(MemberDbContext),
+        typeof(AuctionDbContext),
+        typeof(BiddingDbContext),
+        typeof(OrderingDbContext),
+        typeof(NotificationDbContext)
+    };
+    foreach (var dbContextType in dbContextTypes)
+    {
+        var db = (Microsoft.EntityFrameworkCore.DbContext)scope.ServiceProvider.GetRequiredService(dbContextType);
+        migrationLogger.LogInformation("Applying migrations for {DbContext}...", dbContextType.Name);
+        await db.Database.MigrateAsync();
+        migrationLogger.LogInformation("Migrations applied for {DbContext}.", dbContextType.Name);
+    }
+}
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("AuctionService API starting in {Environment} environment", app.Environment.EnvironmentName);

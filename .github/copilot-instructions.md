@@ -66,6 +66,8 @@ C# 13 / .NET 10: Follow standard ASP.NET Core conventions
 - Domain events implement `IDomainEvent : INotification`; handlers via `INotificationHandler<T>`
 - All plan/spec/task documentation in Traditional Chinese (zh-TW); code + commits in English
 - JWT secret from environment variable (min 32 chars), never hardcoded
+- **Minimal API is FORBIDDEN** — use controller-based REST (`ControllerBase`) or GraphQL only; never `app.MapGet/MapPost/...`
+- **A feature is NOT complete until `dotnet test` passes with zero failures** — both unit tests (`AuctionService.UnitTests`) and integration tests (`AuctionService.IntegrationTests`) must be green before the task is considered done
 
 ## Recent Changes
 
