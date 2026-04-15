@@ -25,10 +25,10 @@
 
 | 原則 | 狀態 | 說明 |
 |------|------|------|
-| I. Code Quality First | ✅ PASS | 私有建構子 + 靜態工廠 `Create()`；`End()` 方法封裝狀態轉換；IBiddingQueryService 介面隔離跨模組依賴；域邏輯不外洱至 Handler |
+| I. Code Quality First | ✅ PASS | 私有建構子 + 靜態工廠 `Create()`；`End()` 方法封裝狀態轉換；IBiddingQueryService 介面隔離跨模組依賴；域邏輯不外洩至 Handler |
 | II. TDD（NON-NEGOTIABLE） | ✅ PASS | 所有 Handler 先寫單元測試（NSubstitute mock），再寫實作；AuctionEndBackgroundService 以整合測試驗證；狀態機以單元測試全覆蓋 |
-| III. UX Consistency | ✅ PASS | 所有回應使用 `ApiResponse<T>` 包裝；驗證錯誤 422 含 field/message；403/409/404 語義正確；競標開放前/後編輯別證返回 422 含明確不可修改的欄位 |
-| IV. Performance | ✅ PASS | INDEX(status, end_time) 加速結標掃描；INDEX(owner_id)；watchlist UNIQUE(user_id, auction_id)；列表查詢使用 offset 分頁 + projection |
+| III. UX Consistency | ✅ PASS | 所有回應使用 `ApiResponse<T>` 包裝；驗證錯誤 422 含 field/message；403/409/404 語義正確；競標開放前/後編輯返回 422 含明確不可修改的欄位；**豐免準：HTTP 204 端點（追蹤清單加入/移除）禁止帶 response body，回傳純 204 No Content，不包裝 ApiResponse** |
+| IV. Performance | ✅ PASS | INDEX(status, end_time) 加速結標掃描；INDEX(owner_id)；watchlist UNIQUE(user_id, auction_id)；列表查詢使用 offset 分頁 + projection；**豁免說明**：Constitution IV 規定 API p95 ≤ 200ms，商品列表（`GET /api/auctions`）在 10,000 筆 Active 商品時允許 p95 ≤ 500ms（SC-002），因列表端點含全文掃描且已有 INDEX(status, end_time) 覆蓋，屬文件化豁免（見 spec.md SC-002） |
 | V. Observability | ✅ PASS | AuctionEndBackgroundService 的 catch 區塊使用 ILogger 記錄例外；Handler 層記錄關鍵操作 |
 | Documentation Language (zh-TW) | ✅ PASS | plan.md / data-model.md / quickstart.md 均以繁體中文撰寫 |
 
@@ -115,15 +115,16 @@ src/AuctionService.Api/Controllers/
 └── WatchlistController.cs    # /api/watchlist
 
 tests/AuctionService.UnitTests/Auction/
-├── Domain/
-│   └── AuctionTests.cs
+├── AuctionTests.cs                              # T054（Domain 狀態機）
 └── Application/
-    ├── CreateAuctionCommandTests.cs
-    ├── UpdateAuctionCommandTests.cs
-    ├── GetAuctionsQueryTests.cs
-    ├── GetWatchlistQueryTests.cs
-    ├── AddWatchlistCommandTests.cs
-    └── AuctionEndServiceTests.cs
+    ├── CreateAuctionCommandHandlerTests.cs      # T042
+    ├── UpdateAuctionCommandHandlerTests.cs      # T048
+    ├── GetAuctionsQueryHandlerTests.cs          # T016
+    ├── GetAuctionDetailQueryHandlerTests.cs     # T022
+    ├── GetWatchlistQueryHandlerTests.cs         # T030
+    ├── AddWatchlistCommandHandlerTests.cs       # T028
+    ├── RemoveWatchlistCommandHandlerTests.cs    # T029
+    └── AuctionEndBackgroundServiceTests.cs      # T038
 
 tests/AuctionService.IntegrationTests/Auction/
 ```
@@ -149,7 +150,7 @@ tests/AuctionService.IntegrationTests/Auction/
 |-------|------|------|
 | 1 | Setup | 移除舊式 AuctionItem scaffold，重構實體、Events、Abstractions |
 | 2 | Domain+EF | Auction（含 StartTime）、AuctionImage、Category、Watchlist 實體；AuctionWonEvent；EF Migration |
-| 3 | Application Abstractions | IBiddingQueryService（回傳 BidInfoDto?）；PagedResult DTO；NullBiddingQueryService |
+| 3 | Application Abstractions | ~~IBiddingQueryService；NullBiddingQueryService~~ → **已移至 tasks Phase 1 (T006/T007)**；本列僅供對照，**PagedResult DTO (T013) 在 tasks Phase 2** |
 | 4 | US1 GetAuctions | 商品列表查詢（關鍵字 ILIKE/分類/分頁，僅 Active） |
 | 5 | US2 GetAuctionDetail | 商品詳情（含 startTime + null 最高出價） |
 | 6 | US3 Watchlist | 加入/移除/查詢追蹤清單（含 ?status=active 篩選） |

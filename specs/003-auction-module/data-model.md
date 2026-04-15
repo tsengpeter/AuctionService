@@ -15,6 +15,7 @@ auction.categories (1) ─────────── (N) auction.auctions
   parent_id (UUID, FK self, NULL)        title (VARCHAR 200, NOT NULL)
                                          description (TEXT, NULL)
                                          starting_price (DECIMAL 18,2)
+                                         start_time (TIMESTAMPTZ, NOT NULL)
                                          end_time (TIMESTAMPTZ, NOT NULL)
 auction.auctions (1) ──── (N) ──── auction.auction_images
                                          id (UUID, PK)

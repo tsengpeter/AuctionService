@@ -32,7 +32,7 @@ components:
     # --- Request Bodies ---
     CreateAuctionRequest:
       type: object
-      required: [title, startingPrice, endTime]
+      required: [title, startingPrice, startTime, endTime]
       properties:
         title:
           type: string
@@ -389,8 +389,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseAuctionList'
-
-    post:
+        "422":
+          description: 驗證錯誤（pageSize > 100）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
       tags: [Auctions]
       summary: 建立拍賣商品（直接 Active）
       description: |
@@ -423,7 +427,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
         "422":
-          description: 驗證錯誤（startingPrice ≤ 0 / endTime 不足 1 分鐘 / 圖片超過 5 張）
+          description: 驗證錯誤（startingPrice ≤ 0 / startTime ≤ now / endTime 不足 1 分鐘 / 圖片超過 5 張）
           content:
             application/json:
               schema:
