@@ -170,7 +170,6 @@
 - **AuctionImage（商品圖片）**: 商品附屬圖片，每筆商品最多 5 張，含圖片 URL 與顯示順序（`displayOrder` 從 1 開始，第 1 張為縮圖 `thumbnailUrl`）。
 - **Category（分類）**: 商品分類，含名稱與父分類 ID（支援階層結構，但本 Phase 查詢以單層精確匹配為主）。
 - **Watchlist（追蹤清單）**: 用戶對商品的追蹤記錄，含用戶 ID（邏輯參考）、商品 ID、加入時間；`(userId, auctionId)` 為唯一約束。
-- **Watchlist（追蹤清單）**: 記錄用戶與商品的追蹤關係，含用戶 ID 與商品 ID，唯一約束防止重複。
 
 ## Success Criteria *(mandatory)*
 
