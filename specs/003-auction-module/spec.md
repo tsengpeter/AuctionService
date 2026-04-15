@@ -10,9 +10,15 @@
 ### Session 2026-04-15
 
 - Q: 是否需要保留 Draft（草稿）狀態？ → A: 不需要，簡化為建立即上架（Active）；修改可在上架後進行。
-- Q: 上架商品（Active）可編輯哪些欄位？ → A: 僅允許修改標題、描述、分類、圖片；起標價與結標時間禁止修改，避免影響競標公平性。- Q: 關鍵字搜尋的匹配範圍？ → A: 僅匹配標題（title LIKE %keyword%）。
+- Q: 上架商品（Active）可編輯哪些欄位？ → A: 僅允許修改標題、描述、分類、圖片；起標價與結標時間禁止修改，避免影響競標公平性。（**已由 Session 2026-04-16 更新，以下方澄清為準**）
+- Q: 關鍵字搜尋的匹配範圍？ → A: 僅匹配標題（title），大小寫不敏感（case-insensitive，使用 `ILIKE`）。
 - Q: 排程結標發生例外時的處理策略？ → A: 捕捉例外、記錄錯誤日誌，服務繼續運行，60 秒後自動重試。
 - Q: 追蹤清單中已結標商品的顯示方式？ → A: 預設顯示（含 Ended），提供 `?status=active` 篩選參數讓買家自行過濾。
+
+### Session 2026-04-16
+
+- Q: 商品是否需要「競標開始時間」來區分競標前後的編輯權限？ → A: 是。引入 `startTime`（競標開始時間）欄位（必填，> 現在）。以 `startTime` 作為分界：**競標開放前**（`now < startTime`）可修改所有欄位（含 `startingPrice`、`startTime`、`endTime`）；**競標開放後**（`now >= startTime`）僅允許修改非競標敏感欄位（`title`、`description`、`categoryId`、`imageUrls`）。嘗試在競標開放後修改競標敏感欄位回傳 422。
+- Q: `startTime` / `endTime` 的驗證規則？ → A: 建立時：`startTime > now`；`endTime > startTime + 1 分鐘`。競標開放前修改時：`startTime`（若提供）必須 > now；`endTime`（若提供）必須 > startTime + 1 分鐘。
 ## User Scenarios & Testing *(mandatory)*
 
 > **開發優先順序原則**：以競標者（買家）的使用旅程為主軸依序實作。競標者需要先能發現、瀏覽、追蹤商品，才有動機出價。賣家的商品管理功能（建立、編輯）作為後半段實作，並以種入測試資料支撐前期的競標者功能測試。
@@ -29,20 +35,20 @@
 
 1. **Given** 系統中有多筆 Active 商品，**When** 用戶請求第一頁商品列表，**Then** 回傳最多 20 筆商品及當前頁碼、總筆數資訊。
 2. **Given** 系統中有屬於特定分類的商品，**When** 用戶以分類 ID 篩選，**Then** 只回傳符合該分類的商品。
-3. **Given** 商品標題含有特定關鍵字，**When** 用戶以該關鍵字搜尋，**Then** 回傳標題含有該關鍵字的商品。
+3. **Given** 商品標題含有特定關鍵字，**When** 用戶以該關鍵字搜尋，**Then** 回傳標題含有該關鍵字的商品（大小寫不敏感）。
 4. **Given** 商品總數超過 20 筆，**When** 用戶請求第二頁，**Then** 回傳第 21-40 筆商品。
 5. **Given** 篩選條件無符合結果，**When** 用戶發送請求，**Then** 回傳空陣列及 total=0，HTTP 200。
-6. **Given** 系統存有 Draft 或 Ended 狀態的商品，**When** 用戶瀏覽列表，**Then** 這些商品不出現在結果中。
+6. **Given** 系統存有 Ended 狀態的商品，**When** 用戶瀏覽列表，**Then** 這些商品不出現在結果中。
 
 ---
 
 ### User Story 2 - 查看商品詳情（含目前最高出價） (Priority: P2)
 
-競標者可以查看特定商品的完整資訊，包括標題、描述、圖片、起標價、結標時間、狀態，以及目前最高出價金額，協助其決定是否出價。
+競標者可以查看特定商品的完整資訊，包括標題、描述、圖片、起標價、競標開始時間、結標時間、狀態，以及目前最高出價金額，協助其決定是否出價。
 
 **Why this priority**: 詳情頁是競標者決策的核心頁面。最高出價資訊讓競標者了解當前競爭情況，是出價行為前的必要資訊依據。
 
-**Independent Test**: 查詢存在的商品 ID，驗證回傳資料包含完整欄位，且最高出價欄位正確（若無出價則顯示 null）。
+**Independent Test**: 查詢存在的商品 ID，驗證回傳資料包含完整欄位（含 `startTime`），且最高出價欄位正確（若無出價則顯示 null）。
 
 **Acceptance Scenarios**:
 
@@ -92,38 +98,40 @@
 
 ### User Story 5 - 建立拍賣商品（賣家，直接上架） (Priority: P5)
 
-已登入的賣家可以建立一個新的拍賣商品（填寫標題、描述、起標價、結標時間、分類，以及最多 5 張圖片 URL），建立後立即進入 Active 狀態，無需額外上架步驟。
+已登入的賣家可以建立一個新的拍賣商品（填寫標題、描述、起標價、競標開始時間、結標時間、分類，以及最多 5 張圖片 URL），建立後立即進入 Active 狀態，無需額外上架步驟。
 
 **Why this priority**: 賣家建立商品功能是平台商品供給端的必要功能，建立即上架簡化了操作流程；在競標者端功能完備後實作，可同時驗證端對端流程。
 
-**Independent Test**: 賣家登入後建立商品，驗證回傳 201 含新商品 ID，DB 中存在一筆 Active 狀態的商品，且商品立即出現在公開列表中。
+**Independent Test**: 賣家登入後建立商品（含有效 `startTime`、`endTime`），驗證回傳 201 含新商品 ID，DB 中存在一筆 Active 狀態的商品，且商品立即出現在公開列表中。
 
 **Acceptance Scenarios**:
 
-1. **Given** 賣家已登入，**When** 提交有效的商品資料（標題、起標價 > 0、結標時間 > 現在），**Then** 系統建立一筆 Active 狀態的商品並回傳新商品 ID（201）。
+1. **Given** 賣家已登入，**When** 提交有效的商品資料（標題、起標價 > 0、`startTime > now`、`endTime > startTime + 1 分鐘`），**Then** 系統建立一筆 Active 狀態的商品並回傳新商品 ID（201）。
 2. **Given** 賣家未登入，**When** 嘗試建立商品，**Then** 系統回傳未授權（401）。
 3. **Given** 起標價為 0 或負數，**When** 提交建立請求，**Then** 系統回傳驗證錯誤（422）。
-4. **Given** 結標時間早於現在加 1 分鐘，**When** 提交建立請求，**Then** 系統回傳驗證錯誤（422）。
-5. **Given** 圖片 URL 超過 5 張，**When** 提交建立請求，**Then** 系統回傳驗證錯誤（422）。
-6. **Given** 商品建立成功，**When** 用戶查詢商品列表，**Then** 新商品立即出現在 Active 商品列表中。
+4. **Given** 競標開始時間（`startTime`）等於或早於現在，**When** 提交建立請求，**Then** 系統回傳驗證錯誤（422）。
+5. **Given** 結標時間（`endTime`）未晚於 `startTime` 至少 1 分鐘，**When** 提交建立請求，**Then** 系統回傳驗證錯誤（422）。
+6. **Given** 圖片 URL 超過 5 張，**When** 提交建立請求，**Then** 系統回傳驗證錯誤（422）。
+7. **Given** 商品建立成功，**When** 用戶查詢商品列表，**Then** 新商品立即出現在 Active 商品列表中。
 
 ---
 
-### User Story 6 - 編輯上架商品（賣家） (Priority: P6)
+### User Story 6 - 編輯拍賣商品（賣家） (Priority: P6)
 
-賣家可以修改自己已上架（Active）商品的**非競標敏感欄位**（標題、描述、分類、圖片），方便在結標前補充說明。起標價與結標時間禁止修改以確保競標公平性。商品一旦結標（Ended）則完全不得修改。
+賣家可以修改自己已上架（Active）商品的欄位，可修改範圍依競標開放狀態分兩個階段：**競標開放前**（`now < startTime`）可修改所有欄位（含 `startingPrice`、`startTime`、`endTime`）；**競標開放後**（`now >= startTime`）僅允許修改非競標敏感欄位（`title`、`description`、`categoryId`、`imageUrls`）。商品一旦結標（Ended）則完全不得修改。
 
-**Why this priority**: 編輯功能讓賣家在結標前修正補充說明，確保商品資訊品質；限制起標價與結標時間保護競標公平性，是賣家端的配套功能。
+**Why this priority**: 編輯功能讓賣家在結標前修正資訊；以 `startTime` 作為分界保護競標公平性（開標後不得更改競標條件），是賣家端的配套功能。
 
-**Independent Test**: 建立一筆 Active 商品後更新標題，驗證更新成功；嘗試更新起標價，驗證系統回傳 422；商品結標（Ended）後嘗試更新，驗證系統回傳 409。
+**Independent Test**: 建立一筆 `startTime` 在未來的 Active 商品：（1）在 `startTime` 之前提交含 `startingPrice` 的更新，驗證成功（200）；（2）模擬 `startTime` 已到，再次嘗試更新 `startingPrice`，驗證回傳 422；（3）商品結標（Ended）後嘗試更新，驗證回傳 409。
 
 **Acceptance Scenarios**:
 
-1. **Given** 商品處於 Active 狀態且賣家為擁有者，**When** 提交有效的標題/描述/分類/圖片更新，**Then** 商品欄位更新成功，回傳 200。
-2. **Given** 商品處於 Active 狀態，**When** 賣家嘗試修改起標價或結標時間，**Then** 系統回傳驗證錯誤（422）。
-3. **Given** 商品處於 Ended 狀態，**When** 賣家嘗試更新任何欄位，**Then** 系統回傳衝突錯誤（409）。
-4. **Given** 商品屬於其他賣家，**When** 當前用戶嘗試更新，**Then** 系統回傳禁止操作（403）。
-5. **Given** 更新資料違反驗證規則（如圖片超過 5 張），**When** 提交請求，**Then** 系統回傳驗證錯誤（422）。
+1. **Given** 商品處於 Active 狀態、`now < startTime`（競標尚未開放），且賣家為擁有者，**When** 提交任意欄位更新（含 `startingPrice` / `startTime` / `endTime`），**Then** 所有有效欄位更新成功，回傳 200。
+2. **Given** 商品處於 Active 狀態、`now >= startTime`（競標已開放），且賣家為擁有者，**When** 提交 `title` / `description` / `categoryId` / `imageUrls` 更新，**Then** 非競標敏感欄位更新成功，回傳 200。
+3. **Given** 商品處於 Active 狀態、`now >= startTime`（競標已開放），**When** 賣家嘗試修改 `startingPrice`、`startTime` 或 `endTime`，**Then** 系統回傳驗證錯誤（422），錯誤訊息指明不可修改的欄位。
+4. **Given** 商品處於 Ended 狀態，**When** 賣家嘗試更新任何欄位，**Then** 系統回傳衝突錯誤（409）。
+5. **Given** 商品屬於其他賣家，**When** 當前用戶嘗試更新，**Then** 系統回傳禁止操作（403）。
+6. **Given** 更新資料違反驗證規則（如圖片超過 5 張，或競標開放前 `startTime` 更新後仍早於現在），**When** 提交請求，**Then** 系統回傳驗證錯誤（422）。
 
 ---
 
@@ -132,32 +140,36 @@
 - 賣家刪除帳號後，其 Active/Ended 商品如何處理？（本 Phase 範圍外，商品保留，owner_id 為孤立參考）
 - 結標時出現平手出價（同金額）？依先出價時間為準（最先出價者為 WinnerId）
 - 分類可為多層級（Category 有 parentId），查詢清單時是否含子分類商品？本 Phase 僅依 categoryId 精確匹配
-- 商品圖片 URL 格式驗證？僅驗證格式為有效 URL，不驗證可連線性
-- 同時結標大量商品的效能問題？排程以批次處理，單次掃描上限為 100 筆- 排程結標發生例外（如 DB 連線中斷）？捕捉例外、記錄錯誤日誌，服務不中斷，60 秒後自動重試（冗冪設計確保不重複結標）
+- 商品圖片 URL 格式驗證？僅驗證格式為有效絕對 URI（`Uri.TryCreate(..., UriKind.Absolute, ...)`），不驗證可連線性
+- 同時結標大量商品的效能問題？排程以批次處理，單次掃描上限為 100 筆
+- 排程結標發生例外（如 DB 連線中斷）？捕捉例外、記錄錯誤日誌，服務不中斷，60 秒後自動重試（冪等設計確保不重複結標）
+- `startTime` / `endTime` 在競標開放前被賣家修改後，結標排程是否以最新 `endTime` 為準？是，排程掃描資料庫最新 `end_time` 欄位，修改立即生效。
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: 已登入用戶 MUST 能建立 Active 狀態的拍賣商品（建立即直接上架），欄位含標題（必填）、描述（選填）、起標價（必填，> 0）、結標時間（必填，> 現在）、分類 ID（選填）、圖片 URL 清單（選填，最多 5 張）。
-- **FR-002**: 系統 MUST 驗證建立商品時的輸入規則：起標價必須大於 0；結標時間必須比現在晚至少 1 分鐘；圖片數量不得超過 5 張。違反規則回傳 422 Unprocessable Entity。
-- **FR-003**: 擁有者 MUST 能修改自己的 Active 狀態商品的**非競標敏感欄位**（標題、描述、分類、圖片）；起標價與結標時間不得修改，嘗試修改回傳 422。
+- **FR-001**: 已登入用戶 MUST 能建立 Active 狀態的拍賣商品（建立即直接上架），欄位含標題（必填）、描述（選填）、起標價（必填，> 0）、競標開始時間（`startTime`，必填，> 現在）、結標時間（`endTime`，必填，> `startTime` + 1 分鐘）、分類 ID（選填）、圖片 URL 清單（選填，最多 5 張，格式須為有效絕對 URI）。
+- **FR-002**: 系統 MUST 驗證建立商品時的輸入規則：起標價必須大於 0；`startTime` 必須晚於現在；`endTime` 必須晚於 `startTime` 至少 1 分鐘；圖片數量不得超過 5 張；URL 必須為有效絕對 URI。違反規則回傳 422 Unprocessable Entity。
+- **FR-003**: 擁有者 MUST 能依競標開放狀態修改商品欄位，規則分兩級：（1）**競標開放前**（`now < startTime`）可修改所有欄位（`title`、`description`、`startingPrice`、`startTime`、`endTime`、`categoryId`、`imageUrls`）；`startTime`（若提供）必須 > now，`endTime`（若提供）必須 > startTime + 1 分鐘；（2）**競標開放後**（`now >= startTime`）僅允許修改非競標敏感欄位（`title`、`description`、`categoryId`、`imageUrls`）；嘗試修改 `startingPrice`、`startTime` 或 `endTime` 時回傳 422 Unprocessable Entity。
 - **FR-004**: 系統 MUST 禁止非擁有者修改商品，回傳 403 Forbidden。
 - **FR-005**: 系統 MUST 禁止修改 Ended 狀態的商品，回傳 409 Conflict。
-- **FR-007**: 系統 MUST 提供商品列表查詢，支援以下篩選參數：`q`（關鍵字，**僅匹配標題**）、`categoryId`（分類 ID）、`page`（頁碼，預設 1）、`pageSize`（每頁筆數，預設 20，最大 100）。
+- ~~**FR-006**~~: 已移除。原「上架商品（Draft→Active）」功能依 2026-04-15 澄清取消草稿狀態，建立即 Active（合併至 FR-001）。
+- **FR-007**: 系統 MUST 提供商品列表查詢，支援以下篩選參數：`q`（關鍵字，**僅比對 title，大小寫不敏感**，使用 `ILIKE`）、`categoryId`（分類 ID）、`page`（頁碼，預設 1）、`pageSize`（每頁筆數，預設 20，最大 100）；`pageSize` 超過 100 時回傳 422。
 - **FR-008**: 系統 MUST 在商品列表回應中包含分頁資訊（totalCount、page、pageSize）。
-- **FR-009**: 系統 MUST 提供商品詳情查詢，含所有欄位、圖片清單，以及目前最高出價金額（來自出價模組，若無出價則為 null）。
+- **FR-009**: 系統 MUST 提供商品詳情查詢，含所有欄位（包含 `startTime`）、圖片清單，以及目前最高出價金額（`currentHighestBid = IBiddingQueryService.GetHighestBidAsync()?.Amount`；若無出價則為 null；結標後顯示 null，成交金額改由 `soldAmount` 欄位表示）。
 - **FR-010**: 已登入用戶 MUST 能將商品加入或移除個人追蹤清單，操作為冪等（重複加入/移除不報錯）。
 - **FR-011**: 已登入用戶 MUST 能查詢自己的追蹤清單，預設顯示全部已追蹤商品（含 Active 與 Ended），可透過 `?status=active` 參數篩選只顯示 Active 商品；回傳資料含商品基本資訊與 status 欄位。
 - **FR-012**: 系統排程 MUST 每 60 秒掃描一次所有結標時間已到的 Active 商品，將其狀態變更為 Ended。
-- **FR-013**: 商品結標且有出價紀錄時，系統 MUST 發布 AuctionWonEvent 至內部事件匯流排，事件內容含 AuctionId、WinnerId（最高出價者）、SoldAmount（最高出價金額）、SellerId（商品擁有者）。
+- **FR-013**: 商品結標時，若 `IBiddingQueryService.GetHighestBidAsync()` 回傳非 null（表示有出價紀錄），系統 MUST 發布 AuctionWonEvent 至內部事件匯流排，事件內容含 AuctionId、WinnerId（最高出價者）、SoldAmount（最高出價金額）、SellerId（商品擁有者）。
 - **FR-014**: 商品結標排程 MUST 為冪等，同一商品不得重複結標。
 - **FR-015**: 商品狀態流轉 MUST 嚴格遵守 Active → Ended 單向狀態機，建立即為 Active，禁止逆轉。
 
 ### Key Entities
 
-- **Auction（拍賣商品）**: 核心實體，代表一筆拍賣，屬性含擁有者 ID（賣家）、標題、描述、起標價、結標時間、狀態（Active/Ended）、得標者 ID（結標後填入）、成交金額（結標後填入）。
-- **AuctionImage（商品圖片）**: 商品附屬圖片，每筆商品最多 5 張，含圖片 URL 與顯示順序。
+- **Auction（拍賣商品）**: 核心實體，代表一筆拍賣，屬性含擁有者 ID（賣家）、標題、描述、起標價、競標開始時間（`startTime`）、結標時間（`endTime`）、狀態（Active/Ended）、得標者 ID（結標後填入）、成交金額（結標後填入）。
+- **AuctionImage（商品圖片）**: 商品附屬圖片，每筆商品最多 5 張，含圖片 URL 與顯示順序（`displayOrder` 從 1 開始，第 1 張為縮圖 `thumbnailUrl`）。
 - **Category（分類）**: 商品分類，含名稱與父分類 ID（支援階層結構，但本 Phase 查詢以單層精確匹配為主）。
+- **Watchlist（追蹤清單）**: 用戶對商品的追蹤記錄，含用戶 ID（邏輯參考）、商品 ID、加入時間；`(userId, auctionId)` 為唯一約束。
 - **Watchlist（追蹤清單）**: 記錄用戶與商品的追蹤關係，含用戶 ID 與商品 ID，唯一約束防止重複。
 
 ## Success Criteria *(mandatory)*

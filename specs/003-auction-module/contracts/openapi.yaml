@@ -48,10 +48,15 @@ components:
           format: decimal
           minimum: 0.01
           example: 30000
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間，必須晚於現在"
+          example: "2026-04-25T10:00:00Z"
         endTime:
           type: string
           format: date-time
-          description: "必須比現在晚至少 1 分鐘"
+          description: "必須晚於 startTime 至少 1 分鐘"
           example: "2026-05-01T12:00:00Z"
         categoryId:
           type: string
@@ -68,16 +73,36 @@ components:
 
     UpdateAuctionRequest:
       type: object
-      description: "僅允許非競標敏感欄位（title/description/categoryId/imageUrls）。禁止帶入 startingPrice 或 endTime（422）。"
+      description: |
+        編輯商品請求。可修改欄位依競標開放狀態分兩階段：
+        - **競標開放前** (`now < startTime`)：可修改所有欄位，包含 startingPrice / startTime / endTime。
+        - **競標開放後** (`now >= startTime`)：僅允許 title / description / categoryId / imageUrls；如帶入 startingPrice / startTime / endTime 則回傳 422。
       properties:
         title:
           type: string
           minLength: 1
           maxLength: 200
+          nullable: true
           example: "iPhone 15 Pro Max 256GB【含快充組】"
         description:
           type: string
           nullable: true
+        startingPrice:
+          type: number
+          format: decimal
+          minimum: 0.01
+          nullable: true
+          description: "競標開放前可修改；競標開放後帶入則 422"
+        startTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: "競標開放前可修改（必須 > now）；競標開放後帶入則 422"
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: "競標開放前可修改（必須 > startTime + 1 分鐘）；競標開放後帶入則 422"
         categoryId:
           type: string
           format: uuid
@@ -101,6 +126,10 @@ components:
         startingPrice:
           type: number
           format: decimal
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間"
         endTime:
           type: string
           format: date-time
@@ -114,7 +143,7 @@ components:
           type: string
           format: uri
           nullable: true
-          description: "第一張圖片 URL（displayOrder=0）"
+          description: "第一張圖片 URL（displayOrder=1 的最小值）"
 
     AuctionDetailDto:
       type: object
@@ -133,6 +162,10 @@ components:
         startingPrice:
           type: number
           format: decimal
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間"
         endTime:
           type: string
           format: date-time
@@ -188,6 +221,10 @@ components:
         startingPrice:
           type: number
           format: decimal
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間"
         endTime:
           type: string
           format: date-time
@@ -425,11 +462,12 @@ paths:
 
     put:
       tags: [Auctions]
-      summary: 編輯拍賣商品（Active 狀態，限非競標敏感欄位）
+      summary: 編輯拍賣商品
       description: |
-        賣家編輯自己的 Active 商品。僅允許修改 title/description/categoryId/imageUrls。
-        禁止修改 startingPrice 或 endTime（422）。
-        Ended 商品不可修改（409）。需要 Bearer JWT。
+        賣家編輯自己的 Active 商品。可修改欄位依競標開放狀態分兩階段：
+        - 競標開放前 (`now < startTime`)：可修改所有欄位。
+        - 競標開放後 (`now >= startTime`)：僅允許修改 title/description/categoryId/imageUrls；帶入 startingPrice/startTime/endTime 則 422。
+        - Ended 商品不可修改（409）。需要 Bearer JWT。
       security:
         - BearerAuth: []
       parameters:
@@ -477,7 +515,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
         "422":
-          description: 驗證錯誤（嘗試修改 startingPrice/endTime，或圖片超過 5 張）
+          description: 驗證錯誤（競標開放後嘗試修改 startingPrice/startTime/endTime，或圖片超過 5 張）
           content:
             application/json:
               schema:

@@ -45,6 +45,7 @@ public class Auction : BaseEntity
     public string Title { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public decimal StartingPrice { get; private set; }
+    public DateTimeOffset StartTime { get; private set; }
     public DateTimeOffset EndTime { get; private set; }
     public AuctionStatus Status { get; private set; } = AuctionStatus.Active;
     public Guid? CategoryId { get; private set; }
@@ -61,6 +62,7 @@ public class Auction : BaseEntity
         string title,
         string? description,
         decimal startingPrice,
+        DateTimeOffset startTime,
         DateTimeOffset endTime,
         Guid? categoryId,
         IEnumerable<string> imageUrls)
@@ -72,6 +74,7 @@ public class Auction : BaseEntity
             Title = title.Trim(),
             Description = description?.Trim(),
             StartingPrice = startingPrice,
+            StartTime = startTime,
             EndTime = endTime,
             Status = AuctionStatus.Active,   // 建立即 Active
             CategoryId = categoryId,
@@ -81,28 +84,59 @@ public class Auction : BaseEntity
 
         var urls = imageUrls.ToList();
         for (int i = 0; i < urls.Count; i++)
-            auction._images.Add(AuctionImage.Create(auction.Id, urls[i], i));
+            auction._images.Add(AuctionImage.Create(auction.Id, urls[i], i + 1));  // DisplayOrder 1-indexed
 
         return auction;
     }
 
-    public void Update(
+    // 修改全欄位（競標開放前，now < StartTime）
+    public void UpdateAll(
         string title,
         string? description,
+        decimal startingPrice,
+        DateTimeOffset startTime,
+        DateTimeOffset endTime,
         Guid? categoryId,
         IEnumerable<string> imageUrls)
     {
         if (Status == AuctionStatus.Ended)
             throw new InvalidOperationException("Cannot update an ended auction.");
+        if (DateTimeOffset.UtcNow >= StartTime)
+            throw new InvalidOperationException("Bidding has started; cannot update competitive fields.");
 
         Title = title.Trim();
         Description = description?.Trim();
+        StartingPrice = startingPrice;
+        StartTime = startTime;
+        EndTime = endTime;
         CategoryId = categoryId;
+        ReplaceImages(imageUrls);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    // 修改非競標敏感欄位（競標開放後，now >= StartTime）
+    public void UpdateNonSensitive(
+        string? title,
+        string? description,
+        Guid? categoryId,
+        IEnumerable<string>? imageUrls)
+    {
+        if (Status == AuctionStatus.Ended)
+            throw new InvalidOperationException("Cannot update an ended auction.");
+
+        if (title is not null) Title = title.Trim();
+        if (description is not null) Description = description.Trim();
+        if (categoryId is not null) CategoryId = categoryId;
+        if (imageUrls is not null) ReplaceImages(imageUrls);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    private void ReplaceImages(IEnumerable<string> imageUrls)
+    {
         _images.Clear();
         var urls = imageUrls.ToList();
         for (int i = 0; i < urls.Count; i++)
-            _images.Add(AuctionImage.Create(Id, urls[i], i));
-        UpdatedAt = DateTimeOffset.UtcNow;
+            _images.Add(AuctionImage.Create(Id, urls[i], i + 1));  // DisplayOrder 1-indexed
     }
 
     public void End(Guid? winnerId, decimal? soldAmount)
@@ -197,9 +231,16 @@ public record AuctionWonEvent(
 ### IBiddingQueryService（Application/Abstractions）
 
 ```csharp
+public record BidInfoDto(Guid WinnerId, decimal Amount);
+
 public interface IBiddingQueryService
 {
-    Task<decimal?> GetHighestBidAsync(Guid auctionId, CancellationToken ct = default);
+    /// <summary>
+    /// 取得指定拍賣的最高出價資訊。
+    /// 回傳 null 表示尚無出價。
+    /// WinnerId 為目前安排最高出價者，不應為 null。
+    /// </summary>
+    Task<BidInfoDto?> GetHighestBidAsync(Guid auctionId, CancellationToken ct = default);
 }
 ```
 
@@ -220,8 +261,8 @@ public record PagedResult<T>(
 
 | Command | 必填欄位 | 驗證規則 | 錯誤 |
 |---------|---------|---------|------|
-| `CreateAuctionCommand` | title, startingPrice, endTime, ownerId（from JWT） | startingPrice > 0；endTime > UtcNow+1min；imageUrls ≤ 5；URL 格式有效 | 422 |
-| `UpdateAuctionCommand` | id, ownerId（from JWT），至少一個欄位 | 商品需存在；狀態為 Active；requesterId == ownerId；禁止帶 startingPrice/endTime | 404/409/403/422 |
+| `CreateAuctionCommand` | title, startingPrice, startTime, endTime, ownerId（from JWT） | startingPrice > 0；startTime > UtcNow；endTime > startTime+1min；imageUrls ≤ 5；URL 格式有效 | 422 |
+| `UpdateAuctionCommand` | id, ownerId（from JWT） | 商品需存在；狀態為 Active；requesterId == ownerId；競標開放前可修改全欄位；競標開放後禁止修改 startingPrice/startTime/endTime | 404/409/403/422 |
 | `AddWatchlistCommand` | auctionId, userId（from JWT） | 冪等（已存在則 skip） | — |
 | `RemoveWatchlistCommand` | auctionId, userId（from JWT） | 冪等（不存在則 skip） | — |
 
@@ -263,6 +304,7 @@ builder.HasKey(a => a.Id);
 builder.Property(a => a.Title).HasMaxLength(200).IsRequired();
 builder.Property(a => a.StartingPrice).HasPrecision(18, 2);
 builder.Property(a => a.Status).HasConversion<string>();
+builder.Property(a => a.StartTime).IsRequired();
 
 // Indexes
 builder.HasIndex(a => new { a.Status, a.EndTime });   // 結標掃描
@@ -300,6 +342,7 @@ auction.watchlist
 
 -- Key indexes
 CREATE INDEX idx_auctions_status_end_time ON auction.auctions (status, end_time);
+CREATE INDEX idx_auctions_start_time ON auction.auctions (start_time);
 CREATE INDEX idx_auctions_owner_id ON auction.auctions (owner_id);
 CREATE INDEX idx_auctions_category_id ON auction.auctions (category_id);
 CREATE UNIQUE INDEX idx_watchlist_user_auction ON auction.watchlist (user_id, auction_id);

@@ -20,14 +20,24 @@ docker compose up -d
 
 ## 執行 Migration
 
+> **策略：刪除舊資料後全新建立**（本地開發環境無任何生產資料，請放心執行）
+
 ```bash
-# 建立 Migration（需在 repo root 執行）
-dotnet ef migrations add InitAuctionSchema \
+# 步驟 1：若本地 DB 已套用過舊 migration，先 Drop 掉資料庫
+dotnet ef database drop \
+  --project src/Modules/Auction/Auction.csproj \
+  --startup-project src/AuctionService.Api/AuctionService.Api.csproj
+
+# 步驟 2：刪除舊 migration 檔案
+Remove-Item -Recurse -Force src/Modules/Auction/Infrastructure/Persistence/Migrations
+
+# 步驟 3：建立全新單一 Migration
+dotnet ef migrations add AuctionModuleFullSchema \
   --project src/Modules/Auction/Auction.csproj \
   --startup-project src/AuctionService.Api/AuctionService.Api.csproj \
   --output-dir Infrastructure/Persistence/Migrations
 
-# 套用 Migration
+# 步驟 4：套用 Migration
 dotnet ef database update \
   --project src/Modules/Auction/Auction.csproj \
   --startup-project src/AuctionService.Api/AuctionService.Api.csproj
@@ -89,7 +99,7 @@ TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -d '{"email":"seller@test.com","password":"Test@1234"}' \
   | jq -r '.data.accessToken')
 
-# 建立商品
+# 建立商品（startTime 必填且須 > 現在；endTime 須 > startTime+1min）
 curl -X POST http://localhost:8080/api/auctions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -97,6 +107,7 @@ curl -X POST http://localhost:8080/api/auctions \
     "title": "iPhone 15 Pro Max",
     "description": "全新未拆封",
     "startingPrice": 30000,
+    "startTime": "2026-05-01T10:00:00Z",
     "endTime": "2026-05-01T12:00:00Z",
     "categoryId": null,
     "imageUrls": ["https://example.com/img1.jpg"]
