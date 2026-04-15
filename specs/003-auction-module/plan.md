@@ -46,7 +46,7 @@ specs/003-auction-module/
 ├── quickstart.md    ✅ Phase 1 完成
 ├── contracts/
 │   └── openapi.yaml ✅ Phase 1 完成
-└── tasks.md         ⏳ 待 /speckit.tasks 產出
+└── tasks.md         ✅
 ```
 
 ### Source Code (repository root)
@@ -116,7 +116,7 @@ src/AuctionService.Api/Controllers/
 
 tests/AuctionService.UnitTests/Auction/
 ├── Domain/
-│   └── AuctionStatusMachineTests.cs
+│   └── AuctionTests.cs
 └── Application/
     ├── CreateAuctionCommandTests.cs
     ├── UpdateAuctionCommandTests.cs

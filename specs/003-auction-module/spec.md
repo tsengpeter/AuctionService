@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-auction-module`  
 **Created**: 2026-04-14  
-**Status**: Draft  
+**Status**: Approved  
 **Input**: User description: "實作 Auction 模組：賣家建立拍賣商品（標題、描述、起標價、結標時間、分類、最多5張圖片 URL）、編輯草稿商品、上架商品（Draft→Active）、瀏覽商品列表（支援分類篩選、關鍵字搜尋、分頁 pageSize=20）、商品詳細頁（含目前最高出價）、將商品加入/移除追蹤清單、查詢追蹤清單、排程結標（結標時間到自動將 Active→Ended，若有出價則發布 AuctionWonEvent 含 AuctionId/WinnerId/SoldAmount）；商品狀態機：Draft→Active→Ended；schema: auction，tables: auctions, auction_images, categories, watchlist"
 
 ## Clarifications
@@ -143,7 +143,7 @@
 - **FR-003**: 擁有者 MUST 能修改自己的 Active 狀態商品的**非競標敏感欄位**（標題、描述、分類、圖片）；起標價與結標時間不得修改，嘗試修改回傳 422。
 - **FR-004**: 系統 MUST 禁止非擁有者修改商品，回傳 403 Forbidden。
 - **FR-005**: 系統 MUST 禁止修改 Ended 狀態的商品，回傳 409 Conflict。
-- **FR-007**: 系統 MUST 提供商品列表查詢，支援以下篩選參數：`q`（關鍵字，**僅匹配標題**）、`category`（分類 ID）、`page`（頁碼，預設 1）、`pageSize`（每頁筆數，預設 20，最大 100）。
+- **FR-007**: 系統 MUST 提供商品列表查詢，支援以下篩選參數：`q`（關鍵字，**僅匹配標題**）、`categoryId`（分類 ID）、`page`（頁碼，預設 1）、`pageSize`（每頁筆數，預設 20，最大 100）。
 - **FR-008**: 系統 MUST 在商品列表回應中包含分頁資訊（totalCount、page、pageSize）。
 - **FR-009**: 系統 MUST 提供商品詳情查詢，含所有欄位、圖片清單，以及目前最高出價金額（來自出價模組，若無出價則為 null）。
 - **FR-010**: 已登入用戶 MUST 能將商品加入或移除個人追蹤清單，操作為冪等（重複加入/移除不報錯）。
