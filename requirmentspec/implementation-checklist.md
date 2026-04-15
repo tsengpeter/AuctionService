@@ -280,21 +280,26 @@ git checkout -b 003-auction-module
 
 ### 3-B. SpecKit 流程
 
-- [ ] **Specify**：
+- [x] **Specify**：（已完成，2026-04-15）
   ```
-  /speckit.specify 實作 Auction 模組：賣家建立拍賣商品（標題、描述、起標價、結標時間、分類、最多5張圖片 URL）、編輯草稿商品、上架商品（Draft→Active）、瀏覽商品列表（支援分類篩選、關鍵字搜尋、分頁 pageSize=20）、商品詳細頁（含目前最高出價）、將商品加入/移除追蹤清單、查詢追蹤清單、排程結標（結標時間到自動將 Active→Ended，若有出價則發布 AuctionWonEvent 含 AuctionId/WinnerId/SoldAmount）；商品狀態機：Draft→Active→Ended；schema: auction，tables: auctions, auction_images, categories, watchlist
+  /speckit.specify 實作 Auction 模組：賣家建立拍賣商品（標題、描述、起標價、結標時間、分類、最多5張圖片 URL）、建立即直接上架（Active）、編輯上架商品（限標題/描述/分類/圖片，不可修改起標價或結標時間）、瀏覽商品列表（支援分類篩選、關鍵字搜尋僅匹配標題、分頁 pageSize=20）、商品詳細頁（含目前最高出價）、將商品加入/移除追蹤清單、查詢追蹤清單（預設顯示全部含 Ended，?status=active 可篩選）、排程結標（結標時間到自動將 Active→Ended，若有出價則發布 AuctionWonEvent 含 AuctionId/WinnerId/SoldAmount/SellerId）；商品狀態機：Active→Ended（無 Draft）；schema: auction，tables: auctions, auction_images, categories, watchlist
   ```
-- [ ] **Clarify**：`/speckit.clarify`
-  - [ ] 結標排程：使用 Background Service 每分鐘掃描過期 Active 商品
-  - [ ] 最高出價查詢：Auction 模組透過 `IBiddingQueryService`（Shared Interface）查詢，避免直接依賴 Bidding 模組
+- [x] **Clarify**：`/speckit.clarify`（已完成，Session 2026-04-15，5 題全部解答）
+  - [x] 移除 Draft 狀態，建立即為 Active（狀態機：Active → Ended）
+  - [x] Active 商品可編輯欄位限縮為 title/description/category/images；startingPrice/endTime 禁改（422）
+  - [x] 關鍵字搜尋（q 參數）僅比對 title（LIKE %keyword%）
+  - [x] 背景服務例外處理：catch-log-continue，60 秒後自動重試
+  - [x] 追蹤清單預設顯示全部（含 Ended），?status=active 可篩選
+  - [x] 最高出價查詢：Auction 模組透過 `IBiddingQueryService`（Application/Abstractions）查詢，避免直接依賴 Bidding 模組
 - [ ] **Plan**：
   ```
   /speckit.plan 設計 Auction 模組技術架構：
-  Domain 層：Auction 實體（ownerId: Guid, title, description, startingPrice: decimal, endTime: DateTimeOffset, status: enum Draft/Active/Ended, winnerId: Guid?, soldAmount: decimal?），方法 Publish()（Draft→Active，驗證 endTime > UtcNow）、End(winnerId, soldAmount)（Active→Ended）；AuctionImage 值物件（url: string）；Category 實體（name, parentId: Guid?）；Watchlist 實體（userId: Guid, auctionId: Guid）；AuctionWonEvent : IDomainEvent（AuctionId, WinnerId, SoldAmount, SellerId）；
-  Application 層：IBiddingQueryService 介面（GetHighestBidAsync(auctionId) → decimal?）於 Application/Abstractions，實作由 Bidding 模組注入（避免直接 EF 跨 schema）；CQRS 命令：CreateAuctionCommand + Validator（endTime > UtcNow + 1min，startingPrice > 0，圖片 ≤ 5）、UpdateAuctionCommand（限 Draft 狀態）、PublishAuctionCommand（Draft→Active）、AddWatchlistCommand、RemoveWatchlistCommand（冪等）；CQRS 查詢：GetAuctionsQuery（keyword/category/page/pageSize，offset 分頁）、GetAuctionDetailQuery（含 currentHighestBid via IBiddingQueryService）、GetWatchlistQuery；
-  Background Service：AuctionEndBackgroundService（IHostedService，PeriodicTimer 60 秒，批次查詢 EndTime <= UtcNow AND Status=Active，呼叫 End()，透過 MediatR 發布 AuctionWonEvent）；
-  EF Core：auction schema，INDEX(status, end_time) 加速結標掃描，INDEX(owner_id)；
-  錯誤對應：非擁有者修改/刪除 → 403，非 Draft 狀態上架 → 409，endTime 過期 → 422
+  Domain 層：Auction 實體（ownerId: Guid, title: string, description: string?, startingPrice: decimal, endTime: DateTimeOffset, status: enum Active/Ended, winnerId: Guid?, soldAmount: decimal?），私有建構子 + 靜態工廠 Create()（直接建立 Active）、方法 End(winnerId, soldAmount)（Active→Ended，禁止重複結標）；AuctionImage 值物件（url: string, displayOrder: int，最多 5 張）；Category 實體（name: string, parentId: Guid?）；Watchlist 實體（userId: Guid, auctionId: Guid，唯一約束）；AuctionWonEvent : IDomainEvent（AuctionId: Guid, WinnerId: Guid, SoldAmount: decimal, SellerId: Guid）；
+  Application 層：IBiddingQueryService 介面（GetHighestBidAsync(auctionId: Guid) → decimal?）於 Application/Abstractions，本 Phase 回傳 null stub；CQRS 命令：CreateAuctionCommand + CreateAuctionCommandValidator（startingPrice > 0，endTime > UtcNow+1min，圖片數量 ≤ 5，URL 格式有效）、UpdateAuctionCommand + Validator（僅允許 title/description/categoryId/images 欄位，嘗試帶入 startingPrice/endTime → 422，Ended 狀態 → 409，非擁有者 → 403）、AddWatchlistCommand（冪等）、RemoveWatchlistCommand（冪等）；CQRS 查詢：GetAuctionsQuery（q: 僅 title LIKE %keyword%，categoryId: 精確匹配，page 預設 1，pageSize 預設 20 最大 100，offset 分頁，僅回傳 Active 商品）、GetAuctionDetailQuery（含 currentHighestBid via IBiddingQueryService，商品不存在 → 404）、GetWatchlistQuery（userId from JWT，status 篩選：null=全部/active=僅Active）；
+  Background Service：AuctionEndBackgroundService（IHostedService，PeriodicTimer 60 秒，批次查詢 EndTime <= UtcNow AND Status=Active 上限 100 筆，呼叫 End()，有出價者透過 MediatR 發布 AuctionWonEvent，catch 例外記錄錯誤日誌後繼續，冪等設計）；
+  EF Core：auction schema，auctions/auction_images/categories/watchlist 表，INDEX(status, end_time) 加速結標掃描，INDEX(owner_id)，watchlist UNIQUE(user_id, auction_id)；
+  Controller：AuctionsController（/api/auctions/*）、WatchlistController（/api/watchlist）；
+  錯誤對應：非擁有者修改 → 403 Forbidden，Ended 狀態修改 → 409 Conflict，輸入驗證失敗 → 422 Unprocessable Entity，商品不存在 → 404 Not Found
   ```
 - [ ] **Tasks**：`/speckit.tasks`
 - [ ] **Implement**：`/speckit.implement`
@@ -302,9 +307,12 @@ git checkout -b 003-auction-module
 
 ### 3-C. TDD 重點
 
-- [ ] Red: `AuctionStatusMachineTests` — Draft→Active→Ended 狀態流轉
-- [ ] Red: `AuctionEndServiceTests` — 結標時 `AuctionWonEvent` 正確發布（含 WinnerId、SoldAmount）
-- [ ] Red: `CreateAuctionCommandTests` — 驗證 end_time > now，否則 422
+- [ ] Red: `AuctionStatusMachineTests` — Active→Ended 狀態流轉（建立即 Active；禁止逆轉）
+- [ ] Red: `AuctionEndServiceTests` — 結標時 `AuctionWonEvent` 正確發布（含 WinnerId、SoldAmount、SellerId）；無出價不發布事件
+- [ ] Red: `CreateAuctionCommandTests` — endTime > now+1min，否則 422；startingPrice > 0，否則 422；圖片 > 5 張，否則 422
+- [ ] Red: `UpdateAuctionCommandTests` — Active 狀態可更新 title/description/category/images；嘗試修改 startingPrice/endTime → 422；Ended 狀態修改 → 409；非擁有者 → 403
+- [ ] Red: `GetAuctionsQueryTests` — 僅回傳 Active 商品；keyword 僅匹配 title
+- [ ] Red: `GetWatchlistQueryTests` — 預設含 Active+Ended；?status=active 僅回傳 Active
 - [ ] Green + Refactor
 
 ### 3-D. 本機驗收
@@ -313,29 +321,35 @@ git checkout -b 003-auction-module
 dotnet test --filter "Auction" --collect:"XPlat Code Coverage"
 ```
 
-- [ ] `POST /api/auctions` → 201（需 JWT）
-- [ ] `PUT /api/auctions/{id}` → 200（需為商品擁有者）/ 403
-- [ ] `PATCH /api/auctions/{id}/publish` → 200（Draft→Active）
-- [ ] `GET /api/auctions?category=&q=&page=1&pageSize=20` → 200 + 分頁
-- [ ] `GET /api/auctions/{id}` → 200 含商品詳情
-- [ ] `POST /api/auctions/{id}/watchlist` → 204（加入追蹤）
-- [ ] `DELETE /api/auctions/{id}/watchlist` → 204（移除追蹤）
-- [ ] `GET /api/watchlist` → 200 追蹤清單
-- [ ] 結標觸發 `AuctionWonEvent` 正確進入 MediatR pipeline
+- [ ] `POST /api/auctions` → 201（需 JWT，建立後商品直接為 Active）
+- [ ] `POST /api/auctions` → 422（endTime 不足 1 分鐘 / startingPrice ≤ 0 / 圖片 > 5 張）
+- [ ] `PUT /api/auctions/{id}` → 200（更新 title/description/category/images，需為擁有者）
+- [ ] `PUT /api/auctions/{id}` → 422（嘗試修改 startingPrice 或 endTime）
+- [ ] `PUT /api/auctions/{id}` → 409（Ended 狀態商品）
+- [ ] `PUT /api/auctions/{id}` → 403（非擁有者）
+- [ ] `GET /api/auctions?category=&q=&page=1&pageSize=20` → 200 + 分頁（僅 Active 商品）
+- [ ] `GET /api/auctions?q=keyword` → 僅匹配 title
+- [ ] `GET /api/auctions/{id}` → 200 含商品詳情（最高出價為 null）
+- [ ] `POST /api/auctions/{id}/watchlist` → 204（加入追蹤，冪等）
+- [ ] `DELETE /api/auctions/{id}/watchlist` → 204（移除追蹤，冪等）
+- [ ] `GET /api/watchlist` → 200（含 Active + Ended 商品）
+- [ ] `GET /api/watchlist?status=active` → 200（僅 Active 商品）
+- [ ] 結標觸發 `AuctionWonEvent` 正確進入 MediatR pipeline（含 SellerId）
+- [ ] 無出價商品結標後不發布 AuctionWonEvent
 - [ ] 單元測試覆蓋率 > 80%
 
 ### 3-E. Commit & PR
 
 ```bash
 git add .
-git commit -m "feat(auction): 拍賣商品 CRUD、狀態機、追蹤清單、結標事件
+git commit -m "feat(auction): 拍賣商品模組（建立即上架、狀態機 Active→Ended）
 
-- CreateAuction、UpdateAuction、PublishAuction Commands
-- 商品列表查詢（分類/關鍵字/分頁）
-- AuctionEndBackgroundService 排程結標
-- AuctionWonEvent 發布機制
-- Watchlist 加入/移除/查詢
-- auction schema migration
+- CreateAuction（建立即 Active）、UpdateAuction（限非競標敏感欄位）Commands
+- 商品列表查詢（分類/關鍵字搜尋標題/分頁）
+- AuctionEndBackgroundService 排程結標（catch-log-continue）
+- AuctionWonEvent 發布機制（含 SellerId）
+- Watchlist 加入/移除/查詢（?status=active 篩選）
+- auction schema migration（auctions, auction_images, categories, watchlist）
 - 單元測試覆蓋率 > 80%"
 
 git push -u origin 003-auction-module
