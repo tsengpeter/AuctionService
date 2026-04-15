@@ -186,6 +186,15 @@ public class Category : BaseEntity
     public Guid? ParentId { get; private set; }   // 支援層級結構（查詢僅精確匹配）
 
     private Category() { }
+
+    public static Category Create(string name, Guid? parentId = null) =>
+        new()
+        {
+            Name = name,
+            ParentId = parentId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
 }
 ```
 

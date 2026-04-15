@@ -132,7 +132,7 @@
 
 ### Tests for User Story 4 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T038 [P] [US4] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/AuctionEndBackgroundServiceTests.cs`：**使用 `IServiceScopeFactory` mock + `IMediator` mock**，mock scope 回傳含測試資料的 EF Core InMemory DbContext（`UseInMemoryDatabase`）；EF Core DbContext 未實作介面，無法直接以 NSubstitute mock；測試**過期** Active 商品被結標、有出價發布 Event、無出價不發布、Ended 商品冪等不重複處理、批次上限 100（共 5 個測試用例）
+- [ ] T038 [P] [US4] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/AuctionEndBackgroundServiceTests.cs`：**使用 `IServiceScopeFactory` mock + `IMediator` mock**，mock scope 回傳含測試資料的 EF Core InMemory DbContext（`UseInMemoryDatabase`）；EF Core DbContext 未實作介面，無法直接以 NSubstitute mock；測試**過期** Active 商品被結標、有出價發布 Event、無出價不發布、Ended 商品廩等不重複處理、批次上限 100、**`endTime = UtcNow + 1hour` 的 Active 商品排程後 Status 仍為 Active**（US4 AC5）（共 6 個測試用例）
 - [ ] T039 [P] [US4] 撰寫 `tests/AuctionService.IntegrationTests/Auction/AuctionEndBackgroundServiceIntegrationTests.cs`：植入過期商品 → manually trigger / wait → 驗證 DB 狀態為 Ended；**第 2 個測試需驗證排程誤差**：植入 `endTime = UtcNow - 30s` 的商品，等待最多 2 分鐘，斷言狀態變更（SC-003 ≤ 2 分鐘誤差）（共 2 個 end-to-end 測試）
 
 ### Implementation for User Story 4
@@ -177,7 +177,7 @@
 
 ### Tests for User Story 6 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T048 [P] [US6] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/UpdateAuctionCommandHandlerTests.cs`：測試競標開放前更新全欄位成功、競標開放前更新 startingPrice 成功、競標開放後嘗試更新 startingPrice 拋 ValidationException(422)、Ended 商品拋 ConflictException(409)、非擁有者拋 ForbiddenException(403)、商品不存在拋 NotFoundException(404)（共 6 個測試用例）
+- [ ] T048 [P] [US6] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/UpdateAuctionCommandHandlerTests.cs`：測試競標開放前更新全欄位成功、競標開放前更新 startingPrice 成功、**競標開放後更新 title 成功**（US6 AC2 正向路徑，`UpdateNonSensitive` 被呼叫）、競標開放後嘗試更新 **startingPrice/startTime/endTime** 沈 ValidationException(422)（US6 AC3，包含三個敷感欄位）、Ended 商品沈 ConflictException(409)、非擁有者沈 ForbiddenException(403)、商品不存在沈 NotFoundException(404)（共 7 個測試用例）
 - [ ] T049 [P] [US6] 撰寫 `tests/AuctionService.IntegrationTests/Auction/UpdateAuctionIntegrationTests.cs`：HTTP 測試競標開放前更新全欄位 200、競標開放後修改 startingPrice 得 422、409/403/404 各錯誤情境、未登入 401（共 6 個 end-to-end 測試）
 
 ### Implementation for User Story 6
@@ -185,7 +185,7 @@
 - [ ] T049a [US6] 新增 `src/AuctionService.Api/Controllers/Models/UpdateAuctionRequest.cs`：含全部可修改欄位（Title(string?)、Description(string?)、**StartingPrice(decimal?)**、**StartTime(DateTimeOffset?)**、**EndTime(DateTimeOffset?)**、CategoryId(Guid?)、ImageUrls(List<string>?)）；Controller 將全部欄位傳給 Command，Validator 負責根據競標狀態驗證
 - [ ] T050 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommand.cs`：`IRequest<AuctionDetailDto>`，含 AuctionId(Guid)、RequesterId(Guid)、Title(string?)、Description(string?)、StartingPrice(decimal?)、StartTime(DateTimeOffset?)、EndTime(DateTimeOffset?)、CategoryId(Guid?)、ImageUrls(List<string>?)
 - [ ] T051 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommandValidator.cs`：`Title` 若 not null 則 NotEmpty MaxLength(200)；`ImageUrls` MaximumCount(5) 且每個 URL 必須為有效絕對 URI；`StartingPrice` 若提供則 GreaterThan(0)；`StartTime` 若提供則 GreaterThan(UtcNow)；**`EndTime` 若提供則**：若 command.StartTime 亦有值 → `EndTime > command.StartTime + 1min`；若 command.StartTime 為 null → **EndTime 與現有 startTime 的比較移至 Handler（T052）在載入 Auction 後執行**，Validator 不持有 DbContext；**競標敏感欄位（StartingPrice/StartTime/EndTime）的存取許可判斷在 Handler 內依 `auction.StartTime` 狀態執行，Validator 只做格式驗證**；`CategoryId` 本 Phase 不驗證存在性
-- [ ] T052 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommandHandler.cs`：查找 `Auction`；不存在拋 `NotFoundException`；Status==Ended 拋 `ConflictException`；OwnerId ≠ RequesterId 拋 `ForbiddenException`；若 command 僅含 EndTime（無 StartTime）則補驗 `command.EndTime > auction.StartTime + 1min`（T051 Validator 無法驗證的情境）；檢查 `DateTimeOffset.UtcNow < auction.StartTime`（競標開放前）→ 呼叫 `auction.UpdateAll(...)`；否則（競標已開放）若請求含 startingPrice/startTime/endTime 則拋 `new FluentValidation.ValidationException(new[] { new ValidationFailure(fieldName, "競標開放後不可修改此欄位") })`（與 Pipeline ValidationException 格式一致，GlobalExceptionMiddleware 可統一處理為 422），否則呼叫 `auction.UpdateNonSensitive(...)`；`SaveChangesAsync()`；回傳更新後 `AuctionDetailDto`
+- [ ] T052 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommandHandler.cs`：查找 `Auction`；不存在沈 `NotFoundException`；Status==Ended 沈 `ConflictException`；OwnerId ≠ RequesterId 沈 `ForbiddenException`；若 command 僅含 EndTime（無 StartTime）則补驗 `command.EndTime > auction.StartTime + 1min`（T051 Validator 無法驗證的情境）；檢查 `DateTimeOffset.UtcNow < auction.StartTime`（競標開放前）→ 呼叫 `auction.UpdateAll(...)`（**null 欄位使用現有商品屬性小覆，如 `command.Title ?? auction.Title`、`command.StartingPrice ?? auction.StartingPrice`**）；否則（競標已開放）若請求含 startingPrice/startTime/endTime 則沈 `new FluentValidation.ValidationException(new[] { new ValidationFailure(fieldName, "競標開放後不可修改此欄位") })`（與 Pipeline ValidationException 格式一致，GlobalExceptionMiddleware 可統一處理為 422），否則呼叫 `auction.UpdateNonSensitive(...)`；`SaveChangesAsync()`；回傳更新後 `AuctionDetailDto`
 - [ ] T053 [US6] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `[Authorize] PUT /{id}` action：binding `UpdateAuctionRequest`（T049a）；將全部欄位映射至 `UpdateAuctionCommand`；回傳 `ApiResponse<AuctionDetailDto>` HTTP 200
 
 **Checkpoint**: `dotnet test` 全綠，`PUT /api/auctions/{id}` 全部情境通過
@@ -241,7 +241,7 @@ Phase 10 (Polish) ← 依賴所有 User Story Phase 完成
 - **US2 (P2)**: 依賴 Foundational Phase + AuctionsController 骨架（US1 建立）— 獨立可測
 - **US3 (P3)**: 依賴 Foundational Phase — 獨立可測（WatchlistController 獨立）
 - **US4 (P4)**: 依賴 Foundational Phase + IBiddingQueryService stub — 獨立可測
-- **US5 (P5)**: 依賴 Foundational Phase — 獨立可測
+- **US5 (P5)**: 依賴 Foundational Phase + **T027（US2 `GetById` action，供 T047 `nameof(GetById)` 引用）** — 独立可測
 - **US6 (P6)**: 依賴 US5（需要能先建立商品才能測編輯） — 可與 US5 同步實作
 - **Polish (P9/P10)**: 依賴所有 US 完成
 

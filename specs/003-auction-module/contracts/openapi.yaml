@@ -395,6 +395,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
+
+    post:
       tags: [Auctions]
       summary: 建立拍賣商品（直接 Active）
       description: |
