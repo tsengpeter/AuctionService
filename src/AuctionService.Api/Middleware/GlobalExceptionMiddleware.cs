@@ -1,4 +1,5 @@
 using AuctionService.Shared;
+using AuctionService.Shared.Exceptions;
 using FluentValidation;
 using System.Text.Json;
 
@@ -27,6 +28,24 @@ public class GlobalExceptionMiddleware
             var errors = ex.Errors.Select(e => new FieldError(e.PropertyName, e.ErrorMessage));
             var response = ApiResponseFactory.ValidationFail(errors);
             await WriteJsonResponse(context, 422, response);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Resource not found for {Path}", context.Request.Path);
+            var response = ApiResponseFactory.Fail(ex.Message, 404);
+            await WriteJsonResponse(context, 404, response);
+        }
+        catch (ConflictException ex)
+        {
+            _logger.LogWarning(ex, "Conflict for {Path}", context.Request.Path);
+            var response = ApiResponseFactory.Fail(ex.Message, 409);
+            await WriteJsonResponse(context, 409, response);
+        }
+        catch (ForbiddenException ex)
+        {
+            _logger.LogWarning(ex, "Forbidden for {Path}", context.Request.Path);
+            var response = ApiResponseFactory.Fail(ex.Message, 403);
+            await WriteJsonResponse(context, 403, response);
         }
         catch (Exception ex)
         {
