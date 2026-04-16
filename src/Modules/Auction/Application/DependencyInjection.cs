@@ -1,4 +1,8 @@
+using Auction.Application.Abstractions;
+using Auction.Infrastructure.BackgroundServices;
 using Auction.Infrastructure.Persistence;
+using Auction.Infrastructure.Services;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +23,11 @@ public static class AuctionDependencyInjection
 
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(AuctionDependencyInjection).Assembly));
+
+        services.AddValidatorsFromAssembly(typeof(AuctionDependencyInjection).Assembly);
+
+        services.AddScoped<IBiddingQueryService, NullBiddingQueryService>();
+        services.AddHostedService<AuctionEndBackgroundService>();
 
         return services;
     }

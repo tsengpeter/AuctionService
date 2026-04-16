@@ -1,4 +1,5 @@
 using Auction;
+using Auction.Application.Abstractions;
 using Auction.Infrastructure.Persistence;
 using FluentAssertions;
 using MediatR;
@@ -35,6 +36,20 @@ public class AuctionDependencyInjectionTests
         using var scope = provider.CreateScope();
         var mediator = scope.ServiceProvider.GetService<IMediator>();
         mediator.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddAuctionModule_ShouldRegisterIBiddingQueryService()
+    {
+        var services = new ServiceCollection();
+        var config = BuildConfig();
+
+        services.AddAuctionModule(config);
+
+        var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetService<IBiddingQueryService>();
+        service.Should().NotBeNull();
     }
 
     [Fact]
