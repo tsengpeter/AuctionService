@@ -1,0 +1,622 @@
+openapi: "3.1.0"
+info:
+  title: AuctionService — Auction Module API
+  version: "1.0.0"
+  description: |
+    Auction 模組 REST API：商品列表、商品詳情、追蹤清單、建立商品、編輯商品。
+    狀態機：Active → Ended（無 Draft）。
+    所有回應均使用 ApiResponse<T> 包裝：{ success, data, statusCode }。
+
+servers:
+  - url: /api
+
+tags:
+  - name: Auctions
+    description: 商品拍賣端點
+  - name: Watchlist
+    description: 追蹤清單端點（需 Bearer JWT）
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # --- Enums ---
+    AuctionStatus:
+      type: string
+      enum: [Active, Ended]
+
+    # --- Request Bodies ---
+    CreateAuctionRequest:
+      type: object
+      required: [title, startingPrice, startTime, endTime]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "iPhone 15 Pro Max 256GB 全新未拆"
+        description:
+          type: string
+          nullable: true
+          example: "原廠保固一年，附發票"
+        startingPrice:
+          type: number
+          format: decimal
+          minimum: 0.01
+          example: 30000
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間，必須晚於現在"
+          example: "2026-04-25T10:00:00Z"
+        endTime:
+          type: string
+          format: date-time
+          description: "必須晚於 startTime 至少 1 分鐘"
+          example: "2026-05-01T12:00:00Z"
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 5
+          example: ["https://example.com/img1.jpg"]
+
+    UpdateAuctionRequest:
+      type: object
+      description: |
+        編輯商品請求。可修改欄位依競標開放狀態分兩階段：
+        - **競標開放前** (`now < startTime`)：可修改所有欄位，包含 startingPrice / startTime / endTime。
+        - **競標開放後** (`now >= startTime`)：僅允許 title / description / categoryId / imageUrls；如帶入 startingPrice / startTime / endTime 則回傳 422。
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          nullable: true
+          example: "iPhone 15 Pro Max 256GB【含快充組】"
+        description:
+          type: string
+          nullable: true
+        startingPrice:
+          type: number
+          format: decimal
+          minimum: 0.01
+          nullable: true
+          description: "競標開放前可修改；競標開放後帶入則 422"
+        startTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: "競標開放前可修改（必須 > now）；競標開放後帶入則 422"
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: "競標開放前可修改（必須 > startTime + 1 分鐘）；競標開放後帶入則 422"
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 5
+
+    # --- Response DTOs ---
+    AuctionListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        startingPrice:
+          type: number
+          format: decimal
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間"
+        endTime:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/AuctionStatus'
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+        thumbnailUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: "第一張圖片 URL（displayOrder=1 的最小值）"
+
+    AuctionDetailDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startingPrice:
+          type: number
+          format: decimal
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間"
+        endTime:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/AuctionStatus'
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+        currentHighestBid:
+          type: number
+          format: decimal
+          nullable: true
+          description: "目前最高出價（來自 Bidding 模組；本 Phase 為 null）"
+        winnerId:
+          type: string
+          format: uuid
+          nullable: true
+          description: "得標者 ID（Ended 後填入）"
+        soldAmount:
+          type: number
+          format: decimal
+          nullable: true
+          description: "成交金額（Ended 後填入）"
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionImageDto'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuctionImageDto:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        displayOrder:
+          type: integer
+
+    WatchlistItemDto:
+      type: object
+      properties:
+        auctionId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        startingPrice:
+          type: number
+          format: decimal
+        startTime:
+          type: string
+          format: date-time
+          description: "競標開始時間"
+        endTime:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/AuctionStatus'
+        thumbnailUrl:
+          type: string
+          format: uri
+          nullable: true
+        addedAt:
+          type: string
+          format: date-time
+
+    # --- Pagination ---
+    PagedAuctionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionListItemDto'
+        totalCount:
+          type: integer
+          example: 142
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        totalPages:
+          type: integer
+          example: 8
+
+    # --- ApiResponse Wrappers ---
+    ApiResponseAuctionList:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/PagedAuctionList'
+        statusCode:
+          type: integer
+          example: 200
+
+    ApiResponseAuctionDetail:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AuctionDetailDto'
+        statusCode:
+          type: integer
+          example: 200
+
+    ApiResponseCreated:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+        statusCode:
+          type: integer
+          example: 201
+
+    ApiResponseWatchlist:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchlistItemDto'
+        statusCode:
+          type: integer
+          example: 200
+
+    # --- Error ---
+    ApiError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        statusCode:
+          type: integer
+
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        statusCode:
+          type: integer
+          example: 422
+
+paths:
+  # ─────────────────────────────────────────
+  # Auction 商品列表
+  # ─────────────────────────────────────────
+  /auctions:
+    get:
+      tags: [Auctions]
+      summary: 取得商品列表（含搜尋與分頁）
+      description: |
+        回傳 Active 狀態的商品列表。支援關鍵字搜尋（僅比對 title）、分類篩選、分頁。
+        無需驗證（公開端點）。
+      parameters:
+        - name: q
+          in: query
+          description: "關鍵字，僅比對 title（LIKE %keyword%）"
+          schema:
+            type: string
+          example: iPhone
+        - name: categoryId
+          in: query
+          description: "分類 ID（精確匹配）"
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuctionList'
+        "422":
+          description: 驗證錯誤（pageSize > 100）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+    post:
+      tags: [Auctions]
+      summary: 建立拍賣商品（直接 Active）
+      description: |
+        賣家建立新拍賣商品，建立後立即進入 Active 狀態，無需額外上架步驟。
+        需要 Bearer JWT。
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuctionRequest'
+      responses:
+        "201":
+          description: 建立成功
+          headers:
+            Location:
+              description: "/api/auctions/{id}"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCreated'
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        "422":
+          description: 驗證錯誤（startingPrice ≤ 0 / startTime ≤ now / endTime 不足 1 分鐘 / 圖片超過 5 張）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  # ─────────────────────────────────────────
+  # Auction 商品詳情 / 編輯
+  # ─────────────────────────────────────────
+  /auctions/{id}:
+    get:
+      tags: [Auctions]
+      summary: 取得商品詳情（含最高出價）
+      description: |
+        回傳完整商品資訊，包含圖片列表與目前最高出價（來自 Bidding 模組；本 Phase 為 null）。
+        無需驗證（公開端點）。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuctionDetail'
+        "404":
+          description: 商品不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    put:
+      tags: [Auctions]
+      summary: 編輯拍賣商品
+      description: |
+        賣家編輯自己的 Active 商品。可修改欄位依競標開放狀態分兩階段：
+        - 競標開放前 (`now < startTime`)：可修改所有欄位。
+        - 競標開放後 (`now >= startTime`)：僅允許修改 title/description/categoryId/imageUrls；帶入 startingPrice/startTime/endTime 則 422。
+        - Ended 商品不可修改（409）。需要 Bearer JWT。
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAuctionRequest'
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuctionDetail'
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        "403":
+          description: 非擁有者禁止操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        "404":
+          description: 商品不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        "409":
+          description: 商品已結標（Ended），不可修改
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        "422":
+          description: 驗證錯誤（競標開放後嘗試修改 startingPrice/startTime/endTime，或圖片超過 5 張）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  # ─────────────────────────────────────────
+  # Watchlist 加入 / 移除
+  # ─────────────────────────────────────────
+  /auctions/{id}/watchlist:
+    post:
+      tags: [Watchlist]
+      summary: 加入追蹤清單（冪等）
+      description: |
+        將指定商品加入目前登入用戶的追蹤清單。若已在清單中，忽略並回傳 204（冪等）。
+        需要 Bearer JWT。
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 加入成功（或已存在，冪等）
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        "404":
+          description: 商品不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    delete:
+      tags: [Watchlist]
+      summary: 移除追蹤清單（冪等）
+      description: |
+        從追蹤清單移除指定商品。若不在清單中，忽略並回傳 204（冪等）。
+        需要 Bearer JWT。
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 移除成功（或不存在，冪等）
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # ─────────────────────────────────────────
+  # Watchlist 查詢
+  # ─────────────────────────────────────────
+  /watchlist:
+    get:
+      tags: [Watchlist]
+      summary: 查詢追蹤清單
+      description: |
+        回傳目前登入用戶的追蹤清單。預設包含 Active 和 Ended 商品（含 status 欄位）。
+        使用 ?status=active 篩選只顯示 Active 商品。需要 Bearer JWT。
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: "篩選商品狀態（null=全部；active=僅 Active）"
+          schema:
+            type: string
+            enum: [active]
+          example: active
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseWatchlist'
+        "401":
+          description: 未授權
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'

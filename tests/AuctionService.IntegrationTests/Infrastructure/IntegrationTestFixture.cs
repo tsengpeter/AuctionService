@@ -24,15 +24,19 @@ public class IntegrationTestFixture : IAsyncLifetime
     public HttpClient Client { get; private set; } = null!;
     public string ConnectionString { get; private set; } = string.Empty;
 
+    // Well-known category IDs for use in integration tests
+    public static readonly Guid CategoryElectronicsId = Guid.Parse("10000000-0000-0000-0000-000000000001");
+    public static readonly Guid CategoryFashionId = Guid.Parse("10000000-0000-0000-0000-000000000002");
+    public static readonly Guid CategoryHomeId = Guid.Parse("10000000-0000-0000-0000-000000000003");
+    public static readonly Guid CategorySportsId = Guid.Parse("10000000-0000-0000-0000-000000000004");
+    public static readonly Guid CategoryBooksId = Guid.Parse("10000000-0000-0000-0000-000000000005");
+
     public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();
         ConnectionString = _dbContainer.GetConnectionString();
 
         // Environment variables must be set BEFORE WebApplicationFactory is created.
-        // Program.cs reads configuration inside WebApplication.CreateBuilder(), which
-        // runs before WithWebHostBuilder.ConfigureAppConfiguration is applied.
-        // Environment variables are the only injection point that works in time.
         Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", ConnectionString);
         Environment.SetEnvironmentVariable("JWT_SECRET", "test_jwt_secret_at_least_32_chars_long");
         Environment.SetEnvironmentVariable("JWT_ISSUER", "AuctionService");
@@ -44,7 +48,6 @@ public class IntegrationTestFixture : IAsyncLifetime
                 builder.UseEnvironment("Testing");
                 builder.ConfigureServices(services =>
                 {
-                    // Override all DbContext registrations with test container connection
                     ReplaceDbContext<MemberDbContext>(services, ConnectionString);
                     ReplaceDbContext<AuctionDbContext>(services, ConnectionString);
                     ReplaceDbContext<BiddingDbContext>(services, ConnectionString);
@@ -61,6 +64,9 @@ public class IntegrationTestFixture : IAsyncLifetime
         await ApplyMigrations<OrderingDbContext>(scope);
         await ApplyMigrations<NotificationDbContext>(scope);
 
+        // Seed categories for Auction integration tests
+        await SeedCategoriesAsync(scope);
+
         Client = Factory.CreateClient();
     }
 
@@ -74,6 +80,24 @@ public class IntegrationTestFixture : IAsyncLifetime
         Client?.Dispose();
         await Factory.DisposeAsync();
         await _dbContainer.DisposeAsync();
+    }
+
+    private static async Task SeedCategoriesAsync(IServiceScope scope)
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AuctionDbContext>();
+
+        if (await db.Categories.AnyAsync()) return;
+
+        var now = DateTimeOffset.UtcNow;
+        await db.Database.ExecuteSqlRawAsync($"""
+            INSERT INTO auction.categories ("Id", "Name", "ParentId", "CreatedAt", "UpdatedAt") VALUES
+            ('{CategoryElectronicsId}', 'Electronics', null, '{now:O}', '{now:O}'),
+            ('{CategoryFashionId}', 'Fashion', null, '{now:O}', '{now:O}'),
+            ('{CategoryHomeId}', 'Home & Garden', null, '{now:O}', '{now:O}'),
+            ('{CategorySportsId}', 'Sports', null, '{now:O}', '{now:O}'),
+            ('{CategoryBooksId}', 'Books', null, '{now:O}', '{now:O}')
+            ON CONFLICT DO NOTHING
+            """);
     }
 
     private static void ReplaceDbContext<TContext>(IServiceCollection services, string connectionString)
@@ -92,3 +116,4 @@ public class IntegrationTestFixture : IAsyncLifetime
         await context.Database.MigrateAsync();
     }
 }
+
