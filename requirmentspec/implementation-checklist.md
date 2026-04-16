@@ -291,7 +291,7 @@ git checkout -b 003-auction-module
   - [x] 背景服務例外處理：catch-log-continue，60 秒後自動重試
   - [x] 追蹤清單預設顯示全部（含 Ended），?status=active 可篩選
   - [x] 最高出價查詢：Auction 模組透過 `IBiddingQueryService`（Application/Abstractions）查詢，避免直接依賴 Bidding 模組
-- [ ] **Plan**：
+- [x] **Plan**：（已完成）
   ```
   /speckit.plan 設計 Auction 模組技術架構：
   Domain 層：Auction 實體（ownerId: Guid, title: string, description: string?, startingPrice: decimal, endTime: DateTimeOffset, status: enum Active/Ended, winnerId: Guid?, soldAmount: decimal?），私有建構子 + 靜態工廠 Create()（直接建立 Active）、方法 End(winnerId, soldAmount)（Active→Ended，禁止重複結標）；AuctionImage 值物件（url: string, displayOrder: int，最多 5 張）；Category 實體（name: string, parentId: Guid?）；Watchlist 實體（userId: Guid, auctionId: Guid，唯一約束）；AuctionWonEvent : IDomainEvent（AuctionId: Guid, WinnerId: Guid, SoldAmount: decimal, SellerId: Guid）；
@@ -301,19 +301,19 @@ git checkout -b 003-auction-module
   Controller：AuctionsController（/api/auctions/*）、WatchlistController（/api/watchlist）；
   錯誤對應：非擁有者修改 → 403 Forbidden，Ended 狀態修改 → 409 Conflict，輸入驗證失敗 → 422 Unprocessable Entity，商品不存在 → 404 Not Found
   ```
-- [ ] **Tasks**：`/speckit.tasks`
-- [ ] **Implement**：`/speckit.implement`
-- [ ] **Checklist**：`/speckit.checklist`
+- [x] **Tasks**：`/speckit.tasks`
+- [x] **Implement**：`/speckit.implement`
+- [x] **Checklist**：`/speckit.checklist`
 
 ### 3-C. TDD 重點
 
-- [ ] Red: `AuctionStatusMachineTests` — Active→Ended 狀態流轉（建立即 Active；禁止逆轉）
-- [ ] Red: `AuctionEndServiceTests` — 結標時 `AuctionWonEvent` 正確發布（含 WinnerId、SoldAmount、SellerId）；無出價不發布事件
-- [ ] Red: `CreateAuctionCommandTests` — endTime > now+1min，否則 422；startingPrice > 0，否則 422；圖片 > 5 張，否則 422
-- [ ] Red: `UpdateAuctionCommandTests` — Active 狀態可更新 title/description/category/images；嘗試修改 startingPrice/endTime → 422；Ended 狀態修改 → 409；非擁有者 → 403
-- [ ] Red: `GetAuctionsQueryTests` — 僅回傳 Active 商品；keyword 僅匹配 title
-- [ ] Red: `GetWatchlistQueryTests` — 預設含 Active+Ended；?status=active 僅回傳 Active
-- [ ] Green + Refactor
+- [x] Red: `AuctionStatusMachineTests` — Active→Ended 狀態流轉（建立即 Active；禁止逆轉）
+- [x] Red: `AuctionEndServiceTests` — 結標時 `AuctionWonEvent` 正確發布（含 WinnerId、SoldAmount、SellerId）；無出價不發布事件
+- [x] Red: `CreateAuctionCommandTests` — endTime > now+1min，否則 422；startingPrice > 0，否則 422；圖片 > 5 張，否則 422
+- [x] Red: `UpdateAuctionCommandTests` — Active 狀態可更新 title/description/category/images；嘗試修改 startingPrice/endTime → 422；Ended 狀態修改 → 409；非擁有者 → 403
+- [x] Red: `GetAuctionsQueryTests` — 僅回傳 Active 商品；keyword 僅匹配 title
+- [x] Red: `GetWatchlistQueryTests` — 預設含 Active+Ended；?status=active 僅回傳 Active
+- [x] Green + Refactor
 
 ### 3-D. 本機驗收
 
@@ -321,22 +321,22 @@ git checkout -b 003-auction-module
 dotnet test --filter "Auction" --collect:"XPlat Code Coverage"
 ```
 
-- [ ] `POST /api/auctions` → 201（需 JWT，建立後商品直接為 Active）
-- [ ] `POST /api/auctions` → 422（endTime 不足 1 分鐘 / startingPrice ≤ 0 / 圖片 > 5 張）
-- [ ] `PUT /api/auctions/{id}` → 200（更新 title/description/category/images，需為擁有者）
-- [ ] `PUT /api/auctions/{id}` → 422（嘗試修改 startingPrice 或 endTime）
-- [ ] `PUT /api/auctions/{id}` → 409（Ended 狀態商品）
-- [ ] `PUT /api/auctions/{id}` → 403（非擁有者）
-- [ ] `GET /api/auctions?category=&q=&page=1&pageSize=20` → 200 + 分頁（僅 Active 商品）
-- [ ] `GET /api/auctions?q=keyword` → 僅匹配 title
-- [ ] `GET /api/auctions/{id}` → 200 含商品詳情（最高出價為 null）
-- [ ] `POST /api/auctions/{id}/watchlist` → 204（加入追蹤，冪等）
-- [ ] `DELETE /api/auctions/{id}/watchlist` → 204（移除追蹤，冪等）
-- [ ] `GET /api/watchlist` → 200（含 Active + Ended 商品）
-- [ ] `GET /api/watchlist?status=active` → 200（僅 Active 商品）
-- [ ] 結標觸發 `AuctionWonEvent` 正確進入 MediatR pipeline（含 SellerId）
-- [ ] 無出價商品結標後不發布 AuctionWonEvent
-- [ ] 單元測試覆蓋率 > 80%
+- [x] `POST /api/auctions` → 201（需 JWT，建立後商品直接為 Active）
+- [x] `POST /api/auctions` → 422（endTime 不足 1 分鐘 / startingPrice ≤ 0 / 圖片 > 5 張）
+- [x] `PUT /api/auctions/{id}` → 200（更新 title/description/category/images，需為擁有者）
+- [x] `PUT /api/auctions/{id}` → 422（嘗試修改 startingPrice 或 endTime）
+- [x] `PUT /api/auctions/{id}` → 409（Ended 狀態商品）
+- [x] `PUT /api/auctions/{id}` → 403（非擁有者）
+- [x] `GET /api/auctions?category=&q=&page=1&pageSize=20` → 200 + 分頁（僅 Active 商品）
+- [x] `GET /api/auctions?q=keyword` → 僅匹配 title
+- [x] `GET /api/auctions/{id}` → 200 含商品詳情（最高出價為 null）
+- [x] `POST /api/auctions/{id}/watchlist` → 204（加入追蹤，冪等）
+- [x] `DELETE /api/auctions/{id}/watchlist` → 204（移除追蹤，冪等）
+- [x] `GET /api/watchlist` → 200（含 Active + Ended 商品）
+- [x] `GET /api/watchlist?status=active` → 200（僅 Active 商品）
+- [x] 結標觸發 `AuctionWonEvent` 正確進入 MediatR pipeline（含 SellerId）
+- [x] 無出價商品結標後不發布 AuctionWonEvent
+- [x] 單元測試覆蓋率 > 80%
 
 ### 3-E. Commit & PR
 
@@ -355,11 +355,13 @@ git commit -m "feat(auction): 拍賣商品模組（建立即上架、狀態機 A
 git push -u origin 003-auction-module
 ```
 
-- [ ] 建立 PR：`003-auction-module` → `master` → Merge
-- [ ] Merge 後：
+- [x] 建立 PR：`003-auction-module` → `master` → Merge
+- [x] Merge 後：
   ```bash
   git checkout master ; git pull ; git branch -d 003-auction-module
   ```
+
+> **✅ 完成日期**：2026-04-16 — 所有任務完成（T001–T062），`dotnet test` 全綠（Unit: 168 passed, Integration: 68 passed）
 
 ---
 
