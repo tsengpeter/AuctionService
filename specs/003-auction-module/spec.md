@@ -2,7 +2,8 @@
 
 **Feature Branch**: `003-auction-module`  
 **Created**: 2026-04-14  
-**Status**: Approved  
+**Status**: Implemented ✅  
+**Completed**: 2026-04-16 — 236 tests pass (Unit 168 + Integration 68), merged to master  
 **Input**: User description: "實作 Auction 模組：賣家建立拍賣商品（標題、描述、起標價、結標時間、分類、最多5張圖片 URL）、編輯草稿商品、上架商品（Draft→Active）、瀏覽商品列表（支援分類篩選、關鍵字搜尋、分頁 pageSize=20）、商品詳細頁（含目前最高出價）、將商品加入/移除追蹤清單、查詢追蹤清單、排程結標（結標時間到自動將 Active→Ended，若有出價則發布 AuctionWonEvent 含 AuctionId/WinnerId/SoldAmount）；商品狀態機：Draft→Active→Ended；schema: auction，tables: auctions, auction_images, categories, watchlist"
 
 ## Clarifications

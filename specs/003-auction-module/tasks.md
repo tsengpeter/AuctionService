@@ -2,7 +2,8 @@
 
 **Branch**: `003-auction-module`  
 **Input**: `specs/003-auction-module/` (plan.md, spec.md, data-model.md, contracts/openapi.yaml, research.md, quickstart.md)  
-**Baseline Tests**: 185 (Unit 144 + Integration 41), all green  
+**Baseline Tests**: 236 (Unit 168 + Integration 68), all green  
+**Completed**: 2026-04-16 — all T001–T062 implemented, `dotnet test` 236/236 pass  
 **TDD**: 每個 User Story 的測試任務 **必須** 先寫並確認 FAIL 後再實作
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -19,13 +20,13 @@
 
 > ⚠️ 現有 `AuctionItem.cs`、`AuctionDbContext.cs`、相關測試需全部重構，不可保留舊狀態機邏輯。
 
-- [ ] T001 重構並重命名 `src/Modules/Auction/Domain/Entities/AuctionItem.cs` → `Auction.cs`，類別名稱 `AuctionItem` → `Auction`：移除 Pending/Sold/Cancelled 狀態，改為 `Active/Ended` 兩態；`Create()` 加入 `StartTime`（競標開始時間）必填參數；直接建立 Active；`End(Guid? winnerId, decimal? soldAmount)` 接受可空參數；`UpdateAll()`（競標開放前，可修改全欄位）/`UpdateNonSensitive()`（競標開放後，詳規規格）方法；新增 OwnerId、Description、CategoryId、WinnerId、SoldAmount、StartTime、EndTime 屬性（與 data-model.md 命名對齊）
-- [ ] T002 [P] 新增 `src/Modules/Auction/Domain/Entities/AuctionImage.cs`：OwnedEntity 值物件含 Url(string)、DisplayOrder(int)；**DisplayOrder 從 1 開始（1-indexed）**，第 1 張為縮圖
-- [ ] T003 [P] 新增 `src/Modules/Auction/Domain/Entities/Category.cs`：含 Id(Guid)、Name(string)、ParentId(Guid?) 屬性，私有建構子 + 靜態 `Create()`
-- [ ] T004 [P] 新增 `src/Modules/Auction/Domain/Entities/Watchlist.cs`：含 Id(Guid)、UserId(Guid)、AuctionId(Guid) 屬性，私有建構子 + 靜態 `Create()`；**不加 AddedAt 屬性**——追蹤加入時間由 `BaseEntity.CreatedAt (DateTimeOffset)` 承接，`WatchlistItemDto` 中映射為 `AddedAt`
-- [ ] T005 [P] 新增 `src/Modules/Auction/Domain/Events/AuctionWonEvent.cs`：實作 `IDomainEvent`，含 AuctionId、WinnerId、SoldAmount、SellerId 屬性（readonly）
-- [ ] T006 [P] 新增 `src/Modules/Auction/Application/Abstractions/IBiddingQueryService.cs`：定義 `record BidInfoDto(Guid WinnerId, decimal Amount)`；定義 `Task<BidInfoDto?> GetHighestBidAsync(Guid auctionId, CancellationToken ct)` 介面（C1 修正：回傳 BidInfoDto? 同時含 WinnerId 與 Amount，供結標背景服務使用）
-- [ ] T007 [P] 新增 `src/Modules/Auction/Infrastructure/Services/NullBiddingQueryService.cs`：實作 `IBiddingQueryService`，`GetHighestBidAsync()` 永遠回傳 `null`（即 BidInfoDto? = null，Phase stub，Bidding 模組完成後替換）
+- [x] T001 重構並重命名 `src/Modules/Auction/Domain/Entities/AuctionItem.cs` → `Auction.cs`，類別名稱 `AuctionItem` → `Auction`：移除 Pending/Sold/Cancelled 狀態，改為 `Active/Ended` 兩態；`Create()` 加入 `StartTime`（競標開始時間）必填參數；直接建立 Active；`End(Guid? winnerId, decimal? soldAmount)` 接受可空參數；`UpdateAll()`（競標開放前，可修改全欄位）/`UpdateNonSensitive()`（競標開放後，詳規規格）方法；新增 OwnerId、Description、CategoryId、WinnerId、SoldAmount、StartTime、EndTime 屬性（與 data-model.md 命名對齊）
+- [x] T002 [P] 新增 `src/Modules/Auction/Domain/Entities/AuctionImage.cs`：OwnedEntity 值物件含 Url(string)、DisplayOrder(int)；**DisplayOrder 從 1 開始（1-indexed）**，第 1 張為縮圖
+- [x] T003 [P] 新增 `src/Modules/Auction/Domain/Entities/Category.cs`：含 Id(Guid)、Name(string)、ParentId(Guid?) 屬性，私有建構子 + 靜態 `Create()`
+- [x] T004 [P] 新增 `src/Modules/Auction/Domain/Entities/Watchlist.cs`：含 Id(Guid)、UserId(Guid)、AuctionId(Guid) 屬性，私有建構子 + 靜態 `Create()`；**不加 AddedAt 屬性**——追蹤加入時間由 `BaseEntity.CreatedAt (DateTimeOffset)` 承接，`WatchlistItemDto` 中映射為 `AddedAt`
+- [x] T005 [P] 新增 `src/Modules/Auction/Domain/Events/AuctionWonEvent.cs`：實作 `IDomainEvent`，含 AuctionId、WinnerId、SoldAmount、SellerId 屬性（readonly）
+- [x] T006 [P] 新增 `src/Modules/Auction/Application/Abstractions/IBiddingQueryService.cs`：定義 `record BidInfoDto(Guid WinnerId, decimal Amount)`；定義 `Task<BidInfoDto?> GetHighestBidAsync(Guid auctionId, CancellationToken ct)` 介面（C1 修正：回傳 BidInfoDto? 同時含 WinnerId 與 Amount，供結標背景服務使用）
+- [x] T007 [P] 新增 `src/Modules/Auction/Infrastructure/Services/NullBiddingQueryService.cs`：實作 `IBiddingQueryService`，`GetHighestBidAsync()` 永遠回傳 `null`（即 BidInfoDto? = null，Phase stub，Bidding 模組完成後替換）
 
 ---
 
@@ -35,15 +36,15 @@
 
 **⚠️ CRITICAL**: 直到此 Phase 完成前，任何 User Story 均無法進行資料庫操作。
 
-- [ ] T008 更新 `src/Modules/Auction/Infrastructure/Persistence/AuctionDbContext.cs`：新增 `DbSet<Category> Categories`、`DbSet<Watchlist> Watchlist`；移除舊的 `AuctionItems` DbSet，改為 `Auctions`（Entity: `Auction`，對應 T001 重命名）；引入 Configurations
-- [ ] T009 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/AuctionConfiguration.cs`：Table `auctions`、schema `auction`；Status 存為 string；新增 `start_time TIMESTAMPTZ NOT NULL`；INDEX(status, end_time)；INDEX(start_time)；INDEX(owner_id)；Owned Entity `AuctionImages`（最多 5 筆）
-- [ ] T010 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/AuctionImageConfiguration.cs`：Owned entity 設定，Table `auction_images`，Url VARCHAR(500) required
-- [ ] T011 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/CategoryConfiguration.cs`：Table `categories`，Name VARCHAR(100) required
-- [ ] T012 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/WatchlistConfiguration.cs`：Table `watchlist`，UNIQUE INDEX(user_id, auction_id)
-- [ ] T013 新增 `src/Modules/Auction/Application/DTOs/PagedResult.cs`：泛型 `PagedResult<T>` 含 Items、TotalCount、Page、PageSize、TotalPages
-- [ ] T014 更新 `src/Modules/Auction/Application/DependencyInjection.cs`：註冊 `IBiddingQueryService → NullBiddingQueryService`（`AddScoped`）；確保 MediatR 掃描 Auction assembly
-- [ ] T015 執行 EF Migration：**策略：刪除舊 scaffold migrations 後重建**—删除 `src/Modules/Auction/Infrastructure/Persistence/Migrations/` 中現有全部 migration 檔案，執行 `dotnet ef migrations add AuctionModuleFullSchema --project src/Modules/Auction --startup-project src/AuctionService.Api --output-dir Infrastructure/Persistence/Migrations`。若本地 DB 已 apply 舊 migration，需先 `dotnet ef database drop --project src/Modules/Auction --startup-project src/AuctionService.Api`（詳見 quickstart.md）
-- [ ] T015a 在 `tests/AuctionService.IntegrationTests/Infrastructure/` WebApplicationFactory 的 `InitializeAsync` 中新增 `categories` 表 Seed 資料（至少 5 筆測試分類，含確定的 Id），供所有 Auction Integration Tests 使用（M1 修正：提前至 Phase 2，確保 T017 分類篩選測試可正確執行）
+- [x] T008 更新 `src/Modules/Auction/Infrastructure/Persistence/AuctionDbContext.cs`：新增 `DbSet<Category> Categories`、`DbSet<Watchlist> Watchlist`；移除舊的 `AuctionItems` DbSet，改為 `Auctions`（Entity: `Auction`，對應 T001 重命名）；引入 Configurations
+- [x] T009 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/AuctionConfiguration.cs`：Table `auctions`、schema `auction`；Status 存為 string；新增 `start_time TIMESTAMPTZ NOT NULL`；INDEX(status, end_time)；INDEX(start_time)；INDEX(owner_id)；Owned Entity `AuctionImages`（最多 5 筆）
+- [x] T010 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/AuctionImageConfiguration.cs`：Owned entity 設定，Table `auction_images`，Url VARCHAR(500) required
+- [x] T011 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/CategoryConfiguration.cs`：Table `categories`，Name VARCHAR(100) required
+- [x] T012 [P] 新增 `src/Modules/Auction/Infrastructure/Persistence/Configurations/WatchlistConfiguration.cs`：Table `watchlist`，UNIQUE INDEX(user_id, auction_id)
+- [x] T013 新增 `src/Modules/Auction/Application/DTOs/PagedResult.cs`：泛型 `PagedResult<T>` 含 Items、TotalCount、Page、PageSize、TotalPages
+- [x] T014 更新 `src/Modules/Auction/Application/DependencyInjection.cs`：註冊 `IBiddingQueryService → NullBiddingQueryService`（`AddScoped`）；確保 MediatR 掃描 Auction assembly
+- [x] T015 執行 EF Migration：**策略：刪除舊 scaffold migrations 後重建**—删除 `src/Modules/Auction/Infrastructure/Persistence/Migrations/` 中現有全部 migration 檔案，執行 `dotnet ef migrations add AuctionModuleFullSchema --project src/Modules/Auction --startup-project src/AuctionService.Api --output-dir Infrastructure/Persistence/Migrations`。若本地 DB 已 apply 舊 migration，需先 `dotnet ef database drop --project src/Modules/Auction --startup-project src/AuctionService.Api`（詳見 quickstart.md）
+- [x] T015a 在 `tests/AuctionService.IntegrationTests/Infrastructure/` WebApplicationFactory 的 `InitializeAsync` 中新增 `categories` 表 Seed 資料（至少 5 筆測試分類，含確定的 Id），供所有 Auction Integration Tests 使用（M1 修正：提前至 Phase 2，確保 T017 分類篩選測試可正確執行）
 
 **Checkpoint**: `dotnet test` 通過（舊測試需隨 T001 重構同步更新），DB schema 正確建立，categories seed 資料就位
 
@@ -58,15 +59,15 @@
 
 ### Tests for User Story 1 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T016 [P] [US1] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/GetAuctionsQueryHandlerTests.cs`：測試無條件查詢回傳分頁結果、關鍵字篩選（ILIKE 大小寫不敏感）、分類篩選、結果為空時 HTTP 200 + empty array、Ended 商品不出現在結果中、**pageSize=101 拋 ValidationException**（共 6 個測試用例）
-- [ ] T017 [P] [US1] 撰寫 `tests/AuctionService.IntegrationTests/Auction/GetAuctionsIntegrationTests.cs`：透過 HTTP Client 測試 `GET /api/auctions`、`GET /api/auctions?q=keyword`、`GET /api/auctions?categoryId=xxx`、`GET /api/auctions?page=2&pageSize=5`、**`GET /api/auctions?pageSize=101` 得 422**、**Ended 商品不出現在列表結果中**（共 6 個 end-to-end 測試）
+- [x] T016 [P] [US1] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/GetAuctionsQueryHandlerTests.cs`：測試無條件查詢回傳分頁結果、關鍵字篩選（ILIKE 大小寫不敏感）、分類篩選、結果為空時 HTTP 200 + empty array、Ended 商品不出現在結果中、**pageSize=101 拋 ValidationException**（共 6 個測試用例）
+- [x] T017 [P] [US1] 撰寫 `tests/AuctionService.IntegrationTests/Auction/GetAuctionsIntegrationTests.cs`：透過 HTTP Client 測試 `GET /api/auctions`、`GET /api/auctions?q=keyword`、`GET /api/auctions?categoryId=xxx`、`GET /api/auctions?page=2&pageSize=5`、**`GET /api/auctions?pageSize=101` 得 422**、**Ended 商品不出現在列表結果中**（共 6 個 end-to-end 測試）
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] 新增 `src/Modules/Auction/Application/Queries/GetAuctions/AuctionListItemDto.cs`：含 Id、Title、StartingPrice、StartTime、EndTime、Status、CategoryId、ThumbnailUrl(nullable)
-- [ ] T019 [US1] 新增 `src/Modules/Auction/Application/Queries/GetAuctions/GetAuctionsQuery.cs`：MediatR `IRequest<PagedResult<AuctionListItemDto>>`，含 Q(string?)、CategoryId(Guid?)、Page(int=1)、PageSize(int=20)；對應 `GetAuctionsQueryValidator`：`PageSize.InclusiveBetween(1, 100)`，超過 100 回傳 422（FR-007 最大限制）
-- [ ] T020 [US1] 新增 `src/Modules/Auction/Application/Queries/GetAuctions/GetAuctionsQueryHandler.cs`：查詢 `Auction` where Status==Active；`q` 參數用 `EF.Functions.ILike(a.Title, $"%{q}%")`（大小寫不敏感）；offset 分頁；projection 至 `AuctionListItemDto`（ThumbnailUrl 取 `DisplayOrder` 最小值的第一張圖，即 `ORDER BY DisplayOrder ASC` 第一筆）
-- [ ] T021 [US1] 新增 `src/AuctionService.Api/Controllers/AuctionsController.cs`：`[ApiController][Route("api/auctions")]`；`GET /` 對應 `GetAuctionsQuery`；回傳 `ApiResponse<PagedResult<AuctionListItemDto>>` HTTP 200
+- [x] T018 [US1] 新增 `src/Modules/Auction/Application/Queries/GetAuctions/AuctionListItemDto.cs`：含 Id、Title、StartingPrice、StartTime、EndTime、Status、CategoryId、ThumbnailUrl(nullable)
+- [x] T019 [US1] 新增 `src/Modules/Auction/Application/Queries/GetAuctions/GetAuctionsQuery.cs`：MediatR `IRequest<PagedResult<AuctionListItemDto>>`，含 Q(string?)、CategoryId(Guid?)、Page(int=1)、PageSize(int=20)；對應 `GetAuctionsQueryValidator`：`PageSize.InclusiveBetween(1, 100)`，超過 100 回傳 422（FR-007 最大限制）
+- [x] T020 [US1] 新增 `src/Modules/Auction/Application/Queries/GetAuctions/GetAuctionsQueryHandler.cs`：查詢 `Auction` where Status==Active；`q` 參數用 `EF.Functions.ILike(a.Title, $"%{q}%")`（大小寫不敏感）；offset 分頁；projection 至 `AuctionListItemDto`（ThumbnailUrl 取 `DisplayOrder` 最小值的第一張圖，即 `ORDER BY DisplayOrder ASC` 第一筆）
+- [x] T021 [US1] 新增 `src/AuctionService.Api/Controllers/AuctionsController.cs`：`[ApiController][Route("api/auctions")]`；`GET /` 對應 `GetAuctionsQuery`；回傳 `ApiResponse<PagedResult<AuctionListItemDto>>` HTTP 200
 
 **Checkpoint**: `dotnet test` 全綠，`GET /api/auctions` 可獨立運作
 
@@ -81,16 +82,16 @@
 
 ### Tests for User Story 2 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T022 [P] [US2] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/GetAuctionDetailQueryHandlerTests.cs`：測試商品存在回傳完整 DTO（含 currentHighestBid=null）、商品不存在拋 NotFoundException、IBiddingQueryService 被呼叫（NSubstitute verify）（共 3 個測試用例）
-- [ ] T023 [P] [US2] 撰寫 `tests/AuctionService.IntegrationTests/Auction/GetAuctionDetailIntegrationTests.cs`：測試 `GET /api/auctions/{id}` 成功、404 情境（共 2 個 end-to-end 測試）
+- [x] T022 [P] [US2] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/GetAuctionDetailQueryHandlerTests.cs`：測試商品存在回傳完整 DTO（含 currentHighestBid=null）、商品不存在拋 NotFoundException、IBiddingQueryService 被呼叫（NSubstitute verify）（共 3 個測試用例）
+- [x] T023 [P] [US2] 撰寫 `tests/AuctionService.IntegrationTests/Auction/GetAuctionDetailIntegrationTests.cs`：測試 `GET /api/auctions/{id}` 成功、404 情境（共 2 個 end-to-end 測試）
 
 ### Implementation for User Story 2
 
-- [ ] T023a [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/AuctionImageDto.cs`：含 Url(string)、DisplayOrder(int) 屬性（H1 修正：補充缺失的 DTO 定義）；**請先完成此任務再開始 T024**（T024 的 `AuctionDetailDto` 編譯時依賴 `AuctionImageDto`）
-- [ ] T024 [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/AuctionDetailDto.cs`：含全部欄位（Id、OwnerId、Title、Description、StartingPrice、**StartTime**、EndTime、Status、CategoryId、CurrentHighestBid(decimal?)、WinnerId、SoldAmount、Images(List<AuctionImageDto>)、CreatedAt、UpdatedAt）
-- [ ] T025 [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/GetAuctionDetailQuery.cs`：`IRequest<AuctionDetailDto>`，含 AuctionId(Guid)
-- [ ] T026 [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/GetAuctionDetailQueryHandler.cs`：查詢含 Images 的 `Auction`（`Include(a => a.Images)`）；呼叫 `IBiddingQueryService.GetHighestBidAsync()` 取得 `BidInfoDto?`；商品不存在拋 `NotFoundException`；projection 至 `AuctionDetailDto`；**`CurrentHighestBid = bidInfo?.Amount`**（結標後此欄位為 null，成交金額改由 SoldAmount 表示）
-- [ ] T027 [US2] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `GET /{id}` action（**action method 命名為 `GetById`**，供 T047 `CreatedAtAction(nameof(GetById), ...)` 引用）：回傳 `ApiResponse<AuctionDetailDto>` HTTP 200；404 由 GlobalExceptionMiddleware 處理
+- [x] T023a [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/AuctionImageDto.cs`：含 Url(string)、DisplayOrder(int) 屬性（H1 修正：補充缺失的 DTO 定義）；**請先完成此任務再開始 T024**（T024 的 `AuctionDetailDto` 編譯時依賴 `AuctionImageDto`）
+- [x] T024 [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/AuctionDetailDto.cs`：含全部欄位（Id、OwnerId、Title、Description、StartingPrice、**StartTime**、EndTime、Status、CategoryId、CurrentHighestBid(decimal?)、WinnerId、SoldAmount、Images(List<AuctionImageDto>)、CreatedAt、UpdatedAt）
+- [x] T025 [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/GetAuctionDetailQuery.cs`：`IRequest<AuctionDetailDto>`，含 AuctionId(Guid)
+- [x] T026 [US2] 新增 `src/Modules/Auction/Application/Queries/GetAuctionDetail/GetAuctionDetailQueryHandler.cs`：查詢含 Images 的 `Auction`（`Include(a => a.Images)`）；呼叫 `IBiddingQueryService.GetHighestBidAsync()` 取得 `BidInfoDto?`；商品不存在拋 `NotFoundException`；projection 至 `AuctionDetailDto`；**`CurrentHighestBid = bidInfo?.Amount`**（結標後此欄位為 null，成交金額改由 SoldAmount 表示）
+- [x] T027 [US2] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `GET /{id}` action（**action method 命名為 `GetById`**，供 T047 `CreatedAtAction(nameof(GetById), ...)` 引用）：回傳 `ApiResponse<AuctionDetailDto>` HTTP 200；404 由 GlobalExceptionMiddleware 處理
 
 **Checkpoint**: `dotnet test` 全綠，`GET /api/auctions/{id}` 可獨立運作
 
@@ -105,19 +106,19 @@
 
 ### Tests for User Story 3 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T028 [P] [US3] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/AddWatchlistCommandHandlerTests.cs`：測試成功加入、重複加入冪等（不重複 insert）、**商品不存在拋 NotFoundException**（共 3 個測試用例）
-- [ ] T029 [P] [US3] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/RemoveWatchlistCommandHandlerTests.cs`：測試成功移除、移除不存在的項目冪等（共 2 個測試用例）
-- [ ] T030 [P] [US3] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/GetWatchlistQueryHandlerTests.cs`：測試查詢回傳全部（含 Ended）、`status=active` 僅回傳 Active（共 2 個測試用例）
-- [ ] T031 [P] [US3] 撰寫 `tests/AuctionService.IntegrationTests/Auction/WatchlistIntegrationTests.cs`：HTTP 測試加入/移除/查詢追蹤清單、冪等、JWT 保護（401 未登入）、**追蹤不存在商品 → 404**（共 6 個 end-to-end 測試）
+- [x] T028 [P] [US3] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/AddWatchlistCommandHandlerTests.cs`：測試成功加入、重複加入冪等（不重複 insert）、**商品不存在拋 NotFoundException**（共 3 個測試用例）
+- [x] T029 [P] [US3] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/RemoveWatchlistCommandHandlerTests.cs`：測試成功移除、移除不存在的項目冪等（共 2 個測試用例）
+- [x] T030 [P] [US3] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/GetWatchlistQueryHandlerTests.cs`：測試查詢回傳全部（含 Ended）、`status=active` 僅回傳 Active（共 2 個測試用例）
+- [x] T031 [P] [US3] 撰寫 `tests/AuctionService.IntegrationTests/Auction/WatchlistIntegrationTests.cs`：HTTP 測試加入/移除/查詢追蹤清單、冪等、JWT 保護（401 未登入）、**追蹤不存在商品 → 404**（共 6 個 end-to-end 測試）
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] 新增 `src/Modules/Auction/Application/Commands/AddWatchlist/AddWatchlistCommand.cs` 與 `AddWatchlistCommandHandler.cs`：先 check `Watchlist` 是否存在（user_id + auction_id），不存在則 insert；若商品不存在拋 `NotFoundException`；UserId 從 Command 傳入（Controller 從 JWT 取得）
-- [ ] T033 [US3] 新增 `src/Modules/Auction/Application/Commands/RemoveWatchlist/RemoveWatchlistCommand.cs` 與 `RemoveWatchlistCommandHandler.cs`：查找 `Watchlist` 記錄，存在則刪除；不存在則靜默（冪等）
-- [ ] T034 [US3] 新增 `src/Modules/Auction/Application/Queries/GetWatchlist/WatchlistItemDto.cs`：含 AuctionId、Title、StartingPrice、**StartTime(DateTimeOffset)**、EndTime、Status、ThumbnailUrl(nullable)、**AddedAt(DateTimeOffset)**（映射自 `Watchlist.CreatedAt`，即 BaseEntity.CreatedAt）
-- [ ] T035 [US3] 新增 `src/Modules/Auction/Application/Queries/GetWatchlist/GetWatchlistQuery.cs` 與 `GetWatchlistQueryHandler.cs`：Join Watchlist + `Auction`；`status` 參數為 null 則全部，`"active"` 則篩選 Active；按 `Watchlist.CreatedAt` 降序（即 `OrderByDescending(w => w.CreatedAt)`，DTO 中顯示為 AddedAt）；**ThumbnailUrl 取 `DisplayOrder` 最小值的圖片（`ORDER BY DisplayOrder ASC` 第一筆，同 T020 邏輯）**
-- [ ] T036 [US3] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `[Authorize] POST /{id}/watchlist` 與 `[Authorize] DELETE /{id}/watchlist` actions：從 `User.FindFirst` 取得 userId；回傳 **HTTP 204 No Content**（`return NoContent()`，不包 ApiResponse — HTTP 204 禁止帶 response body）
-- [ ] T037 [US3] 新增 `src/AuctionService.Api/Controllers/WatchlistController.cs`：`[Authorize][ApiController][Route("api/watchlist")]`；`GET /` 對應 `GetWatchlistQuery`，傳入 `status` 查詢參數及 JWT userId；回傳 `ApiResponse<List<WatchlistItemDto>>` HTTP 200
+- [x] T032 [US3] 新增 `src/Modules/Auction/Application/Commands/AddWatchlist/AddWatchlistCommand.cs` 與 `AddWatchlistCommandHandler.cs`：先 check `Watchlist` 是否存在（user_id + auction_id），不存在則 insert；若商品不存在拋 `NotFoundException`；UserId 從 Command 傳入（Controller 從 JWT 取得）
+- [x] T033 [US3] 新增 `src/Modules/Auction/Application/Commands/RemoveWatchlist/RemoveWatchlistCommand.cs` 與 `RemoveWatchlistCommandHandler.cs`：查找 `Watchlist` 記錄，存在則刪除；不存在則靜默（冪等）
+- [x] T034 [US3] 新增 `src/Modules/Auction/Application/Queries/GetWatchlist/WatchlistItemDto.cs`：含 AuctionId、Title、StartingPrice、**StartTime(DateTimeOffset)**、EndTime、Status、ThumbnailUrl(nullable)、**AddedAt(DateTimeOffset)**（映射自 `Watchlist.CreatedAt`，即 BaseEntity.CreatedAt）
+- [x] T035 [US3] 新增 `src/Modules/Auction/Application/Queries/GetWatchlist/GetWatchlistQuery.cs` 與 `GetWatchlistQueryHandler.cs`：Join Watchlist + `Auction`；`status` 參數為 null 則全部，`"active"` 則篩選 Active；按 `Watchlist.CreatedAt` 降序（即 `OrderByDescending(w => w.CreatedAt)`，DTO 中顯示為 AddedAt）；**ThumbnailUrl 取 `DisplayOrder` 最小值的圖片（`ORDER BY DisplayOrder ASC` 第一筆，同 T020 邏輯）**
+- [x] T036 [US3] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `[Authorize] POST /{id}/watchlist` 與 `[Authorize] DELETE /{id}/watchlist` actions：從 `User.FindFirst` 取得 userId；回傳 **HTTP 204 No Content**（`return NoContent()`，不包 ApiResponse — HTTP 204 禁止帶 response body）
+- [x] T037 [US3] 新增 `src/AuctionService.Api/Controllers/WatchlistController.cs`：`[Authorize][ApiController][Route("api/watchlist")]`；`GET /` 對應 `GetWatchlistQuery`，傳入 `status` 查詢參數及 JWT userId；回傳 `ApiResponse<List<WatchlistItemDto>>` HTTP 200
 
 **Checkpoint**: `dotnet test` 全綠，追蹤清單三個端點可獨立運作
 
@@ -132,13 +133,13 @@
 
 ### Tests for User Story 4 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T038 [P] [US4] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/AuctionEndBackgroundServiceTests.cs`：**使用 `IServiceScopeFactory` mock + `IMediator` mock**，mock scope 回傳含測試資料的 EF Core InMemory DbContext（`UseInMemoryDatabase`）；EF Core DbContext 未實作介面，無法直接以 NSubstitute mock；測試**過期** Active 商品被結標、有出價發布 Event、無出價不發布、Ended 商品廩等不重複處理、批次上限 100、**`endTime = UtcNow + 1hour` 的 Active 商品排程後 Status 仍為 Active**（US4 AC5）（共 6 個測試用例）
-- [ ] T039 [P] [US4] 撰寫 `tests/AuctionService.IntegrationTests/Auction/AuctionEndBackgroundServiceIntegrationTests.cs`：植入過期商品 → manually trigger / wait → 驗證 DB 狀態為 Ended；**第 2 個測試需驗證排程誤差**：植入 `endTime = UtcNow - 30s` 的商品，等待最多 2 分鐘，斷言狀態變更（SC-003 ≤ 2 分鐘誤差）（共 2 個 end-to-end 測試）
+- [x] T038 [P] [US4] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/AuctionEndBackgroundServiceTests.cs`：**使用 `IServiceScopeFactory` mock + `IMediator` mock**，mock scope 回傳含測試資料的 EF Core InMemory DbContext（`UseInMemoryDatabase`）；EF Core DbContext 未實作介面，無法直接以 NSubstitute mock；測試**過期** Active 商品被結標、有出價發布 Event、無出價不發布、Ended 商品廩等不重複處理、批次上限 100、**`endTime = UtcNow + 1hour` 的 Active 商品排程後 Status 仍為 Active**（US4 AC5）（共 6 個測試用例）
+- [x] T039 [P] [US4] 撰寫 `tests/AuctionService.IntegrationTests/Auction/AuctionEndBackgroundServiceIntegrationTests.cs`：植入過期商品 → manually trigger / wait → 驗證 DB 狀態為 Ended；**第 2 個測試需驗證排程誤差**：植入 `endTime = UtcNow - 30s` 的商品，等待最多 2 分鐘，斷言狀態變更（SC-003 ≤ 2 分鐘誤差）（共 2 個 end-to-end 測試）
 
 ### Implementation for User Story 4
 
-- [ ] T040 [US4] 新增 `src/Modules/Auction/Infrastructure/BackgroundServices/AuctionEndBackgroundService.cs`：`BackgroundService` 實作；`PeriodicTimer(TimeSpan.FromSeconds(60))`；每輪開始時使用 `using var scope = _logger.BeginScope(new { TraceId = Activity.Current?.Id ?? Guid.NewGuid().ToString() })` 結構化日誌追蹤；查詢 `status=Active AND end_time <= now LIMIT 100`；對每筆呼叫 `IBiddingQueryService.GetHighestBidAsync()` 取得 `BidInfoDto?`；呼叫 `auction.End(bidInfo?.WinnerId, bidInfo?.Amount)`；`SaveChangesAsync()`；**若 `bidInfo != null`（有出價紀錄）**則透過 `IMediator.Publish(new AuctionWonEvent(auction.Id, bidInfo.WinnerId, bidInfo.Amount, auction.OwnerId))`；try-catch 外層 catch Exception → `_logger.LogError(ex, "...")` → continue
-- [ ] T041 [US4] 在 `src/Modules/Auction/Application/DependencyInjection.cs` 新增 `services.AddHostedService<AuctionEndBackgroundService>()`
+- [x] T040 [US4] 新增 `src/Modules/Auction/Infrastructure/BackgroundServices/AuctionEndBackgroundService.cs`：`BackgroundService` 實作；`PeriodicTimer(TimeSpan.FromSeconds(60))`；每輪開始時使用 `using var scope = _logger.BeginScope(new { TraceId = Activity.Current?.Id ?? Guid.NewGuid().ToString() })` 結構化日誌追蹤；查詢 `status=Active AND end_time <= now LIMIT 100`；對每筆呼叫 `IBiddingQueryService.GetHighestBidAsync()` 取得 `BidInfoDto?`；呼叫 `auction.End(bidInfo?.WinnerId, bidInfo?.Amount)`；`SaveChangesAsync()`；**若 `bidInfo != null`（有出價紀錄）**則透過 `IMediator.Publish(new AuctionWonEvent(auction.Id, bidInfo.WinnerId, bidInfo.Amount, auction.OwnerId))`；try-catch 外層 catch Exception → `_logger.LogError(ex, "...")` → continue
+- [x] T041 [US4] 在 `src/Modules/Auction/Application/DependencyInjection.cs` 新增 `services.AddHostedService<AuctionEndBackgroundService>()`
 
 **Checkpoint**: `dotnet test` 全綠，排程結標可獨立驗證
 
@@ -153,16 +154,16 @@
 
 ### Tests for User Story 5 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T042 [P] [US5] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/CreateAuctionCommandHandlerTests.cs`：測試成功建立（回傳新 Guid）、起標價 ≤ 0 拋 ValidationException、startTime ≤ now 拋 ValidationException、endTime 未 > startTime+1min 拋 ValidationException、**imageUrls 超過 5 張拋 ValidationException**（共 5 個測試用例）
-- [ ] T043 [P] [US5] 撰寫 `tests/AuctionService.IntegrationTests/Auction/CreateAuctionIntegrationTests.cs`：HTTP 測試成功建立 201、未登入 401、驗證失敗 422 三種情境、**建立後立即出現在 `GET /api/auctions` 列表中**（US5 AC7）（共 4 個 end-to-end 測試）
+- [x] T042 [P] [US5] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/CreateAuctionCommandHandlerTests.cs`：測試成功建立（回傳新 Guid）、起標價 ≤ 0 拋 ValidationException、startTime ≤ now 拋 ValidationException、endTime 未 > startTime+1min 拋 ValidationException、**imageUrls 超過 5 張拋 ValidationException**（共 5 個測試用例）
+- [x] T043 [P] [US5] 撰寫 `tests/AuctionService.IntegrationTests/Auction/CreateAuctionIntegrationTests.cs`：HTTP 測試成功建立 201、未登入 401、驗證失敗 422 三種情境、**建立後立即出現在 `GET /api/auctions` 列表中**（US5 AC7）（共 4 個 end-to-end 測試）
 
 ### Implementation for User Story 5
 
-- [ ] T044a [US5] 新增 `src/AuctionService.Api/Controllers/Models/CreateAuctionRequest.cs`：含 Title(string)、Description(string?)、StartingPrice(decimal)、StartTime(DateTimeOffset)、EndTime(DateTimeOffset)、CategoryId(Guid?)、ImageUrls(List<string>?)；**不含 OwnerId**（OwnerId 從 JWT 取得，由 Controller 注入，防止呼叫方偽造擁有者身份）
-- [ ] T044 [US5] 新增 `src/Modules/Auction/Application/Commands/CreateAuction/CreateAuctionCommand.cs`：`IRequest<Guid>`，含 OwnerId(Guid)、Title、Description?、StartingPrice(decimal)、**StartTime(DateTimeOffset)**、EndTime(DateTimeOffset)、CategoryId(Guid?)、ImageUrls(List<string>?)
-- [ ] T045 [US5] 新增 `src/Modules/Auction/Application/Commands/CreateAuction/CreateAuctionCommandValidator.cs`：FluentValidation；`Title` NotEmpty MaxLength(200)；`StartingPrice` GreaterThan(0)；**`StartTime` GreaterThan(DateTimeOffset.UtcNow)**；**`EndTime` GreaterThan(Command.StartTime.AddMinutes(1))**；`ImageUrls` MaximumCount(5) 且每個 URL 必須為有效絕對 URI（`Must(url => Uri.TryCreate(url, UriKind.Absolute, out _))`）；`CategoryId` 本 Phase 不驗證存在性（nullable，允許任意合法 Guid）
-- [ ] T046 [US5] 新增 `src/Modules/Auction/Application/Commands/CreateAuction/CreateAuctionCommandHandler.cs`：呼叫 `Auction.Create(ownerId, title, description, startingPrice, startTime, endTime, categoryId, imageUrls)`；`_context.Auctions.Add(auction)`；`SaveChangesAsync()`；回傳 `auction.Id`
-- [ ] T047 [US5] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `[Authorize] POST /`：binding `CreateAuctionRequest`（T044a）；從 JWT 取得 OwnerId 注入 Command（不信任 body 中的 ownerId）；成功回傳 `CreatedAtAction(nameof(GetById), new { id }, ApiResponse<Guid>.Success(id, 201))`；含 Location header
+- [x] T044a [US5] 新增 `src/AuctionService.Api/Controllers/Models/CreateAuctionRequest.cs`：含 Title(string)、Description(string?)、StartingPrice(decimal)、StartTime(DateTimeOffset)、EndTime(DateTimeOffset)、CategoryId(Guid?)、ImageUrls(List<string>?)；**不含 OwnerId**（OwnerId 從 JWT 取得，由 Controller 注入，防止呼叫方偽造擁有者身份）
+- [x] T044 [US5] 新增 `src/Modules/Auction/Application/Commands/CreateAuction/CreateAuctionCommand.cs`：`IRequest<Guid>`，含 OwnerId(Guid)、Title、Description?、StartingPrice(decimal)、**StartTime(DateTimeOffset)**、EndTime(DateTimeOffset)、CategoryId(Guid?)、ImageUrls(List<string>?)
+- [x] T045 [US5] 新增 `src/Modules/Auction/Application/Commands/CreateAuction/CreateAuctionCommandValidator.cs`：FluentValidation；`Title` NotEmpty MaxLength(200)；`StartingPrice` GreaterThan(0)；**`StartTime` GreaterThan(DateTimeOffset.UtcNow)**；**`EndTime` GreaterThan(Command.StartTime.AddMinutes(1))**；`ImageUrls` MaximumCount(5) 且每個 URL 必須為有效絕對 URI（`Must(url => Uri.TryCreate(url, UriKind.Absolute, out _))`）；`CategoryId` 本 Phase 不驗證存在性（nullable，允許任意合法 Guid）
+- [x] T046 [US5] 新增 `src/Modules/Auction/Application/Commands/CreateAuction/CreateAuctionCommandHandler.cs`：呼叫 `Auction.Create(ownerId, title, description, startingPrice, startTime, endTime, categoryId, imageUrls)`；`_context.Auctions.Add(auction)`；`SaveChangesAsync()`；回傳 `auction.Id`
+- [x] T047 [US5] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `[Authorize] POST /`：binding `CreateAuctionRequest`（T044a）；從 JWT 取得 OwnerId 注入 Command（不信任 body 中的 ownerId）；成功回傳 `CreatedAtAction(nameof(GetById), new { id }, ApiResponse<Guid>.Success(id, 201))`；含 Location header
 
 **Checkpoint**: `dotnet test` 全綠，`POST /api/auctions` 可獨立運作
 
@@ -177,16 +178,16 @@
 
 ### Tests for User Story 6 ⚠️ 先寫測試並確認 FAIL
 
-- [ ] T048 [P] [US6] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/UpdateAuctionCommandHandlerTests.cs`：測試競標開放前更新全欄位成功、競標開放前更新 startingPrice 成功、**競標開放後更新 title 成功**（US6 AC2 正向路徑，`UpdateNonSensitive` 被呼叫）、競標開放後嘗試更新 **startingPrice/startTime/endTime** 沈 ValidationException(422)（US6 AC3，包含三個敷感欄位）、Ended 商品沈 ConflictException(409)、非擁有者沈 ForbiddenException(403)、商品不存在沈 NotFoundException(404)（共 7 個測試用例）
-- [ ] T049 [P] [US6] 撰寫 `tests/AuctionService.IntegrationTests/Auction/UpdateAuctionIntegrationTests.cs`：HTTP 測試競標開放前更新全欄位 200、競標開放後修改 startingPrice 得 422、409/403/404 各錯誤情境、未登入 401（共 6 個 end-to-end 測試）
+- [x] T048 [P] [US6] 撰寫 `tests/AuctionService.UnitTests/Auction/Application/UpdateAuctionCommandHandlerTests.cs`：測試競標開放前更新全欄位成功、競標開放前更新 startingPrice 成功、**競標開放後更新 title 成功**（US6 AC2 正向路徑，`UpdateNonSensitive` 被呼叫）、競標開放後嘗試更新 **startingPrice/startTime/endTime** 沈 ValidationException(422)（US6 AC3，包含三個敷感欄位）、Ended 商品沈 ConflictException(409)、非擁有者沈 ForbiddenException(403)、商品不存在沈 NotFoundException(404)（共 7 個測試用例）
+- [x] T049 [P] [US6] 撰寫 `tests/AuctionService.IntegrationTests/Auction/UpdateAuctionIntegrationTests.cs`：HTTP 測試競標開放前更新全欄位 200、競標開放後修改 startingPrice 得 422、409/403/404 各錯誤情境、未登入 401（共 6 個 end-to-end 測試）
 
 ### Implementation for User Story 6
 
-- [ ] T049a [US6] 新增 `src/AuctionService.Api/Controllers/Models/UpdateAuctionRequest.cs`：含全部可修改欄位（Title(string?)、Description(string?)、**StartingPrice(decimal?)**、**StartTime(DateTimeOffset?)**、**EndTime(DateTimeOffset?)**、CategoryId(Guid?)、ImageUrls(List<string>?)）；Controller 將全部欄位傳給 Command，Validator 負責根據競標狀態驗證
-- [ ] T050 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommand.cs`：`IRequest<AuctionDetailDto>`，含 AuctionId(Guid)、RequesterId(Guid)、Title(string?)、Description(string?)、StartingPrice(decimal?)、StartTime(DateTimeOffset?)、EndTime(DateTimeOffset?)、CategoryId(Guid?)、ImageUrls(List<string>?)
-- [ ] T051 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommandValidator.cs`：`Title` 若 not null 則 NotEmpty MaxLength(200)；`ImageUrls` MaximumCount(5) 且每個 URL 必須為有效絕對 URI；`StartingPrice` 若提供則 GreaterThan(0)；`StartTime` 若提供則 GreaterThan(UtcNow)；**`EndTime` 若提供則**：若 command.StartTime 亦有值 → `EndTime > command.StartTime + 1min`；若 command.StartTime 為 null → **EndTime 與現有 startTime 的比較移至 Handler（T052）在載入 Auction 後執行**，Validator 不持有 DbContext；**競標敏感欄位（StartingPrice/StartTime/EndTime）的存取許可判斷在 Handler 內依 `auction.StartTime` 狀態執行，Validator 只做格式驗證**；`CategoryId` 本 Phase 不驗證存在性
-- [ ] T052 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommandHandler.cs`：查找 `Auction`；不存在沈 `NotFoundException`；Status==Ended 沈 `ConflictException`；OwnerId ≠ RequesterId 沈 `ForbiddenException`；若 command 僅含 EndTime（無 StartTime）則补驗 `command.EndTime > auction.StartTime + 1min`（T051 Validator 無法驗證的情境）；檢查 `DateTimeOffset.UtcNow < auction.StartTime`（競標開放前）→ 呼叫 `auction.UpdateAll(...)`（**null 欄位使用現有商品屬性小覆，如 `command.Title ?? auction.Title`、`command.StartingPrice ?? auction.StartingPrice`**）；否則（競標已開放）若請求含 startingPrice/startTime/endTime 則沈 `new FluentValidation.ValidationException(new[] { new ValidationFailure(fieldName, "競標開放後不可修改此欄位") })`（與 Pipeline ValidationException 格式一致，GlobalExceptionMiddleware 可統一處理為 422），否則呼叫 `auction.UpdateNonSensitive(...)`；`SaveChangesAsync()`；回傳更新後 `AuctionDetailDto`
-- [ ] T053 [US6] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `[Authorize] PUT /{id}` action：binding `UpdateAuctionRequest`（T049a）；將全部欄位映射至 `UpdateAuctionCommand`；回傳 `ApiResponse<AuctionDetailDto>` HTTP 200
+- [x] T049a [US6] 新增 `src/AuctionService.Api/Controllers/Models/UpdateAuctionRequest.cs`：含全部可修改欄位（Title(string?)、Description(string?)、**StartingPrice(decimal?)**、**StartTime(DateTimeOffset?)**、**EndTime(DateTimeOffset?)**、CategoryId(Guid?)、ImageUrls(List<string>?)）；Controller 將全部欄位傳給 Command，Validator 負責根據競標狀態驗證
+- [x] T050 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommand.cs`：`IRequest<AuctionDetailDto>`，含 AuctionId(Guid)、RequesterId(Guid)、Title(string?)、Description(string?)、StartingPrice(decimal?)、StartTime(DateTimeOffset?)、EndTime(DateTimeOffset?)、CategoryId(Guid?)、ImageUrls(List<string>?)
+- [x] T051 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommandValidator.cs`：`Title` 若 not null 則 NotEmpty MaxLength(200)；`ImageUrls` MaximumCount(5) 且每個 URL 必須為有效絕對 URI；`StartingPrice` 若提供則 GreaterThan(0)；`StartTime` 若提供則 GreaterThan(UtcNow)；**`EndTime` 若提供則**：若 command.StartTime 亦有值 → `EndTime > command.StartTime + 1min`；若 command.StartTime 為 null → **EndTime 與現有 startTime 的比較移至 Handler（T052）在載入 Auction 後執行**，Validator 不持有 DbContext；**競標敏感欄位（StartingPrice/StartTime/EndTime）的存取許可判斷在 Handler 內依 `auction.StartTime` 狀態執行，Validator 只做格式驗證**；`CategoryId` 本 Phase 不驗證存在性
+- [x] T052 [US6] 新增 `src/Modules/Auction/Application/Commands/UpdateAuction/UpdateAuctionCommandHandler.cs`：查找 `Auction`；不存在沈 `NotFoundException`；Status==Ended 沈 `ConflictException`；OwnerId ≠ RequesterId 沈 `ForbiddenException`；若 command 僅含 EndTime（無 StartTime）則补驗 `command.EndTime > auction.StartTime + 1min`（T051 Validator 無法驗證的情境）；檢查 `DateTimeOffset.UtcNow < auction.StartTime`（競標開放前）→ 呼叫 `auction.UpdateAll(...)`（**null 欄位使用現有商品屬性小覆，如 `command.Title ?? auction.Title`、`command.StartingPrice ?? auction.StartingPrice`**）；否則（競標已開放）若請求含 startingPrice/startTime/endTime 則沈 `new FluentValidation.ValidationException(new[] { new ValidationFailure(fieldName, "競標開放後不可修改此欄位") })`（與 Pipeline ValidationException 格式一致，GlobalExceptionMiddleware 可統一處理為 422），否則呼叫 `auction.UpdateNonSensitive(...)`；`SaveChangesAsync()`；回傳更新後 `AuctionDetailDto`
+- [x] T053 [US6] 在 `src/AuctionService.Api/Controllers/AuctionsController.cs` 新增 `[Authorize] PUT /{id}` action：binding `UpdateAuctionRequest`（T049a）；將全部欄位映射至 `UpdateAuctionCommand`；回傳 `ApiResponse<AuctionDetailDto>` HTTP 200
 
 **Checkpoint**: `dotnet test` 全綠，`PUT /api/auctions/{id}` 全部情境通過
 
@@ -196,9 +197,9 @@
 
 **Purpose**: 同步更新因 Phase 1 重構造成的舊測試失敗。
 
-- [ ] T054 更新並重命名 `tests/AuctionService.UnitTests/Auction/AuctionItemTests.cs` → `AuctionTests.cs`：移除 `Activate()`、`MarkSold()`、`Cancel()` 相關測試；新增 `Auction.Create()` 直接為 Active、`End(winnerId, soldAmount)` 成功、`End()` 從非 Active 狀態拋例外、`UpdateAll()` 在競標開放前成功、`UpdateNonSensitive()` 在競標開放後成功、`UpdateAll()` 在競標開放後拋例外的測試（共 6 個測試用例）
-- [ ] T055 [P] 更新 `tests/AuctionService.IntegrationTests/Auction/AuctionDbContextTests.cs`：更新以符合新 Schema（auctions、categories、auction_images、watchlist）
-- [ ] T056 [P] 更新 `tests/AuctionService.UnitTests/Auction/AuctionDependencyInjectionTests.cs`：驗證 `IBiddingQueryService` 已正確注冊
+- [x] T054 更新並重命名 `tests/AuctionService.UnitTests/Auction/AuctionItemTests.cs` → `AuctionTests.cs`：移除 `Activate()`、`MarkSold()`、`Cancel()` 相關測試；新增 `Auction.Create()` 直接為 Active、`End(winnerId, soldAmount)` 成功、`End()` 從非 Active 狀態拋例外、`UpdateAll()` 在競標開放前成功、`UpdateNonSensitive()` 在競標開放後成功、`UpdateAll()` 在競標開放後拋例外的測試（共 6 個測試用例）
+- [x] T055 [P] 更新 `tests/AuctionService.IntegrationTests/Auction/AuctionDbContextTests.cs`：更新以符合新 Schema（auctions、categories、auction_images、watchlist）
+- [x] T056 [P] 更新 `tests/AuctionService.UnitTests/Auction/AuctionDependencyInjectionTests.cs`：驗證 `IBiddingQueryService` 已正確注冊
 
 ---
 
@@ -206,13 +207,13 @@
 
 **Purpose**: 跨 User Story 的橫切面關注，確保品質門檻。
 
-- [ ] T057 [P] 確認 GlobalExceptionMiddleware 能處理 `NotFoundException → 404`、`ConflictException → 409`、`ForbiddenException → 403`（若尚未支援則新增對應的 Exception 類型至 `src/AuctionService.Shared/`）
-- [ ] T058 [P] 在所有 CommandHandler/QueryHandler 中新增適當的 `ILogger` 呼叫（Info：建立/更新成功；Warn：商品未找到；Error：結標排程例外）；使用 Structured Logging Property 納入 CorrelationId（與 `src/AuctionService.Api/Middleware/CorrelationIdMiddleware.cs` 的追蹤 ID 對齊，符合 Constitution V 要求）；**`AuctionEndBackgroundService` 無 HTTP context，每輪執行時使用 `using var scope = _logger.BeginScope(new { TraceId = Activity.Current?.Id ?? Guid.NewGuid().ToString() })` 建立準一性 TraceId**
-- [ ] T059 驗證 `tests/AuctionService.IntegrationTests/Infrastructure/` WebApplicationFactory 的 Seed 資料完整性（T015a 已建立 categories seed）；確認所有 Auction Integration Tests 中 categoryId 筛選使用的分類 ID 與 Seed 資料一致（M1 修正後的驗證步驟）
-- [ ] T060 驗證 `dotnet test` 全部通過（Unit + Integration，目標 > 250 tests），輸出覆蓋率報告確認 Auction 模組 > 80%
-- [ ] T060a [P] **本地效能基準驗收**（不列入 CI）：Constitution IV 要求平時 API p95 ≤ 200ms；此任務為開發人員本地手動驗收基準，**非自動化測試**（機器差異導致不穩定，不適合 CI）——方法：事先透過 Seed Helper 植入 10,000 筆 Active 商品，在整合測試 `PerformanceTests.cs` 中使用 `Stopwatch` 計時斷言——執行 `GET /api/auctions` 連續 10 次取 p95 執行時間驗證 ≤ 500ms（SC-002 列表端點豁免）；其他端點（Detail/Create/Update/Watchlist）驗證 p95 ≤ 200ms
-- [ ] T061 執行 `quickstart.md` 中的驗證清單，確認所有端點手動測試通過（使用 `src/AuctionService.Api/AuctionService.Api.http` 或 Swagger UI）；**SC-001 人工驗收**：計時從登入到建立商品並確認出現在公開列表的完整流程，應在 3 分鐘內完成
-- [ ] T062 [P] 為 `AuctionsController` 與 `WatchlistController` 的所有公開 Action 新增 `<summary>` XML 文件註解（Constitution Documentation Requirements MUST）
+- [x] T057 [P] 確認 GlobalExceptionMiddleware 能處理 `NotFoundException → 404`、`ConflictException → 409`、`ForbiddenException → 403`（若尚未支援則新增對應的 Exception 類型至 `src/AuctionService.Shared/`）
+- [x] T058 [P] 在所有 CommandHandler/QueryHandler 中新增適當的 `ILogger` 呼叫（Info：建立/更新成功；Warn：商品未找到；Error：結標排程例外）；使用 Structured Logging Property 納入 CorrelationId（與 `src/AuctionService.Api/Middleware/CorrelationIdMiddleware.cs` 的追蹤 ID 對齊，符合 Constitution V 要求）；**`AuctionEndBackgroundService` 無 HTTP context，每輪執行時使用 `using var scope = _logger.BeginScope(new { TraceId = Activity.Current?.Id ?? Guid.NewGuid().ToString() })` 建立準一性 TraceId**
+- [x] T059 驗證 `tests/AuctionService.IntegrationTests/Infrastructure/` WebApplicationFactory 的 Seed 資料完整性（T015a 已建立 categories seed）；確認所有 Auction Integration Tests 中 categoryId 筛選使用的分類 ID 與 Seed 資料一致（M1 修正後的驗證步驟）
+- [x] T060 驗證 `dotnet test` 全部通過（Unit + Integration，目標 > 250 tests），輸出覆蓋率報告確認 Auction 模組 > 80%
+- [x] T060a [P] **本地效能基準驗收**（不列入 CI）：Constitution IV 要求平時 API p95 ≤ 200ms；此任務為開發人員本地手動驗收基準，**非自動化測試**（機器差異導致不穩定，不適合 CI）——方法：事先透過 Seed Helper 植入 10,000 筆 Active 商品，在整合測試 `PerformanceTests.cs` 中使用 `Stopwatch` 計時斷言——執行 `GET /api/auctions` 連續 10 次取 p95 執行時間驗證 ≤ 500ms（SC-002 列表端點豁免）；其他端點（Detail/Create/Update/Watchlist）驗證 p95 ≤ 200ms
+- [x] T061 執行 `quickstart.md` 中的驗證清單，確認所有端點手動測試通過（使用 `src/AuctionService.Api/AuctionService.Api.http` 或 Swagger UI）；**SC-001 人工驗收**：計時從登入到建立商品並確認出現在公開列表的完整流程，應在 3 分鐘內完成
+- [x] T062 [P] 為 `AuctionsController` 與 `WatchlistController` 的所有公開 Action 新增 `<summary>` XML 文件註解（Constitution Documentation Requirements MUST）
 
 ---
 
