@@ -1,6 +1,6 @@
 # Implementation Plan: Auction 模組 — 商品拍賣、追蹤清單與排程結標
 
-**Branch**: `003-auction-module` | **Date**: 2026-04-15 | **Spec**: [spec.md](./spec.md)  
+**Branch**: `003-auction-module` | **Date**: 2026-04-15 | **Completed**: 2026-04-16 | **Spec**: [spec.md](./spec.md)  
 **Input**: Feature specification from `/specs/003-auction-module/spec.md`
 
 ## Summary
