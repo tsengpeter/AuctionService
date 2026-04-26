@@ -5,112 +5,127 @@
 **Status**: Draft  
 **Input**: User description: "實作 Bidding 模組：使用者對 Active 狀態的拍賣商品出價（出價金額必須大於目前最高出價，否則回 422；商品非 Active 狀態回 409），查詢特定商品的出價歷史（依出價時間降序、分頁），查詢我的出價清單（顯示每筆出價的狀態：leading 我是目前最高出價者 / outbid 已被超越 / won 得標 / lost 未得標），schema: bidding，table: bids"
 
+## Clarifications
+
+### Session 2026-04-26
+
+- Q: outbid 狀態更新應在同一筆出價交易中同步完成，還是非同步處理？ → A: 同步更新 — 判定新的最高出價後立即更新狀態。但 "leading" 與 "outbid" 狀態透過快取層（如 Redis）維護，不在每次出價時直接讀寫主資料庫，以降低 DB 寫入壓力。
+- Q: 快取遺失或無法存取時，leading/outbid 狀態應如何恢復？ → A: 從 DB bids 資料重新計算 — 查詢主資料庫中的出價記錄找出當前最高出價，重新填入快取後繼續處理出價請求。
+- Q: 公開出價歷史中應顯示出價者的哪種識別資訊？ → A: 顯示出價者的 username（Member 模組的公開顯示名稱），不暴露任何私人資料。
+- Q: 出價金額允許的精度為何？ → A: 僅允許整數，不接受小數。
+- Q: 是否需要對出價頻率加以限制？ → A: 基本頻率限制 — 同一使用者對同一商品每秒最多 1 次出價，超過限制的請求一律拒絕並附上明確說明。
+
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Place a Bid on an Active Auction (Priority: P1)
+### User Story 1 - 對 Active 商品出價 (Priority: P1)
 
-A logged-in user browses an active auction and places a bid higher than the current highest bid. The system records the bid and the user becomes the current leading bidder. Other bidders who were previously leading are notified that they have been outbid.
+已登入的買家瀏覽 Active 狀態的拍賣商品，提交高於目前最高出價的整數金額。系統記錄出價，該買家成為目前最高出價者（leading）；先前的最高出價者狀態自動更新為 outbid。
 
-**Why this priority**: Placing a bid is the core action of the entire bidding system. Without it, no other bidding functionality has value. Delivery of this single story constitutes a usable MVP.
+**Why this priority**: 出價是整個出價系統的核心動作。缺少此功能，其餘出價相關功能皆無意義。單獨交付此 User Story 即構成可運作的 MVP。
 
-**Independent Test**: Can be fully tested by submitting a valid bid on an active auction item and verifying the bid is recorded and the bidder is shown as "leading".
+**Independent Test**: 對 Active 商品提交有效出價，驗證出價被記錄、出價者狀態顯示為「leading」、先前最高出價者變為「outbid」即可完整驗證。
 
 **Acceptance Scenarios**:
 
-1. **Given** a logged-in user and an active auction with a starting price of 100, **When** the user submits a bid of 150, **Then** the bid is accepted, the user's bid status is "leading", and the current highest bid is 150.
-2. **Given** a logged-in user and an active auction with a current highest bid of 200, **When** the user submits a bid of 200 or less, **Then** the bid is rejected with a clear message indicating the required minimum amount.
-3. **Given** a logged-in user and an auction that has already ended, **When** the user submits a bid, **Then** the bid is rejected with a message indicating the auction is no longer accepting bids.
-4. **Given** a logged-in user and an auction that has not yet started or has been cancelled, **When** the user submits a bid, **Then** the bid is rejected with a message indicating the auction is not currently active.
-5. **Given** an unauthenticated visitor, **When** they attempt to submit a bid, **Then** the request is rejected and the user is prompted to log in.
-6. **Given** the owner of an auction, **When** they attempt to bid on their own listing, **Then** the bid is rejected with a message indicating owners cannot bid on their own items.
+1. **Given** 已登入使用者，Active 商品起標價為 100，**When** 使用者提交出價 150，**Then** 出價成功，使用者狀態為「leading」，目前最高出價為 150。
+2. **Given** 已登入使用者，Active 商品目前最高出價為 200，**When** 使用者提交出價 200 或以下，**Then** 出價被拒絕，並顯示所需最低金額。
+3. **Given** 已登入使用者，商品已結標（Ended），**When** 使用者提交出價，**Then** 出價被拒絕，並說明拍賣已結束。
+4. **Given** 已登入使用者，商品非 Active 狀態（尚未開始或已取消），**When** 使用者提交出價，**Then** 出價被拒絕，並說明商品目前不接受出價。
+5. **Given** 未登入訪客，**When** 嘗試提交出價，**Then** 請求被拒絕，回傳 401 未授權。
+6. **Given** 商品擁有者，**When** 嘗試對自己的商品出價，**Then** 出價被拒絕，並說明擁有者不可對自己的商品出價。
 
 ---
 
-### User Story 2 - View Bid History for an Auction (Priority: P2)
+### User Story 2 - 查看商品出價歷史 (Priority: P2)
 
-Any visitor (logged-in or not) can view the complete list of bids placed on a specific auction item, ordered from the most recent bid down to the earliest, with pagination support for items with many bids.
+任何訪客（含未登入）皆可查看特定商品的完整出價記錄，依出價時間降序排列，並支援分頁。
 
-**Why this priority**: Bid history provides price transparency and builds trust, encouraging more confident bidding. It can be implemented and demonstrated independently of My Bids.
+**Why this priority**: 出價歷史提供價格透明度、建立買家信任，促進更積極的出價行為。可獨立於「我的出價」功能進行實作與驗證。
 
-**Independent Test**: Can be fully tested by viewing the bid history of an auction with multiple bids and verifying the correct order, bid amounts, and pagination behaviour.
+**Independent Test**: 對有多筆出價的商品查詢出價歷史，驗證正確的排序、出價金額與分頁行為即可完整驗證。
 
 **Acceptance Scenarios**:
 
-1. **Given** an auction with multiple bids, **When** a visitor requests the bid history, **Then** all bids are returned ordered by bid time from newest to oldest, each showing the bidder identifier and amount.
-2. **Given** an auction with more bids than the page size, **When** a visitor requests page 2, **Then** the correct subset of bids is returned along with information about total count and available pages.
-3. **Given** an auction with no bids, **When** a visitor requests the bid history, **Then** an empty list is returned without an error.
-4. **Given** a non-existent auction ID, **When** a visitor requests the bid history, **Then** an appropriate "not found" response is returned.
+1. **Given** 商品有多筆出價，**When** 訪客請求出價歷史，**Then** 依出價時間降序回傳所有出價，每筆包含出價者 username 與金額。
+2. **Given** 商品出價筆數超過每頁上限，**When** 訪客請求第 2 頁，**Then** 回傳正確的子集合，並附上總筆數與可用頁數資訊。
+3. **Given** 商品尚無出價，**When** 訪客請求出價歷史，**Then** 回傳空陣列，HTTP 200。
+4. **Given** 不存在的商品 ID，**When** 訪客請求出價歷史，**Then** 回傳 404 Not Found。
 
 ---
 
-### User Story 3 - View My Bids (Priority: P3)
+### User Story 3 - 查看我的出價清單 (Priority: P3)
 
-A logged-in user can see all bids they have ever placed, with the current status of each bid clearly shown: whether they are currently the leading bidder, have been outbid, have won, or have lost the auction.
+已登入使用者可查看自己曾提交的所有出價，每筆出價清楚顯示目前狀態：leading（目前最高出價者）、outbid（已被超越）、won（得標）或 lost（未得標）。
 
-**Why this priority**: Gives buyers visibility into their bidding activity and outcomes. This relies on bid status tracking established in P1 and outcome processing after auctions end.
+**Why this priority**: 讓買家掌握自己的出價活動與結果。此功能依賴 P1 建立的狀態追蹤機制，以及結標後的狀態批次更新。
 
-**Independent Test**: Can be fully tested by placing bids as a user and verifying the list reflects correct statuses across active and ended auctions.
+**Independent Test**: 以同一使用者在多個商品出價，驗證清單正確反映 Active 與 Ended 商品的各種出價狀態即可完整驗證。
 
 **Acceptance Scenarios**:
 
-1. **Given** a logged-in user who has placed bids across multiple auctions, **When** they request their bid list, **Then** each entry shows the auction reference, bid amount, and current status.
-2. **Given** a user who is currently the highest bidder on an active auction, **When** they view their bids, **Then** that bid's status is "leading".
-3. **Given** a user whose bid was surpassed by another bidder on an active auction, **When** they view their bids, **Then** that bid's status is "outbid".
-4. **Given** a user who placed the highest bid on an auction that has now ended, **When** they view their bids, **Then** that bid's status is "won".
-5. **Given** a user who placed a bid on an auction that has now ended but they were not the highest bidder, **When** they view their bids, **Then** that bid's status is "lost".
-6. **Given** a logged-in user who has never placed any bids, **When** they request their bid list, **Then** an empty list is returned without an error.
+1. **Given** 已登入使用者曾在多個商品出價，**When** 請求出價清單，**Then** 每筆記錄顯示商品參照、出價金額、出價時間與目前狀態。
+2. **Given** 使用者目前是某 Active 商品的最高出價者，**When** 查看出價清單，**Then** 該筆出價狀態為「leading」。
+3. **Given** 使用者的出價已被他人超越（商品仍 Active），**When** 查看出價清單，**Then** 該筆出價狀態為「outbid」。
+4. **Given** 使用者以最高出價結標，**When** 查看出價清單，**Then** 該筆出價狀態為「won」。
+5. **Given** 使用者曾出價但非最高出價，商品已結標，**When** 查看出價清單，**Then** 該筆出價狀態為「lost」。
+6. **Given** 已登入使用者從未出價，**When** 請求出價清單，**Then** 回傳空陣列，HTTP 200。
 
 ---
 
 ### Edge Cases
 
-- What happens when two users place the same bid amount at nearly the same time? (The bid recorded first chronologically wins; the second is rejected as it is not strictly greater.)
-- What happens when the bid amount is zero or negative? (The bid is rejected as invalid regardless of auction state.)
-- What happens if a bid is placed at the exact moment an auction ends? (Bids placed after the auction close time are rejected, even if the close event has not yet been fully processed.)
-- What happens when an auction ends and has no bids? (No winner is assigned; all fields remain empty/null.)
-- Can a user have multiple bids on the same auction? (Yes; a user may bid multiple times, but only their most recent standing and the overall highest bid matter.)
+- 兩位使用者幾乎同時提交相同金額出價時？（依記錄時間先後判定，先到者接受，後到者因金額未超越而被拒。）
+- 同一使用者在同一商品每秒提交超過 1 次出價時？（超額請求一律拒絕並附上頻率限制說明，不記錄出價。）
+- 出價金額為零、負數或小數時？（無論商品狀態，一律視為無效出價拒絕。）
+- 在商品結標瞬間提交出價時？（超過結標時間的出價一律拒絕，即使結標事件尚未完全處理。）
+- 商品結標時無任何出價？（不指定得標者，相關欄位維持 null。）
+- 使用者可以對同一商品出價多次嗎？（可以，但每次新出價必須嚴格大於當前最高出價。）
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: Authenticated users MUST be able to place a bid on an active auction item by submitting a bid amount.
-- **FR-002**: A submitted bid amount MUST be strictly greater than the current highest bid on that auction; bids equal to or less than the current highest bid MUST be rejected with a clear reason.
-- **FR-003**: When no previous bids exist on an auction, the starting price defined on the auction listing acts as the minimum threshold; any bid amount MUST be greater than the starting price.
-- **FR-004**: Bids placed on an auction item that is not in Active status MUST be rejected with a clear reason indicating the auction cannot accept bids.
-- **FR-005**: The system MUST prevent users from placing bids on auction items they own.
-- **FR-006**: Any visitor MUST be able to retrieve the bid history for a specific auction item, ordered by bid time descending, with pagination.
-- **FR-007**: Authenticated users MUST be able to retrieve a list of all bids they have placed, each showing the auction item reference, bid amount, bid time, and bid status.
-- **FR-008**: Bid status MUST reflect the bidder's current standing: "leading" (currently the highest bidder on an active auction), "outbid" (surpassed by another bidder on an active auction), "won" (highest bidder after auction ended), or "lost" (not the highest bidder after auction ended).
-- **FR-009**: When an auction ends, the system MUST automatically update all associated bids — the highest bidder's status becomes "won" and all other bidders' statuses become "lost".
-- **FR-010**: The system MUST ensure bid amount is a positive value; bids with a zero or negative amount MUST be rejected.
+- **FR-001**: 已認證使用者必須能夠對 Active 狀態的拍賣商品提交出價。
+- **FR-002**: 提交的出價金額必須嚴格大於該商品的目前最高出價；等於或小於最高出價的出價必須被拒絕並附上明確說明。出價金額必須為整數，含小數的金額必須被拒絕。
+- **FR-003**: 商品尚無出價時，起標價為最低門檻；任何出價金額必須嚴格大於起標價。
+- **FR-004**: 對非 Active 狀態商品的出價必須被拒絕，並說明商品目前不接受出價。
+- **FR-005**: 系統必須禁止使用者對自己擁有的商品出價。
+- **FR-006**: 任何訪客必須能夠查詢特定商品的出價歷史，結果依出價時間降序排列並支援分頁。
+- **FR-007**: 已認證使用者必須能夠查詢自己所有的出價記錄，每筆記錄包含商品參照、出價金額、出價時間與出價狀態。
+- **FR-008**: 出價狀態必須反映出價者目前的立場：「leading」（Active 商品的目前最高出價者）、「outbid」（Active 商品中已被他人超越）、「won」（結標後的最高出價者）、「lost」（結標後的非最高出價者）。「leading」與「outbid」狀態必須在新的最高出價被接受的同一時刻同步更新 — 原最高出價者狀態在同一操作中轉為「outbid」。
+- **FR-009**: 商品結標時，系統必須自動更新所有相關出價狀態 — 最高出價者變為「won」，其餘出價者變為「lost」。
+- **FR-010**: 系統必須確保出價金額為正整數；零、負數或非整數（小數）金額必須被拒絕。
+- **FR-011**: 目前最高出價金額及「leading」/「outbid」狀態轉換必須透過快取層維護（而非每次出價都進行完整的主資料庫讀寫），以降低持久化儲存的寫入壓力。「won」與「lost」狀態在結標時持久化至主資料庫。
+- **FR-012**: 快取遺失或無法存取時，系統必須從主資料庫出價記錄重新計算當前最高出價、重新填入快取，並繼續處理該次出價請求，不得因快取問題拒絕請求。
+- **FR-013**: 系統必須限制同一使用者對同一商品每秒最多 1 次出價；超過限制的請求必須被拒絕並附上明確說明。
 
 ### Key Entities
 
-- **Bid**: Represents a single bid placed by a user on an auction item. Attributes: unique identifier, reference to auction item (by ID), reference to bidder (by user ID), bid amount, bid timestamp, current bid status (leading / outbid / won / lost).
+- **Bid（出價）**: 代表使用者對拍賣商品提交的單一出價。屬性：唯一識別碼、商品參照（by ID）、出價者參照（by 使用者 ID）、出價者 username（從 Member 模組反正規化，用於顯示）、出價金額（正整數）、出價時間、目前出價狀態（leading / outbid / won / lost）。
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: A valid bid is accepted and recorded within 2 seconds of submission under normal load.
-- **SC-002**: Invalid bids (insufficient amount, non-active auction, owner bidding) are rejected immediately with a clear, user-friendly explanation — not a generic error.
-- **SC-003**: Bid history for any auction is accurate and reflects all placed bids with no omissions; visitors can retrieve the full history through pagination.
-- **SC-004**: A user can always see the correct status (leading / outbid / won / lost) for every bid they have placed, with no stale or incorrect statuses.
-- **SC-005**: When an auction ends, all associated bid statuses are updated correctly — 100% of winning bids become "won" and 100% of non-winning bids become "lost" — with no manual intervention.
-- **SC-006**: The bidding system handles concurrent bid submissions gracefully; no two bids for the same amount on the same auction are both accepted simultaneously.
+- **SC-001**: 有效出價在一般負載下 2 秒內完成接受與記錄。
+- **SC-002**: 無效出價（金額不足、商品非 Active、擁有者出價）立即被拒絕，並附上清楚的使用者可讀說明，而非通用錯誤訊息。
+- **SC-003**: 任何商品的出價歷史準確無漏；訪客可透過分頁取得完整記錄。
+- **SC-004**: 使用者隨時可看到每筆出價的正確狀態（leading / outbid / won / lost），不出現過期或錯誤狀態。
+- **SC-005**: 商品結標後，所有相關出價狀態正確更新 — 100% 得標出價變為「won」，100% 未得標出價變為「lost」，無需人工介入。
+- **SC-006**: 出價系統能優雅處理並發提交；同一商品不會有兩筆相同金額的出價同時被接受。
 
 ## Assumptions
 
-- Bid amounts are denominated in a single currency; multi-currency support is out of scope.
-- The starting price (minimum bid threshold when no bids exist) is owned by the Auction module and is accessible to this feature at bid-placement time.
-- Bid history is publicly accessible; no authentication is required to view bids on an auction.
-- A user may place multiple bids on the same auction (raising their own bid is allowed as long as the new amount exceeds the current highest bid).
-- The auction ending process (which triggers the won/lost status update) is initiated by the existing `AuctionWonEvent` domain event published by the Auction module.
-- Bidder identity shown in public bid history displays a non-sensitive identifier (e.g., username or masked ID), not a private user reference.
+- 出價金額以單一貨幣的正整數計算；小數出價與多幣別支援不在本範疇。
+- 「leading」與「outbid」出價狀態在 Active 競標期間透過快取層維護（低延遲讀寫）；「won」與「lost」在結標後持久化至主資料庫。
+- 起標價（無出價時的最低門檻）由 Auction 模組管理，在出價時可存取。
+- 出價歷史為公開資料；查詢出價歷史不需要登入。
+- 使用者可以對同一商品出價多次，但每次新出價必須嚴格大於當前最高出價。
+- 結標流程（觸發 won/lost 狀態更新）由 Auction 模組發布的 `AuctionWonEvent` 領域事件啟動。
+- 公開出價歷史中顯示出價者的 username（Member 模組的公開顯示名稱），不暴露任何私人資料（email、電話、內部 ID）。
 
 ## Dependencies
 
-- **Auction Module**: Provides auction item state (Active / Ended) and starting price, referenced by auction ID.
-- **Member Module**: Provides bidder identity by user ID for display purposes.
-- **`AuctionWonEvent`**: Domain event published by the Auction module when an auction ends, consumed here to finalize bid statuses.
+- **Auction 模組**: 提供商品狀態（Active / Ended）與起標價，以 auction ID 邏輯參照。
+- **Member 模組**: 提供出價者 username，以使用者 ID 查詢，用於顯示用途。
+- **`AuctionWonEvent`**: Auction 模組發布的領域事件，結標時觸發，由本模組消費以批次更新出價狀態。
