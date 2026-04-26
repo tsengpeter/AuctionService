@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: AuctionService — Bidding Module API
+  version: 1.0.0
+  description: |
+    Bidding 模組 API 契約。
+    提供出價、查詢出價歷史與查詢我的出價清單功能。
+
+servers:
+  - url: /api
+    description: AuctionService API
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        statusCode:
+          type: integer
+        data:
+          description: 實際回應資料（類型依端點而定）
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        statusCode:
+          type: integer
+          example: 422
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    PlaceBidRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          description: 出價金額（正整數）
+          example: 150
+
+    PlaceBidResponse:
+      type: object
+      properties:
+        bidId:
+          type: string
+          format: uuid
+        auctionId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          format: int64
+          example: 150
+        placedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [leading]
+          description: 出價成功後狀態必定為 leading
+
+    BidDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bidderId:
+          type: string
+          format: uuid
+        bidderUsername:
+          type: string
+          example: john_doe
+        amount:
+          type: integer
+          format: int64
+          example: 200
+        placedAt:
+          type: string
+          format: date-time
+
+    MyBidDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        auctionId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          format: int64
+          example: 200
+        placedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [leading, outbid, won, lost]
+          description: 出價目前狀態
+
+    PagedBidsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BidDto'
+        totalCount:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+
+    PagedMyBidsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyBidDto'
+        totalCount:
+          type: integer
+          example: 10
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+
+paths:
+  /auctions/{auctionId}/bids:
+    post:
+      summary: 對商品出價
+      description: |
+        已登入使用者對 Active 狀態的拍賣商品出價。
+        - 出價金額必須為正整數且嚴格大於目前最高出價
+        - 商品擁有者不可對自己的商品出價
+        - 同一使用者對同一商品每秒最多 1 次出價
+      operationId: placeBid
+      tags: [Bids]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBidRequest'
+      responses:
+        '201':
+          description: 出價成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PlaceBidResponse'
+              example:
+                success: true
+                statusCode: 201
+                data:
+                  bidId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  auctionId: "a1b2c3d4-0000-0000-0000-000000000001"
+                  amount: 150
+                  placedAt: "2026-04-27T10:00:00Z"
+                  status: "leading"
+        '401':
+          description: 未登入
+        '403':
+          description: 商品擁有者不可對自己的商品出價
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: false
+                statusCode: 403
+                data: null
+        '404':
+          description: 商品不存在
+        '409':
+          description: 商品非 Active 狀態，不接受出價
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: false
+                statusCode: 409
+                data: null
+        '422':
+          description: 出價金額不足（≤ 目前最高出價）或輸入驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                success: false
+                statusCode: 422
+                errors:
+                  - field: "amount"
+                    message: "出價金額必須大於目前最高出價 200"
+        '429':
+          description: 超過出價頻率限制（每秒 1 次）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: false
+                statusCode: 429
+                data: null
+
+    get:
+      summary: 查詢商品出價歷史
+      description: |
+        查詢特定商品的所有出價記錄，依出價時間降序排列，支援分頁。
+        不需要登入即可存取。
+      operationId: getAuctionBids
+      tags: [Bids]
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: 出價歷史列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PagedBidsResponse'
+              example:
+                success: true
+                statusCode: 200
+                data:
+                  items:
+                    - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      bidderId: "b1b2c3d4-0000-0000-0000-000000000001"
+                      bidderUsername: "john_doe"
+                      amount: 200
+                      placedAt: "2026-04-27T10:05:00Z"
+                    - id: "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+                      bidderId: "c1b2c3d4-0000-0000-0000-000000000002"
+                      bidderUsername: "jane_doe"
+                      amount: 150
+                      placedAt: "2026-04-27T10:00:00Z"
+                  totalCount: 2
+                  page: 1
+                  pageSize: 20
+        '404':
+          description: 商品不存在
+
+  /bids/my:
+    get:
+      summary: 查詢我的出價清單
+      description: |
+        查詢已登入使用者曾提交的所有出價，每筆出價顯示目前狀態。
+        狀態說明：
+        - `leading`：目前最高出價者（Active 拍賣中）
+        - `outbid`：已被他人超越（Active 拍賣中）
+        - `won`：得標（拍賣已結束）
+        - `lost`：未得標（拍賣已結束）
+      operationId: getMyBids
+      tags: [Bids]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: 我的出價清單
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PagedMyBidsResponse'
+              example:
+                success: true
+                statusCode: 200
+                data:
+                  items:
+                    - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      auctionId: "a1b2c3d4-0000-0000-0000-000000000001"
+                      amount: 200
+                      placedAt: "2026-04-27T10:05:00Z"
+                      status: "leading"
+                    - id: "5fa85f64-5717-4562-b3fc-2c963f66afa8"
+                      auctionId: "a1b2c3d4-0000-0000-0000-000000000002"
+                      amount: 300
+                      placedAt: "2026-04-26T09:00:00Z"
+                      status: "won"
+                  totalCount: 2
+                  page: 1
+                  pageSize: 20
+        '401':
+          description: 未登入

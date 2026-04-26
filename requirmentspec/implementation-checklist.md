@@ -393,7 +393,8 @@ git checkout -b 004-bidding-module
   Domain 層：Bid 實體（auctionId: Guid, bidderId: Guid, amount: decimal, bidTime: DateTimeOffset），無跨模組 EF Navigation，auctionId/bidderId 為邏輯 Guid 參考；BidStatus enum（Leading/Outbid/Won/Lost）儲存於 Bid 實體；
   Application 層：IAuctionQueryService 介面（GetAuctionStatusAsync(auctionId) → AuctionStatus?, GetAuctionOwnerIdAsync(auctionId) → Guid?）於 Application/Abstractions；CQRS 命令：PlaceBidCommand（驗證：auction 狀態為 Active / 出價 > MAX(amount) WHERE auction_id / bidderId ≠ ownerId）+ Validator；CQRS 查詢：GetAuctionBidsQuery（依 bidTime 降序，offset 分頁）、GetMyBidsQuery（計算每筆 bid 的 leading/outbid/won/lost 狀態）；INotificationHandler<AuctionWonEvent>：批次更新 bids（WinnerId 對應 bid → Won，同 auctionId 其餘 → Lost）；
   Infrastructure 層：BiddingDbContext，bidding schema，bids 表，INDEX(auction_id, amount DESC) 加速 MAX 查詢，INDEX(bidder_id) 加速 GetMyBids；IAuctionQueryService 實作透過 AuctionDbContext 或 HTTP 查詢（模組內 DI 注入）；
-  錯誤對應：出價 ≤ 當前最高出價 → 422（回傳 currentHighestBid），商品非 Active → 409，自己對自己競標 → 403
+  錯誤對應：出價 ≤ 當前最高出價 → 422（回傳 currentHighestBid），商品非 Active → 409，自己對自己競標 → 403；
+  價格競標先讀取跟寫入redis，之後再依序寫入DB的table，出價比較都先以redis的暫存資料來比較；
   ```
 - [ ] **Tasks**：`/speckit.tasks`
 - [ ] **Implement**：`/speckit.implement`
