@@ -112,7 +112,9 @@ public class BidConfiguration : IEntityTypeConfiguration<Bid>
 | `Id` | `uuid` | NOT NULL | PK，Guid.NewGuid() |
 | `AuctionId` | `uuid` | NOT NULL | 邏輯參照 auction.auctions.Id |
 | `BidderId` | `uuid` | NOT NULL | 邏輯參照 member.users.Id |
-| `BidderUsername` | `varchar(100)` | NOT NULL | 反正規化自 Member 模組 |
+| `BidderUsername` | `varchar(100)` | NOT NULL | 反正規化自 Member 模組（出價時擷取，不隨 username 變更而更新）|
+
+> ⚠️ **已知取捨**：若使用者在 Member 模組變更 username，`bids.BidderUsername` 將顯示出價當時的舊名稱，不會自動更新。這是刻意的反正規化設計，優先保留歷史紀錄的完整性。
 | `Amount` | `bigint` | NOT NULL | 正整數，元 |
 | `PlacedAt` | `timestamptz` | NOT NULL | 出價時間 UTC |
 | `Status` | `varchar(20)` | NOT NULL | Leading / Outbid / Won / Lost |
@@ -183,17 +185,30 @@ CREATE INDEX "IX_bids_auction_status" ON bidding.bids ("AuctionId", "Status");
 ```csharp
 public enum AuctionStatus { Active, Ended }
 
+public record AuctionInfoDto(
+    AuctionStatus Status,
+    Guid OwnerId,
+    long StartingPrice,
+    DateTimeOffset StartTime,
+    DateTimeOffset EndTime);
+
 public interface IAuctionQueryService
 {
-    Task<AuctionStatus?> GetAuctionStatusAsync(Guid auctionId, CancellationToken ct);
-    Task<Guid?> GetAuctionOwnerIdAsync(Guid auctionId, CancellationToken ct);
+    // 回傳 null 表示商品不存在
+    Task<AuctionInfoDto?> GetAuctionInfoAsync(Guid auctionId, CancellationToken ct);
 }
 ```
 
 **實作**（`Bidding.Infrastructure.Services.AuctionQueryService`）：
 - 注入 `NpgsqlDataSource`
-- 查詢 `auction.auctions` 表（`"Status"`、`"OwnerId"` 欄位，PascalCase，無 `UseSnakeCaseNamingConvention`）
-- 回傳 `null` 表示商品不存在
+- 查詢 `auction.auctions` 表（PascalCase，無 `UseSnakeCaseNamingConvention`）：
+  ```sql
+  SELECT "Status", "OwnerId", "StartingPrice", "StartTime", "EndTime"
+  FROM auction.auctions WHERE "Id" = @auctionId LIMIT 1
+  ```
+- 回傳 `null` 表示商品不存在；Handler 回 404
+- `StartingPrice` 供無出價時的最低門檻比較（FR-003）
+- `StartTime`/`EndTime` 供 Handler 驗證出價時間是否在競標窗口內：`StartTime <= now <= EndTime`，否則 409
 
 ### IMemberQueryService（Bidding.Application.Abstractions）
 
@@ -215,10 +230,11 @@ public interface IMemberQueryService
 
 **使用時機**：`PlaceBidCommandHandler` 在頻率限制檢查後、出價逻輯前呼叫。同步取得 `BidderUsername`（反正規化存入 `bids` 表）。
 
-### IBiddingQueryService（Auction.Application.Abstractions — 已存在）
+### IBiddingQueryService（Auction.Application.Abstractions — 已存在，需修改）
 
 ```csharp
-public record BidInfoDto(Guid WinnerId, decimal Amount);
+// ⚠️ 需將 decimal 改為 long，與 Bidding 模組 Amount 型別統一
+public record BidInfoDto(Guid WinnerId, long Amount);
 
 public interface IBiddingQueryService
 {

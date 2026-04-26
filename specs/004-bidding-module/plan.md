@@ -131,17 +131,20 @@ tests/
 2. 修改 `Bid.cs`：加入 `Status`、`BidderUsername`；`Amount` 型別改為 `long`；更新靜態工廠 `Place()`
 3. 更新 `BiddingDbContext.cs`：新增 `Status`（string 轉換）、`BidderUsername` 欄位；修改 `Amount` 為 `bigint`；補 `INDEX(AuctionId, Amount DESC)` 與 `INDEX(BidderId)`
 4. 新增 EF Migration：`AddBidStatusAndBidder`
+5. **型別統一**：修改現有原始碼以確保 `long` 一致性：
+   - `Auction/Application/Abstractions/IBiddingQueryService.cs`：`BidInfoDto.Amount` 由 `decimal` 改為 `long`
+   - `Auction/Domain/Events/AuctionWonEvent.cs`：`SoldAmount` 由 `decimal` 改為 `long`（屬性 + 建構子參數）
 
 ### Phase 2 — Application 層
 
 **目標**：定義所有介面、CQRS handlers、FluentValidation validators、AuctionWonEvent handler。
 
 **任務**：
-1. 新增 `IAuctionQueryService`（`GetAuctionStatusAsync` / `GetAuctionOwnerIdAsync`）
+1. 新增 `IAuctionQueryService`（單一方法：`GetAuctionInfoAsync(auctionId) → AuctionInfoDto?`，包含 `Status`、`OwnerId`、`StartingPrice`、`StartTime`、`EndTime`）
 2. 新增 `IMemberQueryService`（`GetMemberUsernameAsync`：確認會員存在並取得顯示名稱）
 3. 新增 `PlaceBidCommand` + `Validator`（驗證：amount > 0 整數；由 Handler 執行業務規則）
-4. 新增 `PlaceBidCommandHandler`（流程：頻率限制 → **確認使用者為已登入會員** → 驗證 auction Active → 驗證 owner ≠ bidder → 讀 Redis 取最高出價 → 比較 → 更新 Redis → DB 寫入）
-5. 新增 `GetAuctionBidsQuery` + `Handler`（offset 分頁，bidTime 降序）
+4. 新增 `PlaceBidCommandHandler`（流程：頻率限制 → **確認使用者為已登入會員** → 驗證 auction Active（IAuctionQueryService）→ **驗證競標時間窗口**（`StartTime <= now <= EndTime`，否則 409）→ 驗證 owner ≠ bidder → 取 StartingPrice 作下限 → `CompareAndSetHighestBidAsync`（Lua Script 原子比較設定）→ [成功] DB 寫入；[失敗] 422 → [DB 失敗] Redis 復原）
+5. 新增 `GetAuctionBidsQuery` + `Handler`（先透過 `IAuctionQueryService` 確認商品存在 → 404；再 offset 分頁查詢 `bids`，bidTime 降序）
 6. 新增 `GetMyBidsQuery` + `Handler`（計算每筆 leading/outbid/won/lost）
 7. 新增 `AuctionWonEventHandler`：批次 UPDATE bids（WinnerId → Won，其餘 auctionId → Lost）
 8. 更新 `DependencyInjection.cs`：加入 `AddValidatorsFromAssembly`、Redis、`IAuctionQueryService`、`IMemberQueryService`
@@ -152,11 +155,11 @@ tests/
 
 **任務**：
 1. 新增 `BidCacheService`：  
-   - `GetHighestBidAsync(auctionId)` → Redis GET `bid:highest:{auctionId}`，缺失則從 DB `MAX(Amount)` 重建  
-   - `SetHighestBidAsync(auctionId, amount, bidderId)` → Redis SET with no expiry  
+   - `GetHighestBidAsync(auctionId)` → Redis HGET `bid:highest:{auctionId}`（Hash），缺失則從 DB `MAX(Amount)` 重建  
+   - `CompareAndSetHighestBidAsync(auctionId, amount, bidderId)` → 執行 Lua Script 原子比較設定（`bid:highest:{auctionId}` Hash），回傳 `bool` 表示是否成功  
    - `CheckRateLimitAsync(userId, auctionId)` → Redis SET NX TTL 1s（回傳是否允許）
 2. 新增 `AuctionQueryService`：注入 `NpgsqlDataSource`，執行  
-   `SELECT "Status", "OwnerId" FROM auction.auctions WHERE "Id" = @auctionId`
+   `SELECT "Status", "OwnerId", "StartingPrice", "StartTime", "EndTime" FROM auction.auctions WHERE "Id" = @auctionId LIMIT 1`
 3. 新增 `MemberQueryService`：注入 `NpgsqlDataSource`，執行  
    `SELECT "Username" FROM member.users WHERE "Id" = @userId LIMIT 1`  
    → 回傳 `null` 表示會員不存在（Handler 回 403 Forbidden）
@@ -197,7 +200,7 @@ tests/
 
 | 測試類別 | 測試案例 |
 |---------|---------|
-| `PlaceBidIntegrationTests` | 出價寫入 DB；Redis 快取更新；並發出價只有 1 筆成功 |
+| `PlaceBidIntegrationTests` | 出價寫入 DB；Redis 快取更新；並發出價只有 1 筆成功；429 頻率限制（Testcontainers.Redis，1 秒內第 2 次出價）|
 | `GetAuctionBidsIntegrationTests` | 正確排序與分頁 |
 | `GetMyBidsIntegrationTests` | 跨多商品狀態正確 |
 
@@ -211,7 +214,7 @@ tests/
 | 使用者不是已登入會員（Member 不存在） | 403 | Forbidden |
 | 超過頻率限制（每秒 > 1 次） | 429 | Too Many Requests |
 | 商品不存在 | 404 | Not Found |
-| 未認證（保護端點） | 401 | Unauthorized |
+| 未認證（保護端點） | 401 | Unauthorized（由 JwtBearer OnChallenge 自動處理，Handler 不介入）|
 
 ## 依賴確認
 
